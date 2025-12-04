@@ -1,0 +1,12 @@
+{
+  "root": ".",
+  "headers": {
+    "/**": {
+      "Cache-Control": "public, max-age=3600"
+    }
+  },
+  "clean_urls": false,
+  "routes": {
+    "/*.html": "/index.html"
+  }
+}
