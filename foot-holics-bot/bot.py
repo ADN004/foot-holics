@@ -957,6 +957,13 @@ def get_inline_event_template() -> str:
         </div>
     </footer>
 
+    <!-- Adsterra Ad Scripts -->
+    <!-- Popunder Ad (triggers on click) -->
+    <script type="text/javascript" src="//pl28190353.effectivegatecpm.com/52/30/74/5230747febbb777e6e14a3c30aa1fd30.js"></script>
+
+    <!-- Social Bar Ad (sticky) -->
+    <script type="text/javascript" src="//pl28190484.effectivegatecpm.com/ad/f7/17/adf7172d701fdcad288330f7b67c9293.js"></script>
+
     <!-- JavaScript -->
     <script src="assets/js/main.js" defer></script>
 </body>
