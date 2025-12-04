@@ -4,8 +4,9 @@
   "description": "Foot Holics - Live Football Streaming Aggregator",
   "main": "index.html",
   "scripts": {
+    "dev": "npx serve . -p 3000",
     "build": "echo 'Static HTML site - no build required'",
-    "start": "echo 'Open index.html in browser'"
+    "start": "npx serve . -p 3000"
   },
   "keywords": [
     "football",
@@ -14,6 +15,5 @@
     "static-site"
   ],
   "author": "",
-  "license": "MIT",
-  "type": "module"
+  "license": "MIT"
 }
