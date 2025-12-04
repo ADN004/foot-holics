@@ -1,0 +1,5 @@
+# Bolt.new ignore file
+guides/
+*.ps1
+DEPLOYMENT-STEPS.md
+QUICK-START.txt

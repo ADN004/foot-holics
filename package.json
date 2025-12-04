@@ -1,0 +1,17 @@
+{
+  "name": "foot-holics",
+  "version": "1.0.0",
+  "description": "Foot Holics - Live Football Streaming Aggregator",
+  "scripts": {
+    "build": "echo 'No build needed - static HTML site'",
+    "start": "echo 'Static site - open index.html in browser'"
+  },
+  "keywords": [
+    "football",
+    "streaming",
+    "sports",
+    "static-site"
+  ],
+  "author": "",
+  "license": "MIT"
+}
