@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+    <!-- Homepage -->
+    <url>
+        <loc>https://footholics.example/</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+
+    <!-- Search Page -->
+    <url>
+        <loc>https://footholics.example/search.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Event Detail Pages -->
+    <url>
+        <loc>https://footholics.example/2025-10-26-brentford-vs-liverpool.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.example/2025-10-27-real-madrid-vs-barcelona.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.example/2025-10-28-bayern-vs-dortmund.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.example/2025-10-29-milan-vs-inter.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.example/2025-10-30-psg-vs-marseille.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.example/2025-10-31-man-city-vs-arsenal.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <!-- Legal Pages -->
+    <url>
+        <loc>https://footholics.example/privacy.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.example/terms.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.example/disclaimer.html</loc>
+        <lastmod>2025-10-26</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+
+</urlset>

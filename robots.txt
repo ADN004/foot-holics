@@ -1,0 +1,12 @@
+# Robots.txt for Foot Holics
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+Disallow: /p/
+
+# Sitemap location
+Sitemap: https://footholics.example/sitemap.xml
+
+# Crawl-delay to be respectful to search engine bots
+Crawl-delay: 1

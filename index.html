@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Foot Holics - Your premium sports streaming aggregator for live football matches. Watch Premier League, Champions League, La Liga, Serie A, and more.">
+    <meta name="keywords" content="football streaming, live football, premier league, champions league, sports streaming">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Foot Holics - Live. Passion. Football.">
+    <meta property="og:description" content="Your premium sports streaming aggregator for live football matches worldwide.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/assets/img/og-image.jpg">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Foot Holics - Live. Passion. Football.">
+    <meta name="twitter:description" content="Your premium sports streaming aggregator for live football matches worldwide.">
+
+    <title>Foot Holics - Live. Passion. Football.</title>
+
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="assets/css/main.css">
+
+    <!-- Preload Critical Images -->
+    <!-- Uncomment and add your hero/poster images for faster loading -->
+    <!-- <link rel="preload" as="image" href="assets/img/hero-bg.jpg"> -->
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/img/favicon.png">
+</head>
+<body>
+    <!-- Header -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="logo">
+                    <div class="logo-icon">⚽</div>
+                    <span>Foot Holics</span>
+                </a>
+
+                <nav class="primary-nav" id="primaryNav">
+                    <a href="index.html" class="active">Home</a>
+                    <a href="#leagues">Leagues</a>
+                    <a href="#" onclick="document.getElementById('heroSearch').focus(); scrollTo(0, 0); return false;">Search</a>
+                    <a href="#about">About</a>
+                </nav>
+
+                <div class="cta-group" id="ctaGroup">
+                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+                        <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        WhatsApp
+                    </a>
+                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                        <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                        </svg>
+                        Telegram
+                    </a>
+                </div>
+
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content animate-fade-in">
+                <p class="hero-tagline">Live. Passion. Football.</p>
+                <h1 class="hero-title">Welcome to Foot Holics</h1>
+                <p class="hero-description">
+                    Your premium destination for live football streaming links from around the world.
+                    Never miss a match with our comprehensive coverage.
+                </p>
+
+                <div class="search-box">
+                    <input
+                        type="text"
+                        class="search-input"
+                        placeholder="Search for teams, leagues, or matches..."
+                        id="heroSearch"
+                        aria-label="Search matches"
+                    >
+                    <button class="search-btn" aria-label="Search">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="cta-group" style="justify-content: center; margin-top: 2rem;">
+                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                        Join WhatsApp Channel
+                    </a>
+                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+                        Join Telegram
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container" style="margin-top: 3rem;">
+        <div style="display: grid; grid-template-columns: 1fr 300px; gap: 2rem; align-items: start;">
+
+            <!-- Matches Section -->
+            <section>
+                <h2 style="margin-bottom: 2rem;">Recent Matches</h2>
+
+                <div class="matches-grid" id="matchesGrid">
+
+                                        <!-- Match Card -->
+                    <article class="glass-card match-card">
+                        <img src="assets/img/real-betis-atletico-madrid.jpg" alt="Real Betis vs Atletico Madrid" class="match-poster" loading="lazy">
+                        <div class="match-header">
+                            <h3 class="match-title">Real Betis vs Atletico Madrid</h3>
+                            <span class="league-badge laliga">La Liga</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Oct 28, 2025</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>08:00 GMT</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>Estadio de La Cartuja</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">Real Betis is going head to head with Atlético Madrid starting on 27 Oct 2025 at 20:00 UTC at Estadio de la Cartuja stad...</p>
+                        <a href="2025-10-28-real-betis-vs-atletico-madrid.html" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>
+                    
+                    <!-- Match Card 1 -->
+                    <article class="glass-card match-card">
+                        <img
+                            src="assets/img/brentford-liverpool-poster.jpg"
+                            alt="Brentford vs Liverpool"
+                            class="match-poster"
+                            loading="lazy"
+                        >
+                        <div class="match-header">
+                            <h3 class="match-title">Brentford vs Liverpool</h3>
+                            <span class="league-badge premier-league">Premier League</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Oct 26, 2025</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>16:30 GMT</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>Gtech Stadium</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">
+                            Premier League clash as Brentford hosts Liverpool at the Gtech Community Stadium.
+                            Watch all the action live with multiple streaming options.
+                        </p>
+                        <a href="2025-10-26-brentford-vs-liverpool.html" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>
+
+                    <!-- Match Card 2 -->
+                    <article class="glass-card match-card">
+                        <img
+                            src="assets/img/real-madrid-barcelona.jpg"
+                            alt="Real Madrid vs Barcelona"
+                            class="match-poster"
+                            loading="lazy"
+                        >
+                        <div class="match-header">
+                            <h3 class="match-title">Real Madrid vs Barcelona</h3>
+                            <span class="league-badge laliga">La Liga</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Oct 27, 2025</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <span class="live-badge">
+                                    <span class="live-dot"></span>
+                                    LIVE
+                                </span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>Santiago Bernabéu</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">
+                            El Clásico! The biggest rivalry in football. Real Madrid takes on Barcelona
+                            in this highly anticipated La Liga showdown.
+                        </p>
+                        <a href="2025-10-27-real-madrid-vs-barcelona.html" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>
+
+                    <!-- Match Card 3 -->
+                    <article class="glass-card match-card">
+                        <img
+                            src="assets/img/bayern-dortmund.jpg"
+                            alt="Bayern Munich vs Borussia Dortmund"
+                            class="match-poster"
+                            loading="lazy"
+                        >
+                        <div class="match-header">
+                            <h3 class="match-title">Bayern vs Dortmund</h3>
+                            <span class="league-badge bundesliga">Bundesliga</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Oct 28, 2025</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>17:30 GMT</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>Allianz Arena</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">
+                            Der Klassiker! Bayern Munich faces Borussia Dortmund in the ultimate
+                            German football rivalry at the Allianz Arena.
+                        </p>
+                        <a href="2025-10-28-bayern-vs-dortmund.html" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>
+
+                    <!-- Match Card 4 -->
+                    <article class="glass-card match-card">
+                        <img
+                            src="assets/img/milan-inter.jpg"
+                            alt="AC Milan vs Inter Milan"
+                            class="match-poster"
+                            loading="lazy"
+                        >
+                        <div class="match-header">
+                            <h3 class="match-title">AC Milan vs Inter</h3>
+                            <span class="league-badge serie-a">Serie A</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Oct 29, 2025</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>19:45 GMT</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>San Siro</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">
+                            Derby della Madonnina! AC Milan and Inter Milan battle for city supremacy
+                            in one of football's most intense local derbies.
+                        </p>
+                        <a href="2025-10-29-milan-vs-inter.html" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>
+
+                    <!-- Match Card 5 -->
+                    <article class="glass-card match-card">
+                        <img
+                            src="assets/img/psg-marseille.jpg"
+                            alt="PSG vs Marseille"
+                            class="match-poster"
+                            loading="lazy"
+                        >
+                        <div class="match-header">
+                            <h3 class="match-title">PSG vs Marseille</h3>
+                            <span class="league-badge" style="background: #002395;">Ligue 1</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Oct 30, 2025</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>20:00 GMT</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>Parc des Princes</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">
+                            Le Classique! PSG hosts Marseille in France's biggest football rivalry.
+                            Expect fireworks in this heated encounter.
+                        </p>
+                        <a href="2025-10-30-psg-vs-marseille.html" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>
+
+                    <!-- Match Card 6 -->
+                    <article class="glass-card match-card">
+                        <img
+                            src="assets/img/champions-league.jpg"
+                            alt="Champions League Match"
+                            class="match-poster"
+                            loading="lazy"
+                        >
+                        <div class="match-header">
+                            <h3 class="match-title">Man City vs Arsenal</h3>
+                            <span class="league-badge champions-league">Champions League</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Oct 31, 2025</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>20:00 GMT</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>Etihad Stadium</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">
+                            UEFA Champions League action! Manchester City takes on Arsenal in a
+                            thrilling European encounter under the lights.
+                        </p>
+                        <a href="2025-10-31-man-city-vs-arsenal.html" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <a href="?page=1" aria-label="Previous page">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </a>
+                    <span class="active">1</span>
+                    <a href="?page=2">2</a>
+                    <a href="?page=3">3</a>
+                    <a href="?page=4">4</a>
+                    <a href="?page=2" aria-label="Next page">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Sidebar -->
+            <aside class="sidebar" id="leagues">
+                <h3 class="sidebar-title">Browse by League</h3>
+                <ul class="sidebar-list">
+                    <li><a href="#" class="active" onclick="filterLeague('premier-league'); return false;">
+                        <span>⚽</span> Premier League
+                    </a></li>
+                    <li><a href="#" onclick="filterLeague('laliga'); return false;">
+                        <span>⚽</span> La Liga
+                    </a></li>
+                    <li><a href="#" onclick="filterLeague('serie-a'); return false;">
+                        <span>⚽</span> Serie A
+                    </a></li>
+                    <li><a href="#" onclick="filterLeague('bundesliga'); return false;">
+                        <span>⚽</span> Bundesliga
+                    </a></li>
+                    <li><a href="#" onclick="filterLeague('ligue-1'); return false;">
+                        <span>⚽</span> Ligue 1
+                    </a></li>
+                    <li><a href="#" onclick="filterLeague('champions-league'); return false;">
+                        <span>🏆</span> Champions League
+                    </a></li>
+                    <li><a href="#" onclick="filterLeague('others'); return false;">
+                        <span>⚽</span> Others (ISL, etc.)
+                    </a></li>
+                    <li><a href="#" onclick="filterLeague('all'); return false;">
+                        <span>🌍</span> All Leagues
+                    </a></li>
+                </ul>
+
+                <h3 class="sidebar-title" style="margin-top: 2rem;">Quick Links</h3>
+                <ul class="sidebar-list">
+                    <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">
+                        <span>📱</span> WhatsApp Channel
+                    </a></li>
+                    <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">
+                        <span>✈️</span> Telegram Channel
+                    </a></li>
+                    <li><a href="https://discord.gg/example" target="_blank" rel="noopener noreferrer">
+                        <span>💬</span> Discord Server
+                    </a></li>
+                </ul>
+
+                <h3 class="sidebar-title" style="margin-top: 2rem;">Filter Matches</h3>
+                <ul class="sidebar-list">
+                    <li><a href="#" onclick="scrollToTop(); return false;">
+                        <span class="live-badge" style="font-size: 0.6rem; padding: 2px 8px;">
+                            <span class="live-dot" style="width: 4px; height: 4px;"></span>
+                            LIVE
+                        </span> Live Now
+                    </a></li>
+                    <li><a href="#" onclick="scrollToTop(); return false;">
+                        <span>🕒</span> Upcoming
+                    </a></li>
+                    <li><a href="index.html">
+                        <span>🏠</span> All Matches
+                    </a></li>
+                </ul>
+            </aside>
+        </div>
+    </main>
+
+    <!-- Disclaimer Section -->
+    <div class="container" style="margin-top: 4rem;">
+        <div class="disclaimer">
+            <h3 class="disclaimer-title">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="display: inline;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                Legal Disclaimer
+            </h3>
+            <p>
+                <strong>Foot Holics does NOT host any streaming content.</strong> All links shown are from
+                third-party public sources. If you are a rights holder and want content removed, contact
+                the source host. We do not control third-party content and are not responsible for it.
+                All trademarks are property of their respective owners.
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer" id="about">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Foot Holics</h4>
+                    <p>
+                        Foot Holics is your premium sports streaming aggregator, providing links to
+                        live football matches from around the world. We curate the best streaming
+                        sources so you never miss a game.
+                    </p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="#" onclick="document.getElementById('heroSearch').focus(); scrollTo(0, 0); return false;">Search Matches</a></li>
+                        <li><a href="#leagues">Browse Leagues</a></li>
+                        <li><a href="mailto:contact@footholics.example">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms & Conditions</a></li>
+                        <li><a href="dmca.html">DMCA / Copyright</a></li>
+                        <li><a href="disclaimer.html">Disclaimer</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Connect With Us</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">WhatsApp Channel</a></li>
+                        <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">Telegram</a></li>
+                        <li><a href="https://discord.gg/example" target="_blank" rel="noopener noreferrer">Discord</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2025 Foot Holics. All rights reserved.</p>
+                <p style="margin-top: 1rem; font-size: 0.8rem;">
+                    This site does not host any media. All links are shared from open third-party sources.
+                    Copyright owners may contact host sites for issues. All trademarks belong to their respective owners.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========================================
+         AD SLOTS FOR ADSTERRA
+         ======================================== -->
+
+    <!-- Interstitial Ad Slot (Triggers on first click) -->
+    <div id="interstitial-ad-slot"></div>
+
+    <!-- Banner Ad Slot - Top of Page -->
+    <div id="ad-slot-banner-top" style="text-align: center; margin: 20px auto; max-width: 728px;">
+        <!-- Place Adsterra Banner (728x90) script here -->
+    </div>
+
+    <!-- Native Banner Ad Slot - After Hero Section -->
+    <div id="ad-slot-native-1" style="margin: 30px auto; max-width: 1200px;">
+        <!-- Place Adsterra Native Banner script here -->
+    </div>
+
+    <!-- Sidebar Ad Slot - In Sidebar -->
+    <div id="ad-slot-sidebar-1" style="margin: 20px 0;">
+        <!-- Place Adsterra Square Banner (300x250) script here -->
+    </div>
+
+    <!-- Between Matches Ad Slot -->
+    <div id="ad-slot-between-matches" style="text-align: center; margin: 30px auto; max-width: 728px;">
+        <!-- Place Adsterra Banner script here -->
+    </div>
+
+    <!-- Footer Ad Slot - Before Footer -->
+    <div id="ad-slot-footer" style="text-align: center; margin: 30px auto; max-width: 728px;">
+        <!-- Place Adsterra Banner script here -->
+    </div>
+
+    <!-- Popunder Ad Slot (Loads in background) -->
+    <div id="ad-slot-popunder"></div>
+
+    <!-- Social Bar Ad Slot (Sticky) -->
+    <div id="ad-slot-social-bar"></div>
+
+    <!-- JavaScript -->
+    <script src="assets/js/main.js" defer></script>
+
+    <!-- Adsterra Scripts Section -->
+    <!-- ======================== -->
+    <!-- ADD YOUR ADSTERRA SCRIPTS BELOW -->
+    <!-- Example structure:
+
+    <script async src="https://example.com/your-adsterra-script.js"></script>
+
+    -->
+</body>
+</html>
