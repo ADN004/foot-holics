@@ -827,4 +827,29 @@
     AdManager.init();
   }
 
+  // ========================================
+  // GLOBAL AD CLICK HANDLER
+  // ========================================
+
+  /**
+   * Global handler for onclick ads on links
+   * First click shows ad, second click allows navigation
+   */
+  window.handleAdClick = function(linkElement) {
+    const href = linkElement.getAttribute('href');
+    const clickKey = 'ad_click_' + href.replace(/[^a-z0-9]/gi, '_');
+    const clicked = sessionStorage.getItem(clickKey);
+
+    if (!clicked) {
+      // First click - show ad and prevent navigation
+      sessionStorage.setItem(clickKey, 'true');
+      showNotification('Please click again to continue...', 2000);
+      return false; // Prevent navigation
+    } else {
+      // Second click - allow navigation
+      showNotification('Redirecting...', 1000);
+      return true; // Allow navigation
+    }
+  };
+
 })();
