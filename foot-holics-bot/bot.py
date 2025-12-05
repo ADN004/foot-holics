@@ -1801,7 +1801,7 @@ def get_inline_event_template() -> str:
     <title>{{MATCH_NAME}} - {{LEAGUE}} Live Stream | Foot Holics</title>
 
     <!-- Canonical -->
-    <link rel="canonical" href="https://footholics.example/{{FILE_NAME}}">
+    <link rel="canonical" href="https://footholics.in/{{FILE_NAME}}">
 
     <!-- Preconnect to Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2050,19 +2050,19 @@ def get_inline_event_template() -> str:
         <section class="glass-card mb-4">
             <h3 style="color: var(--accent); margin-bottom: 1rem;">Share This Match</h3>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <a href="https://api.whatsapp.com/send?text=Watch%20{{MATCH_NAME_ENCODED}}%20Live%20-%20https://footholics.example/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
+                <a href="https://api.whatsapp.com/send?text=Watch%20{{MATCH_NAME_ENCODED}}%20Live%20-%20https://footholics.in/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
                     <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💚</span> WhatsApp
                 </a>
-                <a href="https://www.facebook.com/sharer/sharer.php?u=https://footholics.example/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
+                <a href="https://www.facebook.com/sharer/sharer.php?u=https://footholics.in/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
                     <img src="assets/img/logos/site/facebook.png" alt="Facebook" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📘</span> Facebook
                 </a>
-                <a href="https://twitter.com/intent/tweet?url=https://footholics.example/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
+                <a href="https://twitter.com/intent/tweet?url=https://footholics.in/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
                     <img src="assets/img/logos/site/x.png" alt="X" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✖️</span> X
                 </a>
-                <a href="https://t.me/share/url?url=https://footholics.example/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
+                <a href="https://t.me/share/url?url=https://footholics.in/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
                     <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✈️</span> Telegram
                 </a>
-                <a href="https://discord.com/channels/@me" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;" onclick="navigator.clipboard.writeText('Watch {{MATCH_NAME}} Live - https://footholics.example/{{FILE_NAME}}'); alert('Link copied! Paste it in Discord.'); return false;">
+                <a href="https://discord.com/channels/@me" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;" onclick="navigator.clipboard.writeText('Watch {{MATCH_NAME}} Live - https://footholics.in/{{FILE_NAME}}'); alert('Link copied! Paste it in Discord.'); return false;">
                     <img src="assets/img/logos/site/discord.png" alt="Discord" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💬</span> Discord
                 </a>
             </div>
@@ -2086,7 +2086,7 @@ def get_inline_event_template() -> str:
                 All team names, logos, and trademarks are property of their respective owners.
             </p>
             <p style="margin-top: 1rem;">
-                For takedown requests or concerns, contact: <a href="mailto:copyright@footholics.example" style="color: var(--accent);">copyright@footholics.example</a>
+                For takedown requests or concerns, contact: <a href="mailto:copyright@footholics.in" style="color: var(--accent);">copyright@footholics.in</a>
             </p>
         </div>
     </main>
@@ -2110,7 +2110,7 @@ def get_inline_event_template() -> str:
                         <li><a href="index.html">Home</a></li>
                         <li><a href="#" onclick="document.getElementById('heroSearch').focus(); scrollTo(0, 0); return false;">Search Matches</a></li>
                         <li><a href="/#leagues">Browse Leagues</a></li>
-                        <li><a href="mailto:contact@footholics.example">Contact</a></li>
+                        <li><a href="mailto:contact@footholics.in">Contact</a></li>
                     </ul>
                 </div>
 

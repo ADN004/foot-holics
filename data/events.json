@@ -1,5 +1,31 @@
 [
   {
+    "id": "event-1764956085",
+    "date": "2025-12-06",
+    "time": "07:30",
+    "slug": "2025-12-06-inter-miami-vs-vancouver",
+    "title": "Inter Miami vs Vancouver",
+    "homeTeam": "Inter Miami",
+    "awayTeam": "Vancouver",
+    "league": "Others",
+    "leagueSlug": "others",
+    "stadium": "Chase stadium",
+    "poster": "assets/img/inter-miami-vancouver-poster.jpg",
+    "excerpt": "2025 MLS Cup Final — Inter Miami CF vs Vancouver Whitecaps FC is set for Saturday, December 6, 2025 at Chase Stadium, Fort Lauderdale, kickoff at 2:30...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "#"
+      },
+      {
+        "name": "Stream 2",
+        "url": "#"
+      }
+    ],
+    "streams": 0
+  },
+  {
     "id": "event-1764927038",
     "date": "2025-12-10",
     "time": "20:00",

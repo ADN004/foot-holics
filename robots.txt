@@ -6,7 +6,7 @@ Allow: /
 Disallow: /p/
 
 # Sitemap location
-Sitemap: https://footholics.example/sitemap.xml
+Sitemap: https://footholics.in/sitemap.xml
 
 # Crawl-delay to be respectful to search engine bots
 Crawl-delay: 1
