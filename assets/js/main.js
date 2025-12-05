@@ -527,7 +527,7 @@
     splash.className = 'splash-screen';
     splash.innerHTML = `
       <div class="splash-logo">
-        <div class="splash-logo-icon">⚽</div>
+        <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="splash-logo-icon">
         <div class="splash-logo-text">Foot Holics</div>
         <div class="splash-logo-tagline">Live. Passion. Football.</div>
       </div>

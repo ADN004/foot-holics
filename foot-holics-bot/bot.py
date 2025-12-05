@@ -1715,7 +1715,8 @@ def get_inline_event_template() -> str:
     <link rel="stylesheet" href="assets/css/main.css">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/img/favicon.png">
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+    <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -1746,7 +1747,7 @@ def get_inline_event_template() -> str:
         <div class="container">
             <div class="header-inner">
                 <a href="index.html" class="logo">
-                    <div class="logo-icon">⚽</div>
+                    <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="logo-icon">
                     <span>Foot Holics</span>
                 </a>
 
@@ -2042,12 +2043,58 @@ def get_inline_event_template() -> str:
         </div>
     </footer>
 
-    <!-- Adsterra Ad Scripts -->
-    <!-- Popunder Ad (triggers on click) -->
-    <script type="text/javascript" src="//pl28190353.effectivegatecpm.com/52/30/74/5230747febbb777e6e14a3c30aa1fd30.js"></script>
+    <!-- ========================================
+         ADSTERRA AD SLOTS
+         ======================================== -->
 
-    <!-- Social Bar Ad (sticky) -->
-    <script type="text/javascript" src="//pl28190484.effectivegatecpm.com/ad/f7/17/adf7172d701fdcad288330f7b67c9293.js"></script>
+    <!-- Banner Ad (300x250) - Top -->
+    <div id="ad-slot-banner-top" style="text-align: center; margin: 20px auto; max-width: 300px;">
+        <script type="text/javascript">
+            atOptions = {
+                'key' : '66dc201b64275feeae63bc4b419a241c',
+                'format' : 'iframe',
+                'height' : 250,
+                'width' : 300,
+                'params' : {}
+            };
+        </script>
+        <script type="text/javascript" src="//pensivedean.com/66dc201b64275feeae63bc4b419a241c/invoke.js"></script>
+    </div>
+
+    <!-- Native Banner Ad -->
+    <div id="ad-slot-native-1" style="margin: 30px auto; max-width: 1200px;">
+        <script async="async" data-cfasync="false" src="//pensivedean.com/0eafec7e4106026e364203d54ba0c8e9/invoke.js"></script>
+        <div id="container-0eafec7e4106026e364203d54ba0c8e9"></div>
+    </div>
+
+    <!-- Banner Ad (300x250) - Bottom -->
+    <div id="ad-slot-footer" style="text-align: center; margin: 30px auto; max-width: 300px;">
+        <script type="text/javascript">
+            atOptions = {
+                'key' : '66dc201b64275feeae63bc4b419a241c',
+                'format' : 'iframe',
+                'height' : 250,
+                'width' : 300,
+                'params' : {}
+            };
+        </script>
+        <script type="text/javascript" src="//pensivedean.com/66dc201b64275feeae63bc4b419a241c/invoke.js"></script>
+    </div>
+
+    <!-- Popunder Ad Slot -->
+    <div id="ad-slot-popunder"></div>
+
+    <!-- Smartlink Ad (Used for outbound links) -->
+    <!-- Smartlink URL: https://pensivedean.com/w5hzdwkr3h?key=bfbd283ffe1573110488645fe30c5cfd -->
+
+    <!-- Social Bar Ad (Sticky) -->
+    <div id="ad-slot-social-bar">
+        <script type="text/javascript" src="//pensivedean.com/ad/f7/17/adf7172d701fdcad288330f7b67c9293.js"></script>
+    </div>
+
+    <!-- Adsterra Scripts Section -->
+    <!-- Popunder Ad Script -->
+    <script type="text/javascript" src="//pensivedean.com/98/b2/61/98b2610dbd944ffe41efc4663be4b3ad.js"></script>
 
     <!-- JavaScript -->
     <script src="assets/js/main.js" defer></script>

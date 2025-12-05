@@ -157,12 +157,9 @@ p {
 .logo-icon {
   width: 36px;
   height: 36px;
-  background: var(--accent);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
 }
 
 .primary-nav {
@@ -1174,7 +1171,9 @@ p {
   }
 
   .vs {
-    transform: rotate(90deg);
+    transform: none;
+    font-size: 1.25rem;
+    margin: var(--space-2) 0;
   }
 
   .broadcast-table {
@@ -1507,12 +1506,8 @@ p {
 .splash-logo-icon {
   width: 100px;
   height: 100px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
   border-radius: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 56px;
+  object-fit: cover;
   box-shadow: 0 20px 60px rgba(212, 175, 55, 0.6);
   animation: splashIconPulse 2s ease-in-out infinite;
 }
@@ -1574,6 +1569,31 @@ p {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Mobile Splash Screen Fixes */
+@media (max-width: 768px) {
+  .splash-screen {
+    padding: var(--space-3);
+  }
+
+  .splash-logo {
+    gap: var(--space-2);
+  }
+
+  .splash-logo-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+  }
+
+  .splash-logo-text {
+    font-size: 2rem;
+  }
+
+  .splash-logo-tagline {
+    font-size: 1rem;
   }
 }
 
