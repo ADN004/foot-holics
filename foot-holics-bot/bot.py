@@ -41,8 +41,9 @@ load_dotenv()
     UPDATE_SELECT,
     UPDATE_FIELD_CHOICE,
     UPDATE_FIELD_INPUT,
+    UPDATE_STREAM_LINKS,
     GENERATE_CARD_INPUT,
-) = range(13)
+) = range(14)
 
 # League data with emojis and colors
 LEAGUES = {
@@ -76,6 +77,16 @@ LEAGUES = {
         "slug": "champions-league",
         "color": "#00285E",
     },
+    "World Cup 2026": {
+        "emoji": "🏆",
+        "slug": "wc",
+        "color": "#FFD700",
+    },
+    "Nationals": {
+        "emoji": "🌍",
+        "slug": "nationals",
+        "color": "#00A651",
+    },
     "Others": {
         "emoji": "⚽",
         "slug": "others",
@@ -90,6 +101,59 @@ def slugify(text: str) -> str:
     text = re.sub(r"[^\w\s-]", "", text)
     text = re.sub(r"[-\s]+", "-", text)
     return text.strip("-")
+
+
+def find_team_logo(team_name: str, league_slug: str = None) -> str:
+    """
+    Automatically find team logo based on team name.
+    Searches in league-specific folder first, then all folders.
+
+    Args:
+        team_name: Name of the team (e.g., "Real Madrid", "Man City")
+        league_slug: League slug to search first (optional)
+
+    Returns:
+        Logo path relative to website root, or fallback placeholder
+    """
+    project_root = get_project_root()
+    team_slug = slugify(team_name)
+
+    # Define search paths in priority order
+    logo_folders = [
+        "premier-league",
+        "laliga",
+        "serie-a",
+        "bundesliga",
+        "ligue-1",
+        "champions-league",
+        "wc",
+        "nationals",
+        "others"
+    ]
+
+    # If league specified, search there first
+    if league_slug and league_slug in logo_folders:
+        logo_folders.remove(league_slug)
+        logo_folders.insert(0, league_slug)
+
+    # Search for logo file
+    for folder in logo_folders:
+        logo_dir = os.path.join(project_root, "assets", "img", "logos", "teams", folder)
+        if os.path.exists(logo_dir):
+            # Try exact match
+            for ext in [".png", ".jpg", ".jpeg", ".svg", ".webp"]:
+                logo_path = os.path.join(logo_dir, f"{team_slug}{ext}")
+                if os.path.isfile(logo_path):
+                    return f"assets/img/logos/teams/{folder}/{team_slug}{ext}"
+
+            # Try partial match (for variations like "man-city" vs "manchester-city")
+            for file in os.listdir(logo_dir):
+                file_name = os.path.splitext(file)[0]
+                if team_slug in file_name or file_name in team_slug:
+                    return f"assets/img/logos/teams/{folder}/{file}"
+
+    # Fallback: return placeholder path
+    return f"assets/img/logos/teams/{league_slug or 'others'}/placeholder.png"
 
 
 def generate_event_id() -> str:
@@ -803,6 +867,7 @@ async def update_match_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         [InlineKeyboardButton("🏆 League", callback_data="update_field_league")],
         [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
         [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
+        [InlineKeyboardButton("🔗 Streaming Links", callback_data="update_field_streams")],
         [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
         [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
     ]
@@ -880,6 +945,10 @@ async def update_field_choice_handler(update: Update, context: ContextTypes.DEFA
                 InlineKeyboardButton("🏆 Champions League", callback_data="update_league_Champions League"),
             ],
             [
+                InlineKeyboardButton("🏆 World Cup 2026", callback_data="update_league_World Cup 2026"),
+                InlineKeyboardButton("🌍 Nationals", callback_data="update_league_Nationals"),
+            ],
+            [
                 InlineKeyboardButton("⚽ Others", callback_data="update_league_Others"),
             ],
         ]
@@ -907,6 +976,21 @@ async def update_field_choice_handler(update: Update, context: ContextTypes.DEFA
             f"📰 **Update Preview Text**\n\n"
             f"Current preview: (check your match page)\n\n"
             f"Enter new match preview (1-2 paragraphs):\n\n"
+            f"_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return UPDATE_FIELD_INPUT
+
+    elif field == "streams":
+        await query.edit_message_text(
+            f"🔗 **Update Streaming Links**\n\n"
+            f"Enter streaming links (one per line or comma-separated):\n\n"
+            f"Format:\n"
+            f"`Link 1 URL\n`"
+            f"`Link 2 URL\n`"
+            f"`Link 3 URL\n`"
+            f"`Link 4 URL`\n\n"
+            f"Leave empty lines for unused links.\n\n"
             f"_Type /cancel to go back_",
             parse_mode="Markdown"
         )
@@ -948,7 +1032,16 @@ async def update_field_input_handler(update: Update, context: ContextTypes.DEFAU
             return UPDATE_FIELD_INPUT
         context.user_data["current_preview"] = text
 
-    await update.message.reply_text(f"✅ Updated! Continue editing or save changes.")
+    elif field == "streams":
+        # Parse streaming links (newline or comma separated)
+        links = [link.strip() for link in text.replace(',', '\n').split('\n') if link.strip()]
+        # Ensure we have exactly 4 slots (fill empty ones with "#")
+        while len(links) < 4:
+            links.append("#")
+        context.user_data["current_stream_links"] = links[:4]  # Max 4 links
+
+    if field != "streams":
+        await update.message.reply_text(f"✅ Updated! Continue editing or save changes.")
 
     # Return to field choice menu
     keyboard = [
@@ -957,6 +1050,7 @@ async def update_field_input_handler(update: Update, context: ContextTypes.DEFAU
         [InlineKeyboardButton("🏆 League", callback_data="update_field_league")],
         [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
         [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
+        [InlineKeyboardButton("🔗 Streaming Links", callback_data="update_field_streams")],
         [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
         [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
     ]
@@ -1001,6 +1095,7 @@ async def update_league_handler(update: Update, context: ContextTypes.DEFAULT_TY
         [InlineKeyboardButton("🏆 League", callback_data="update_field_league")],
         [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
         [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
+        [InlineKeyboardButton("🔗 Streaming Links", callback_data="update_field_streams")],
         [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
         [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
     ]
@@ -1516,12 +1611,16 @@ def generate_html(data: Dict[str, Any]) -> str:
     # Use template
     html = get_inline_event_template()
 
+    # Auto-find team logos
+    home_logo = find_team_logo(data["home_team"], data["league_slug"])
+    away_logo = find_team_logo(data["away_team"], data["league_slug"])
+
     # Replace placeholders
     html = html.replace("{{MATCH_NAME}}", data["match_name"])
     html = html.replace("{{HOME_TEAM}}", data["home_team"])
     html = html.replace("{{AWAY_TEAM}}", data["away_team"])
-    html = html.replace("{{HOME_EMOJI}}", "⚽")
-    html = html.replace("{{AWAY_EMOJI}}", "⚽")
+    html = html.replace("{{HOME_TEAM_LOGO}}", home_logo)
+    html = html.replace("{{AWAY_TEAM_LOGO}}", away_logo)
     html = html.replace("{{DATE}}", date_obj.strftime("%B %d, %Y"))
     html = html.replace("{{DATE_SHORT}}", date_obj.strftime("%b %d, %Y"))
     html = html.replace("{{ISO_DATE}}", iso_date)
@@ -1822,13 +1921,15 @@ def get_inline_event_template() -> str:
         <!-- Teams Block -->
         <div class="teams-block">
             <div class="team">
-                <div class="team-crest" style="background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%);">{{HOME_EMOJI}}</div>
+                <img src="{{HOME_TEAM_LOGO}}" alt="{{HOME_TEAM}}" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="team-crest" style="background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%); display: none;">⚽</div>
                 <h2 class="team-name">{{HOME_TEAM}}</h2>
                 <p class="text-muted">Home</p>
             </div>
             <div class="vs">VS</div>
             <div class="team">
-                <div class="team-crest" style="background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%);">{{AWAY_EMOJI}}</div>
+                <img src="{{AWAY_TEAM_LOGO}}" alt="{{AWAY_TEAM}}" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="team-crest" style="background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%); display: none;">⚽</div>
                 <h2 class="team-name">{{AWAY_TEAM}}</h2>
                 <p class="text-muted">Away</p>
             </div>
