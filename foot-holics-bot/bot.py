@@ -2044,41 +2044,13 @@ def get_inline_event_template() -> str:
     </footer>
 
     <!-- ========================================
-         ADSTERRA AD SLOTS
+         ADSTERRA AD SLOTS (REDUCED)
          ======================================== -->
 
-    <!-- Banner Ad (300x250) - Top -->
-    <div id="ad-slot-banner-top" style="text-align: center; margin: 20px auto; max-width: 300px;">
-        <script type="text/javascript">
-            atOptions = {
-                'key' : '66dc201b64275feeae63bc4b419a241c',
-                'format' : 'iframe',
-                'height' : 250,
-                'width' : 300,
-                'params' : {}
-            };
-        </script>
-        <script type="text/javascript" src="//pensivedean.com/66dc201b64275feeae63bc4b419a241c/invoke.js"></script>
-    </div>
-
-    <!-- Native Banner Ad -->
+    <!-- Native Banner Ad - Less intrusive, blends with content -->
     <div id="ad-slot-native-1" style="margin: 30px auto; max-width: 1200px;">
         <script async="async" data-cfasync="false" src="//pensivedean.com/0eafec7e4106026e364203d54ba0c8e9/invoke.js"></script>
         <div id="container-0eafec7e4106026e364203d54ba0c8e9"></div>
-    </div>
-
-    <!-- Banner Ad (300x250) - Bottom -->
-    <div id="ad-slot-footer" style="text-align: center; margin: 30px auto; max-width: 300px;">
-        <script type="text/javascript">
-            atOptions = {
-                'key' : '66dc201b64275feeae63bc4b419a241c',
-                'format' : 'iframe',
-                'height' : 250,
-                'width' : 300,
-                'params' : {}
-            };
-        </script>
-        <script type="text/javascript" src="//pensivedean.com/66dc201b64275feeae63bc4b419a241c/invoke.js"></script>
     </div>
 
     <!-- Popunder Ad Slot -->
