@@ -1,5 +1,31 @@
 [
   {
+    "id": "event-1764927038",
+    "date": "2025-12-10",
+    "time": "20:00",
+    "slug": "2025-12-10-real-madrid-vs-manchester-city",
+    "title": "Real Madrid vs Manchester City",
+    "homeTeam": "Real Madrid",
+    "awayTeam": "Manchester City",
+    "league": "Champions League",
+    "leagueSlug": "champions-league",
+    "stadium": "Santiago Bernabéu",
+    "poster": "assets/img/real-madrid-manchester-city-poster.jpg",
+    "excerpt": "Real Madrid host Manchester City at the Santiago Bernabéu in a high-stakes Champions League clash between two of Europe’s strongest sides. Madrid will...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://t.me/+XyKdBR9chQpjM2I9"
+      },
+      {
+        "name": "Stream 2",
+        "url": "https://t.me/+XyKdBR9chQpjM2I9"
+      }
+    ],
+    "streams": 2
+  },
+  {
     "id": "brentford-vs-liverpool-2025-10-26",
     "date": "2025-10-26T16:30:00Z",
     "slug": "/2025-10-26-brentford-vs-liverpool.html",
