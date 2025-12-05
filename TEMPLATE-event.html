@@ -149,16 +149,20 @@
     <!-- Main Content -->
     <main class="container" style="margin-top: 3rem;">
         <!-- Teams Block -->
-        <!-- ⚠️ REPLACE: Team names and emojis (or use team logos) -->
+        <!-- ⚠️ REPLACE: [HOME_TEAM_LOGO_PATH] and [AWAY_TEAM_LOGO_PATH] with actual paths -->
+        <!-- Example paths: assets/img/logos/teams/premier-league/manchester-city.png -->
+        <!-- Use the TEAM_LOGO_MAPPING in bot.py to get the correct paths -->
         <div class="teams-block">
             <div class="team">
-                <div class="team-crest" style="background: linear-gradient(135deg, [COLOR1] 0%, [COLOR2] 100%);">[EMOJI]</div>
+                <img src="[HOME_TEAM_LOGO_PATH]" alt="[HOME TEAM NAME]" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="team-crest" style="background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%); display: none;">⚽</div>
                 <h2 class="team-name">[HOME TEAM FULL NAME]</h2>
                 <p class="text-muted">Home</p>
             </div>
             <div class="vs">VS</div>
             <div class="team">
-                <div class="team-crest" style="background: linear-gradient(135deg, [COLOR1] 0%, [COLOR2] 100%);">[EMOJI]</div>
+                <img src="[AWAY_TEAM_LOGO_PATH]" alt="[AWAY TEAM NAME]" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="team-crest" style="background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%); display: none;">⚽</div>
                 <h2 class="team-name">[AWAY TEAM FULL NAME]</h2>
                 <p class="text-muted">Away</p>
             </div>
