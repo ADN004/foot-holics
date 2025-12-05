@@ -1,7 +1,20 @@
-# Robots.txt for Foot Holics
-# Allow all search engines to crawl the site
+# Robots.txt for Foot Holics - Football Live Streaming Aggregator
+# Optimized for search engine crawling
 
+# All search engines
 User-agent: *
+Allow: /
+Allow: /assets/
+Disallow: /p/
+Disallow: /foot-holics-bot/
+
+# Google bot specific rules
+User-agent: Googlebot
+Allow: /
+Disallow: /p/
+
+# Bing bot specific rules
+User-agent: Bingbot
 Allow: /
 Disallow: /p/
 
@@ -10,3 +23,6 @@ Sitemap: https://footholics.in/sitemap.xml
 
 # Crawl-delay to be respectful to search engine bots
 Crawl-delay: 1
+
+# Host (preferred domain)
+Host: https://footholics.in

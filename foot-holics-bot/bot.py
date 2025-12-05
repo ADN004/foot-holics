@@ -1784,8 +1784,8 @@ def get_inline_event_template() -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Watch {{MATCH_NAME}} live - {{LEAGUE}} clash on {{DATE}} at {{STADIUM}}. Find multiple streaming links and match preview.">
-    <meta name="keywords" content="{{MATCH_NAME}}, {{LEAGUE}} live stream, watch football online, {{STADIUM}}">
+    <meta name="description" content="Watch {{MATCH_NAME}} live stream free - {{LEAGUE}} clash on {{DATE}} at {{STADIUM}}. Find HD streaming links, match preview, and live football coverage on Foot Holics.">
+    <meta name="keywords" content="{{MATCH_NAME}}, {{HOME_TEAM}} vs {{AWAY_TEAM}}, {{LEAGUE}} live stream, watch football online, football live streaming, free football stream, {{STADIUM}}, {{HOME_TEAM}} live, {{AWAY_TEAM}} live, football match today, live soccer stream, watch {{LEAGUE}} online">
 
     <!-- Open Graph -->
     <meta property="og:title" content="{{MATCH_NAME}} - {{LEAGUE}} Live Stream">
@@ -1823,20 +1823,88 @@ def get_inline_event_template() -> str:
       "@context": "https://schema.org",
       "@type": "SportsEvent",
       "name": "{{MATCH_NAME}}",
+      "description": "Watch {{MATCH_NAME}} live stream free on Foot Holics. {{LEAGUE}} match with multiple HD streaming links.",
       "startDate": "{{ISO_DATE}}",
       "location": {
         "@type": "Place",
-        "name": "{{STADIUM}}"
+        "name": "{{STADIUM}}",
+        "address": {
+          "@type": "PostalAddress"
+        }
       },
       "homeTeam": {
         "@type": "SportsTeam",
-        "name": "{{HOME_TEAM}}"
+        "name": "{{HOME_TEAM}}",
+        "sport": "Football"
       },
       "awayTeam": {
         "@type": "SportsTeam",
-        "name": "{{AWAY_TEAM}}"
+        "name": "{{AWAY_TEAM}}",
+        "sport": "Football"
       },
-      "sport": "Football"
+      "sport": "Football",
+      "competitor": [
+        {
+          "@type": "SportsTeam",
+          "name": "{{HOME_TEAM}}"
+        },
+        {
+          "@type": "SportsTeam",
+          "name": "{{AWAY_TEAM}}"
+        }
+      ],
+      "organizer": {
+        "@type": "SportsOrganization",
+        "name": "{{LEAGUE}}"
+      },
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+      "isAccessibleForFree": false,
+      "url": "https://footholics.in/{{FILENAME}}"
+    }
+    </script>
+
+    <!-- Organization Schema for Foot Holics -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Foot Holics",
+      "url": "https://footholics.in",
+      "logo": "https://footholics.in/assets/img/logos/site/logo.png",
+      "description": "Premium football streaming aggregator providing links to live football matches from around the world",
+      "sameAs": [
+        "https://t.me/+XyKdBR9chQpjM2I9",
+        "https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T"
+      ]
+    }
+    </script>
+
+    <!-- BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://footholics.in/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "{{LEAGUE}}",
+          "item": "https://footholics.in/#leagues"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "{{MATCH_NAME}}",
+          "item": "https://footholics.in/{{FILENAME}}"
+        }
+      ]
     }
     </script>
 </head>
@@ -1921,14 +1989,14 @@ def get_inline_event_template() -> str:
         <!-- Teams Block -->
         <div class="teams-block">
             <div class="team">
-                <img src="{{HOME_TEAM_LOGO}}" alt="{{HOME_TEAM}}" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <img src="{{HOME_TEAM_LOGO}}" alt="{{HOME_TEAM}}" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: contain; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="team-crest" style="background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%); display: none;">⚽</div>
                 <h2 class="team-name">{{HOME_TEAM}}</h2>
                 <p class="text-muted">Home</p>
             </div>
             <div class="vs">VS</div>
             <div class="team">
-                <img src="{{AWAY_TEAM_LOGO}}" alt="{{AWAY_TEAM}}" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <img src="{{AWAY_TEAM_LOGO}}" alt="{{AWAY_TEAM}}" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: contain; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <div class="team-crest" style="background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%); display: none;">⚽</div>
                 <h2 class="team-name">{{AWAY_TEAM}}</h2>
                 <p class="text-muted">Away</p>
