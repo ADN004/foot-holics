@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
 Foot Holics Match Manager Bot
-A Telegram bot for easily adding new football matches to the Foot Holics website.
+A Telegram bot for managing football matches on the Foot Holics website.
 """
 
 import os
 import json
 import re
+import glob
 from datetime import datetime
 from typing import Dict, Any
 from dotenv import load_dotenv
+from io import BytesIO
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -27,6 +29,7 @@ load_dotenv()
 
 # Conversation states
 (
+    MAIN_MENU,
     MATCH_NAME,
     DATE_TIME,
     LEAGUE,
@@ -34,8 +37,12 @@ load_dotenv()
     PREVIEW,
     STREAM_URLS,
     IMAGE_NAME,
-    CONFIRM,
-) = range(8)
+    DELETE_SELECT,
+    UPDATE_SELECT,
+    UPDATE_FIELD_CHOICE,
+    UPDATE_FIELD_INPUT,
+    GENERATE_CARD_INPUT,
+) = range(13)
 
 # League data with emojis and colors
 LEAGUES = {
@@ -90,27 +97,1113 @@ def generate_event_id() -> str:
     return f"event-{int(datetime.now().timestamp())}"
 
 
+def get_project_root() -> str:
+    """Get the project root directory (one level up from bot directory)."""
+    bot_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(bot_dir)
+
+
+def list_match_files() -> list:
+    """List all match HTML files in the project."""
+    root_dir = get_project_root()
+    pattern = os.path.join(root_dir, "20*.html")
+    files = glob.glob(pattern)
+    return [os.path.basename(f) for f in sorted(files, reverse=True)]
+
+
+def remove_match_from_index(filename: str) -> bool:
+    """Remove match card from index.html."""
+    try:
+        root_dir = get_project_root()
+        index_path = os.path.join(root_dir, "index.html")
+
+        if not os.path.exists(index_path):
+            return False
+
+        with open(index_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Find and remove the match card article
+        # Pattern: <article class="glass-card match-card">...</article> containing the filename
+        pattern = rf'<article class="glass-card match-card">.*?href="{re.escape(filename)}".*?</article>'
+
+        # Check if match exists
+        if not re.search(pattern, content, re.DOTALL):
+            return False
+
+        # Remove the match card
+        new_content = re.sub(pattern, '', content, flags=re.DOTALL)
+
+        # Write back
+        with open(index_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        return True
+    except Exception as e:
+        print(f"Error removing from index.html: {e}")
+        return False
+
+
+def remove_match_from_events_json(filename: str) -> bool:
+    """Remove match entry from events.json."""
+    try:
+        root_dir = get_project_root()
+        events_path = os.path.join(root_dir, "data", "events.json")
+
+        if not os.path.exists(events_path):
+            return False
+
+        with open(events_path, "r", encoding="utf-8") as f:
+            events = json.load(f)
+
+        # Find and remove matching event
+        # The slug in events.json might have or not have leading slash
+        filename_without_ext = filename.replace(".html", "")
+
+        original_length = len(events)
+        events = [
+            event for event in events
+            if not (
+                event.get("slug", "").strip("/").endswith(filename_without_ext) or
+                event.get("slug", "") == filename or
+                event.get("slug", "") == filename_without_ext
+            )
+        ]
+
+        if len(events) == original_length:
+            return False
+
+        # Write back
+        with open(events_path, "w", encoding="utf-8") as f:
+            json.dump(events, f, indent=2, ensure_ascii=False)
+
+        return True
+    except Exception as e:
+        print(f"Error removing from events.json: {e}")
+        return False
+
+
+def copy_html_to_root(filename: str, html_content: str) -> bool:
+    """Copy HTML file to project root."""
+    try:
+        root_dir = get_project_root()
+        target_path = os.path.join(root_dir, filename)
+
+        with open(target_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        return True
+    except Exception as e:
+        print(f"Error copying HTML to root: {e}")
+        return False
+
+
+def add_to_events_json(json_entry: str) -> bool:
+    """Add new match entry to the top of events.json."""
+    try:
+        root_dir = get_project_root()
+        events_path = os.path.join(root_dir, "data", "events.json")
+
+        # Parse the new entry
+        new_event = json.loads(json_entry)
+
+        # Read existing events
+        if os.path.exists(events_path):
+            with open(events_path, "r", encoding="utf-8") as f:
+                events = json.load(f)
+        else:
+            events = []
+
+        # Add new event at the top
+        events.insert(0, new_event)
+
+        # Write back
+        with open(events_path, "w", encoding="utf-8") as f:
+            json.dump(events, f, indent=2, ensure_ascii=False)
+
+        return True
+    except Exception as e:
+        print(f"Error adding to events.json: {e}")
+        return False
+
+
+def add_card_to_index(card_html: str) -> bool:
+    """Add match card to the top of matches grid in index.html."""
+    try:
+        root_dir = get_project_root()
+        index_path = os.path.join(root_dir, "index.html")
+
+        if not os.path.exists(index_path):
+            return False
+
+        with open(index_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Find the matches grid section
+        # Look for the first <article class="glass-card match-card"> or the grid container
+        # Pattern: Find the matches grid div and insert after its opening tag
+
+        # Try to find existing match cards
+        match_card_pattern = r'(<article class="glass-card match-card">)'
+
+        if re.search(match_card_pattern, content):
+            # Insert before the first match card
+            new_content = re.sub(
+                match_card_pattern,
+                f'{card_html}\n\n                    \\1',
+                content,
+                count=1
+            )
+        else:
+            # Try to find the matches grid container
+            grid_pattern = r'(<div[^>]*class="[^"]*matches-grid[^"]*"[^>]*>)'
+
+            if re.search(grid_pattern, content):
+                # Insert after the grid opening tag
+                new_content = re.sub(
+                    grid_pattern,
+                    f'\\1\n{card_html}\n',
+                    content,
+                    count=1
+                )
+            else:
+                print("Could not find matches grid in index.html")
+                return False
+
+        # Write back
+        with open(index_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        return True
+    except Exception as e:
+        print(f"Error adding card to index.html: {e}")
+        return False
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Start the conversation and ask for match name."""
-    user = update.effective_user
+    """Start the conversation and show main menu."""
+    return await show_main_menu(update, context)
 
-    welcome_message = f"""
-🤖 **Welcome to Foot Holics Match Manager!**
 
-Hi {user.first_name}! I'll help you add a new match to your website.
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edit_message: bool = False) -> int:
+    """Show the main menu with operation buttons."""
+    keyboard = [
+        [
+            InlineKeyboardButton("➕ Add New Match", callback_data="menu_add"),
+        ],
+        [
+            InlineKeyboardButton("📋 List Matches", callback_data="menu_list"),
+        ],
+        [
+            InlineKeyboardButton("✏️ Update Match", callback_data="menu_update"),
+            InlineKeyboardButton("🗑️ Delete Match", callback_data="menu_delete"),
+        ],
+        [
+            InlineKeyboardButton("🎨 Generate Card", callback_data="menu_card"),
+        ],
+        [
+            InlineKeyboardButton("📊 Match Stats", callback_data="menu_stats"),
+        ],
+        [
+            InlineKeyboardButton("❌ Exit", callback_data="menu_exit"),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-Let's get started! 🚀
+    message_text = """
+🤖 **Foot Holics Match Manager**
 
-📝 **Step 1/7:** Please send the match name in this format:
-`Home Team vs Away Team`
+Welcome! Choose an operation:
 
-Example: `Chelsea vs Manchester United`
+➕ **Add New Match** - Create a new match page
+📋 **List Matches** - View all match files
+✏️ **Update Match** - Edit existing match
+🗑️ **Delete Match** - Remove a match (auto cleanup!)
+🎨 **Generate Card** - Create match card HTML
+📊 **Match Stats** - View statistics
+❌ **Exit** - Close the bot
 
-_Type /cancel anytime to stop_
+What would you like to do?
 """
 
-    await update.message.reply_text(welcome_message, parse_mode="Markdown")
-    return MATCH_NAME
+    if edit_message and update.callback_query:
+        await update.callback_query.edit_message_text(
+            message_text,
+            parse_mode="Markdown",
+            reply_markup=reply_markup
+        )
+    else:
+        if update.callback_query:
+            await update.callback_query.message.reply_text(
+                message_text,
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
+        else:
+            await update.message.reply_text(
+                message_text,
+                parse_mode="Markdown",
+                reply_markup=reply_markup
+            )
+
+    return MAIN_MENU
+
+
+async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle main menu button selections."""
+    query = update.callback_query
+    await query.answer()
+
+    action = query.data.replace("menu_", "")
+
+    if action == "add":
+        await query.edit_message_text(
+            "📝 **Add New Match**\n\n"
+            "Please send the match name in this format:\n"
+            "`Home Team vs Away Team`\n\n"
+            "Example: `Chelsea vs Manchester United`\n\n"
+            "_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return MATCH_NAME
+
+    elif action == "list":
+        matches = list_match_files()
+        if not matches:
+            await query.edit_message_text(
+                "📋 **No matches found!**\n\n"
+                "No match HTML files found in the project.\n\n"
+                "Use 'Add New Match' to create one.",
+                parse_mode="Markdown"
+            )
+            await show_main_menu(update, context, edit_message=False)
+            return MAIN_MENU
+
+        match_list = "\n".join([f"• `{m}`" for m in matches[:20]])
+        if len(matches) > 20:
+            match_list += f"\n\n_...and {len(matches) - 20} more_"
+
+        await query.edit_message_text(
+            f"📋 **Match Files** ({len(matches)} total):\n\n{match_list}",
+            parse_mode="Markdown"
+        )
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    elif action == "delete":
+        matches = list_match_files()
+        if not matches:
+            await query.edit_message_text(
+                "🗑️ **No matches to delete!**\n\n"
+                "No match HTML files found.",
+                parse_mode="Markdown"
+            )
+            await show_main_menu(update, context, edit_message=False)
+            return MAIN_MENU
+
+        # Show first 10 matches with delete buttons
+        keyboard = []
+        for match in matches[:10]:
+            keyboard.append([InlineKeyboardButton(f"🗑️ {match}", callback_data=f"delete_{match}")])
+        keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="menu_back")])
+
+        await query.edit_message_text(
+            "🗑️ **Delete Match**\n\n"
+            "Select a match to delete:\n\n"
+            "⚠️ This will automatically remove from:\n"
+            "• Main HTML file\n"
+            "• index.html match card\n"
+            "• data/events.json entry\n"
+            "• Generated files",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return DELETE_SELECT
+
+    elif action == "update":
+        matches = list_match_files()
+        if not matches:
+            await query.edit_message_text(
+                "✏️ **No matches to update!**\n\n"
+                "No match HTML files found.",
+                parse_mode="Markdown"
+            )
+            await show_main_menu(update, context, edit_message=False)
+            return MAIN_MENU
+
+        # Show first 10 matches with update buttons
+        keyboard = []
+        for match in matches[:10]:
+            keyboard.append([InlineKeyboardButton(f"✏️ {match}", callback_data=f"update_{match}")])
+        keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="menu_back")])
+
+        await query.edit_message_text(
+            "✏️ **Update Match**\n\n"
+            "Select a match to update:\n\n"
+            "You'll be able to edit:\n"
+            "• Match details (teams, date, time)\n"
+            "• Stadium\n"
+            "• Match preview text\n"
+            "• Stream URLs",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return UPDATE_SELECT
+
+    elif action == "card":
+        matches = list_match_files()
+        if not matches:
+            await query.edit_message_text(
+                "🎨 **No matches found!**\n\n"
+                "No match HTML files found to generate cards for.",
+                parse_mode="Markdown"
+            )
+            await show_main_menu(update, context, edit_message=False)
+            return MAIN_MENU
+
+        await query.edit_message_text(
+            "🎨 **Generate Match Card**\n\n"
+            "Please send the match filename to generate a card for:\n\n"
+            "Example: `2025-10-26-brentford-vs-liverpool.html`\n\n"
+            "_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return GENERATE_CARD_INPUT
+
+    elif action == "stats":
+        matches = list_match_files()
+        root_dir = get_project_root()
+
+        # Count leagues
+        league_counts = {}
+        for match_file in matches:
+            if "premier-league" in match_file or "liverpool" in match_file or "chelsea" in match_file:
+                league_counts["Premier League"] = league_counts.get("Premier League", 0) + 1
+            elif "la-liga" in match_file or "real" in match_file or "barcelona" in match_file or "atletico" in match_file or "betis" in match_file:
+                league_counts["La Liga"] = league_counts.get("La Liga", 0) + 1
+            elif "serie-a" in match_file or "milan" in match_file or "inter" in match_file:
+                league_counts["Serie A"] = league_counts.get("Serie A", 0) + 1
+            elif "bundesliga" in match_file or "bayern" in match_file or "dortmund" in match_file:
+                league_counts["Bundesliga"] = league_counts.get("Bundesliga", 0) + 1
+            else:
+                league_counts["Others"] = league_counts.get("Others", 0) + 1
+
+        league_stats = "\n".join([f"• {league}: {count}" for league, count in league_counts.items()])
+
+        stats_text = f"""
+📊 **Match Statistics**
+
+**Total Matches:** {len(matches)}
+
+**By League:**
+{league_stats}
+
+**Recent Matches:**
+{chr(10).join([f"• {m}" for m in matches[:5]])}
+"""
+
+        await query.edit_message_text(
+            stats_text,
+            parse_mode="Markdown"
+        )
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    elif action == "exit":
+        await query.edit_message_text(
+            "👋 **Goodbye!**\n\n"
+            "Bot closed. Type /start to use again.",
+            parse_mode="Markdown"
+        )
+        return ConversationHandler.END
+
+    elif action == "back":
+        return await show_main_menu(update, context, edit_message=True)
+
+    return MAIN_MENU
+
+
+async def generate_card_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle generate card file input."""
+    filename = update.message.text.strip()
+
+    root_dir = get_project_root()
+    match_file = os.path.join(root_dir, filename)
+
+    if not os.path.exists(match_file):
+        await update.message.reply_text(
+            f"❌ File not found: `{filename}`\n\n"
+            "Please enter a valid filename.",
+            parse_mode="Markdown"
+        )
+        return GENERATE_CARD_INPUT
+
+    await update.message.reply_text("⏳ Generating card... Please wait.")
+
+    try:
+        # Read the match HTML
+        with open(match_file, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        # Extract match details from HTML
+        match_name = re.search(r'<h1 class="event-title">(.*?)</h1>', html_content)
+        league = re.search(r'<span class="league-badge (.*?)">(.*?)</span>', html_content)
+        date = re.search(r'<span>(.*? at .*? GMT)</span>', html_content)
+        stadium = re.search(r'<svg.*?</svg>\s*<span>(.*?)</span>(?!.*at.*GMT)', html_content, re.DOTALL)
+
+        if not all([match_name, league, date]):
+            await update.message.reply_text("❌ Could not extract match details from HTML.")
+            await show_main_menu(update, context, edit_message=False)
+            return MAIN_MENU
+
+        # Parse details
+        match_title = match_name.group(1)
+        league_slug = league.group(1)
+        league_name = league.group(2)
+        date_time = date.group(1)
+        stadium_name = stadium.group(1) if stadium else "Stadium TBD"
+
+        # Generate card
+        card_html = f"""                    <!-- Match Card -->
+                    <article class="glass-card match-card">
+                        <img src="assets/img/match-poster.jpg" alt="{match_title}" class="match-poster" loading="lazy">
+                        <div class="match-header">
+                            <h3 class="match-title">{match_title}</h3>
+                            <span class="league-badge {league_slug}">{league_name}</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>{date_time}</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>{stadium_name}</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">
+                            {match_title} live streaming links. Watch the match with HD quality streams.
+                        </p>
+                        <a href="{filename}" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>"""
+
+        # Create file
+        card_filename = filename.replace(".html", "-card.txt")
+
+        # Send as document
+        card_bytes = BytesIO(card_html.encode('utf-8'))
+        card_bytes.name = card_filename
+
+        await update.message.reply_document(
+            document=card_bytes,
+            filename=card_filename,
+            caption=f"✅ **Card Generated!**\n\n"
+                    f"Match: {match_title}\n\n"
+                    f"**Instructions:**\n"
+                    f"1. Open `index.html`\n"
+                    f"2. Find the matches grid (around line 123)\n"
+                    f"3. Paste this card at the TOP of the grid\n"
+                    f"4. Save and commit!",
+            parse_mode="Markdown"
+        )
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error generating card: {str(e)}")
+
+    await show_main_menu(update, context, edit_message=False)
+    return MAIN_MENU
+
+
+async def delete_match_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle match deletion."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "menu_back":
+        return await show_main_menu(update, context, edit_message=True)
+
+    filename = query.data.replace("delete_", "")
+
+    # Confirm deletion
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Yes, Delete", callback_data=f"confirm_delete_{filename}"),
+            InlineKeyboardButton("❌ Cancel", callback_data="menu_back"),
+        ]
+    ]
+
+    await query.edit_message_text(
+        f"⚠️ **Confirm Deletion**\n\n"
+        f"Are you sure you want to delete:\n"
+        f"`{filename}`\n\n"
+        f"This will automatically remove:\n"
+        f"✓ Main HTML file\n"
+        f"✓ Match card from index.html\n"
+        f"✓ Entry from events.json\n"
+        f"✓ Generated files\n\n"
+        f"**This cannot be undone!**",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    return DELETE_SELECT
+
+
+async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Confirm and execute match deletion."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "menu_back":
+        return await show_main_menu(update, context, edit_message=True)
+
+    filename = query.data.replace("confirm_delete_", "")
+    root_dir = get_project_root()
+
+    deleted_files = []
+    failed_operations = []
+
+    # Delete main HTML file
+    main_file = os.path.join(root_dir, filename)
+    if os.path.exists(main_file):
+        try:
+            os.remove(main_file)
+            deleted_files.append(f"✓ {filename}")
+        except Exception as e:
+            failed_operations.append(f"✗ Main file: {str(e)}")
+    else:
+        failed_operations.append(f"✗ Main file not found")
+
+    # Remove from index.html
+    if remove_match_from_index(filename):
+        deleted_files.append("✓ Removed from index.html")
+    else:
+        failed_operations.append("✗ Could not remove from index.html (may not exist)")
+
+    # Remove from events.json
+    if remove_match_from_events_json(filename):
+        deleted_files.append("✓ Removed from events.json")
+    else:
+        failed_operations.append("✗ Could not remove from events.json (may not exist)")
+
+    # Delete card file
+    card_filename = filename.replace(".html", "-card.html")
+    card_file = os.path.join(root_dir, "foot-holics-bot", "generated", "cards", card_filename)
+    if os.path.exists(card_file):
+        try:
+            os.remove(card_file)
+            deleted_files.append(f"✓ Card: {card_filename}")
+        except Exception as e:
+            failed_operations.append(f"✗ Card file: {str(e)}")
+
+    # Delete generated HTML
+    gen_file = os.path.join(root_dir, "foot-holics-bot", "generated", "html_files", filename)
+    if os.path.exists(gen_file):
+        try:
+            os.remove(gen_file)
+            deleted_files.append(f"✓ Generated: {filename}")
+        except Exception as e:
+            failed_operations.append(f"✗ Generated file: {str(e)}")
+
+    # Delete JSON entry
+    json_filename = filename.replace(".html", ".json")
+    json_file = os.path.join(root_dir, "foot-holics-bot", "generated", "json_entries", json_filename)
+    if os.path.exists(json_file):
+        try:
+            os.remove(json_file)
+            deleted_files.append(f"✓ JSON: {json_filename}")
+        except Exception as e:
+            failed_operations.append(f"✗ JSON file: {str(e)}")
+
+    deleted_list = "\n".join(deleted_files) if deleted_files else "Nothing deleted"
+    failed_list = "\n\n**Issues:**\n" + "\n".join(failed_operations) if failed_operations else ""
+
+    await query.edit_message_text(
+        f"✅ **Match Deletion Complete!**\n\n"
+        f"**Deleted:**\n{deleted_list}{failed_list}\n\n"
+        f"**Next steps:**\n"
+        f"1. Commit changes:\n"
+        f"```bash\n"
+        f"git add .\n"
+        f"git commit -m \"Remove {filename.replace('.html', '')} match\"\n"
+        f"git push\n"
+        f"```\n"
+        f"2. Your site will update automatically!",
+        parse_mode="Markdown"
+    )
+
+    await show_main_menu(update, context, edit_message=False)
+    return MAIN_MENU
+
+
+async def update_match_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle match update selection."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "menu_back":
+        return await show_main_menu(update, context, edit_message=True)
+
+    filename = query.data.replace("update_", "")
+    context.user_data["update_filename"] = filename
+
+    # Read current match data from HTML file
+    root_dir = get_project_root()
+    match_file = os.path.join(root_dir, filename)
+
+    if not os.path.exists(match_file):
+        await query.edit_message_text(
+            f"❌ Match file not found: `{filename}`",
+            parse_mode="Markdown"
+        )
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    # Extract current match details
+    with open(match_file, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    # Parse current values
+    match_title = re.search(r'<h1 class="event-title">(.*?)</h1>', html_content)
+    league = re.search(r'<span class="league-badge .*?">(.*?)</span>', html_content)
+    date_match = re.search(r'<span>(.*?) at (.*?) GMT</span>', html_content)
+    stadium = re.search(r'<path d="M21 10.*?</svg>\s*<span>(.*?)</span>', html_content, re.DOTALL)
+    preview_match = re.search(r'<h2[^>]*>Match Preview</h2>\s*<p>(.*?)</p>', html_content, re.DOTALL)
+
+    if match_title:
+        context.user_data["current_title"] = match_title.group(1)
+    if league:
+        context.user_data["current_league"] = league.group(1)
+    if date_match:
+        context.user_data["current_date"] = date_match.group(1)
+        context.user_data["current_time"] = date_match.group(2)
+    if stadium:
+        context.user_data["current_stadium"] = stadium.group(1)
+    if preview_match:
+        context.user_data["current_preview"] = preview_match.group(1).strip()
+
+    # Show update options
+    keyboard = [
+        [InlineKeyboardButton("📝 Match Name", callback_data="update_field_title")],
+        [InlineKeyboardButton("📅 Date & Time", callback_data="update_field_datetime")],
+        [InlineKeyboardButton("🏆 League", callback_data="update_field_league")],
+        [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
+        [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
+        [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
+        [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
+    ]
+
+    current_info = f"""
+✏️ **Update Match: {context.user_data.get('current_title', 'Unknown')}**
+
+**Current values:**
+• Match: {context.user_data.get('current_title', 'N/A')}
+• Date: {context.user_data.get('current_date', 'N/A')}
+• Time: {context.user_data.get('current_time', 'N/A')} GMT
+• League: {context.user_data.get('current_league', 'N/A')}
+• Stadium: {context.user_data.get('current_stadium', 'N/A')}
+
+Select a field to edit or save changes:
+"""
+
+    await query.edit_message_text(
+        current_info,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    return UPDATE_FIELD_CHOICE
+
+
+async def update_field_choice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle field choice for updating."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "menu_back":
+        return await show_main_menu(update, context, edit_message=True)
+
+    if query.data == "update_save":
+        # Save all changes
+        return await save_match_updates(update, context)
+
+    field = query.data.replace("update_field_", "")
+    context.user_data["update_field"] = field
+
+    if field == "title":
+        await query.edit_message_text(
+            f"📝 **Update Match Name**\n\n"
+            f"Current: `{context.user_data.get('current_title', 'N/A')}`\n\n"
+            f"Enter new match name (format: Team1 vs Team2):\n\n"
+            f"_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return UPDATE_FIELD_INPUT
+
+    elif field == "datetime":
+        await query.edit_message_text(
+            f"📅 **Update Date & Time**\n\n"
+            f"Current: `{context.user_data.get('current_date', 'N/A')} at {context.user_data.get('current_time', 'N/A')} GMT`\n\n"
+            f"Enter new date and time (format: YYYY-MM-DD HH:MM):\n"
+            f"Example: `2025-12-25 20:00`\n\n"
+            f"_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return UPDATE_FIELD_INPUT
+
+    elif field == "league":
+        keyboard = [
+            [
+                InlineKeyboardButton("⚽ Premier League", callback_data="update_league_Premier League"),
+                InlineKeyboardButton("⚽ La Liga", callback_data="update_league_La Liga"),
+            ],
+            [
+                InlineKeyboardButton("⚽ Serie A", callback_data="update_league_Serie A"),
+                InlineKeyboardButton("⚽ Bundesliga", callback_data="update_league_Bundesliga"),
+            ],
+            [
+                InlineKeyboardButton("⚽ Ligue 1", callback_data="update_league_Ligue 1"),
+                InlineKeyboardButton("🏆 Champions League", callback_data="update_league_Champions League"),
+            ],
+            [
+                InlineKeyboardButton("⚽ Others", callback_data="update_league_Others"),
+            ],
+        ]
+        await query.edit_message_text(
+            f"🏆 **Update League**\n\n"
+            f"Current: `{context.user_data.get('current_league', 'N/A')}`\n\n"
+            f"Select new league:",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return UPDATE_FIELD_CHOICE
+
+    elif field == "stadium":
+        await query.edit_message_text(
+            f"🏟️ **Update Stadium**\n\n"
+            f"Current: `{context.user_data.get('current_stadium', 'N/A')}`\n\n"
+            f"Enter new stadium name:\n\n"
+            f"_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return UPDATE_FIELD_INPUT
+
+    elif field == "preview":
+        await query.edit_message_text(
+            f"📰 **Update Preview Text**\n\n"
+            f"Current preview: (check your match page)\n\n"
+            f"Enter new match preview (1-2 paragraphs):\n\n"
+            f"_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return UPDATE_FIELD_INPUT
+
+    return UPDATE_FIELD_CHOICE
+
+
+async def update_field_input_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle field input for updating."""
+    text = update.message.text.strip()
+    field = context.user_data.get("update_field")
+
+    if field == "title":
+        if " vs " not in text.lower():
+            await update.message.reply_text("❌ Invalid format! Must contain ' vs '")
+            return UPDATE_FIELD_INPUT
+        context.user_data["current_title"] = text
+        teams = re.split(r"\s+vs\s+", text, flags=re.IGNORECASE)
+        context.user_data["current_home_team"] = teams[0].strip()
+        context.user_data["current_away_team"] = teams[1].strip()
+
+    elif field == "datetime":
+        try:
+            dt = datetime.strptime(text, "%Y-%m-%d %H:%M")
+            context.user_data["current_date"] = dt.strftime("%B %d, %Y")
+            context.user_data["current_time"] = dt.strftime("%H:%M")
+            context.user_data["current_datetime_obj"] = dt
+        except ValueError:
+            await update.message.reply_text("❌ Invalid format! Use: YYYY-MM-DD HH:MM")
+            return UPDATE_FIELD_INPUT
+
+    elif field == "stadium":
+        context.user_data["current_stadium"] = text
+
+    elif field == "preview":
+        if len(text) < 50:
+            await update.message.reply_text("⚠️ Preview too short. Please provide at least 50 characters.")
+            return UPDATE_FIELD_INPUT
+        context.user_data["current_preview"] = text
+
+    await update.message.reply_text(f"✅ Updated! Continue editing or save changes.")
+
+    # Return to field choice menu
+    keyboard = [
+        [InlineKeyboardButton("📝 Match Name", callback_data="update_field_title")],
+        [InlineKeyboardButton("📅 Date & Time", callback_data="update_field_datetime")],
+        [InlineKeyboardButton("🏆 League", callback_data="update_field_league")],
+        [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
+        [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
+        [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
+        [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
+    ]
+
+    current_info = f"""
+✏️ **Update Match: {context.user_data.get('current_title', 'Unknown')}**
+
+**Current values:**
+• Match: {context.user_data.get('current_title', 'N/A')}
+• Date: {context.user_data.get('current_date', 'N/A')}
+• Time: {context.user_data.get('current_time', 'N/A')} GMT
+• League: {context.user_data.get('current_league', 'N/A')}
+• Stadium: {context.user_data.get('current_stadium', 'N/A')}
+
+Select a field to edit or save changes:
+"""
+
+    await update.message.reply_text(
+        current_info,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    return UPDATE_FIELD_CHOICE
+
+
+async def update_league_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle league selection for update."""
+    query = update.callback_query
+    await query.answer()
+
+    league = query.data.replace("update_league_", "")
+    context.user_data["current_league"] = league
+    context.user_data["current_league_slug"] = LEAGUES[league]["slug"]
+
+    await query.answer(f"✅ League updated to {league}")
+
+    # Return to field choice menu
+    keyboard = [
+        [InlineKeyboardButton("📝 Match Name", callback_data="update_field_title")],
+        [InlineKeyboardButton("📅 Date & Time", callback_data="update_field_datetime")],
+        [InlineKeyboardButton("🏆 League", callback_data="update_field_league")],
+        [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
+        [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
+        [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
+        [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
+    ]
+
+    current_info = f"""
+✏️ **Update Match: {context.user_data.get('current_title', 'Unknown')}**
+
+**Current values:**
+• Match: {context.user_data.get('current_title', 'N/A')}
+• Date: {context.user_data.get('current_date', 'N/A')}
+• Time: {context.user_data.get('current_time', 'N/A')} GMT
+• League: {context.user_data.get('current_league', 'N/A')}
+• Stadium: {context.user_data.get('current_stadium', 'N/A')}
+
+Select a field to edit or save changes:
+"""
+
+    await query.edit_message_text(
+        current_info,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    return UPDATE_FIELD_CHOICE
+
+
+async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Save all match updates to files."""
+    query = update.callback_query if hasattr(update, 'callback_query') else None
+
+    if query:
+        await query.answer()
+        await query.edit_message_text("⏳ Saving changes... Please wait.")
+    else:
+        await update.message.reply_text("⏳ Saving changes... Please wait.")
+
+    filename = context.user_data.get("update_filename")
+    root_dir = get_project_root()
+    match_file = os.path.join(root_dir, filename)
+
+    try:
+        # Read current HTML
+        with open(match_file, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        # Update HTML content
+        if "current_title" in context.user_data:
+            html_content = re.sub(
+                r'<h1 class="event-title">.*?</h1>',
+                f'<h1 class="event-title">{context.user_data["current_title"]}</h1>',
+                html_content
+            )
+            html_content = re.sub(
+                r'<title>.*?</title>',
+                f'<title>{context.user_data["current_title"]} - {context.user_data.get("current_league", "Football")} Live Stream | Foot Holics</title>',
+                html_content
+            )
+
+        if "current_date" in context.user_data:
+            html_content = re.sub(
+                r'<span>(.*?) at (.*?) GMT</span>',
+                f'<span>{context.user_data["current_date"]} at {context.user_data["current_time"]} GMT</span>',
+                html_content
+            )
+
+        if "current_league" in context.user_data:
+            # Update league badge
+            old_league_pattern = r'<span class="league-badge .*?">(.*?)</span>'
+            html_content = re.sub(
+                old_league_pattern,
+                f'<span class="league-badge {context.user_data.get("current_league_slug", "others")}">{context.user_data["current_league"]}</span>',
+                html_content
+            )
+
+        if "current_stadium" in context.user_data:
+            html_content = re.sub(
+                r'(<path d="M21 10.*?</svg>\s*<span>).*?(</span>)',
+                f'\\1{context.user_data["current_stadium"]}\\2',
+                html_content,
+                flags=re.DOTALL
+            )
+
+        if "current_preview" in context.user_data:
+            html_content = re.sub(
+                r'(<h2[^>]*>Match Preview</h2>\s*<p>).*?(</p>)',
+                f'\\1{context.user_data["current_preview"]}\\2',
+                html_content,
+                flags=re.DOTALL
+            )
+
+        # Write updated HTML
+        with open(match_file, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        # Update events.json
+        events_path = os.path.join(root_dir, "data", "events.json")
+        if os.path.exists(events_path):
+            with open(events_path, "r", encoding="utf-8") as f:
+                events = json.load(f)
+
+            filename_without_ext = filename.replace(".html", "")
+            for event in events:
+                if filename_without_ext in event.get("slug", ""):
+                    if "current_title" in context.user_data:
+                        event["title"] = context.user_data["current_title"]
+                    if "current_league" in context.user_data:
+                        event["league"] = context.user_data["current_league"]
+                        event["leagueSlug"] = context.user_data.get("current_league_slug", "others")
+                    if "current_stadium" in context.user_data:
+                        event["stadium"] = context.user_data["current_stadium"]
+                    break
+
+            with open(events_path, "w", encoding="utf-8") as f:
+                json.dump(events, f, indent=2, ensure_ascii=False)
+
+        # Update index.html card (remove old, add new)
+        remove_match_from_index(filename)
+
+        # Generate new card with updated info
+        card_html = generate_updated_card(context.user_data, filename)
+        add_card_to_index(card_html)
+
+        success_msg = f"""
+✅ **Match Updated Successfully!**
+
+Updated: `{filename}`
+
+**Changes saved to:**
+• Match HTML file
+• data/events.json
+• index.html card
+
+**Next steps:**
+```bash
+git add .
+git commit -m "Update {context.user_data.get('current_title', 'match')}"
+git push
+```
+
+Your changes will be live in 60 seconds!
+"""
+
+        if query:
+            await query.edit_message_text(success_msg, parse_mode="Markdown")
+        else:
+            await update.message.reply_text(success_msg, parse_mode="Markdown")
+
+    except Exception as e:
+        error_msg = f"❌ Error updating match: {str(e)}"
+        if query:
+            await query.edit_message_text(error_msg)
+        else:
+            await update.message.reply_text(error_msg)
+
+    await show_main_menu(update, context, edit_message=False)
+    context.user_data.clear()
+    return MAIN_MENU
+
+
+def generate_updated_card(data: dict, filename: str) -> str:
+    """Generate updated card HTML."""
+    card_html = f"""                    <!-- Match Card -->
+                    <article class="glass-card match-card">
+                        <img src="assets/img/match-poster.jpg" alt="{data.get('current_title', 'Match')}" class="match-poster" loading="lazy">
+                        <div class="match-header">
+                            <h3 class="match-title">{data.get('current_title', 'Match')}</h3>
+                            <span class="league-badge {data.get('current_league_slug', 'others')}">{data.get('current_league', 'Football')}</span>
+                        </div>
+                        <div class="match-meta">
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>{data.get('current_date', 'TBD')}</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>{data.get('current_time', 'TBD')} GMT</span>
+                            </div>
+                            <div class="match-meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>{data.get('current_stadium', 'Stadium TBD')}</span>
+                            </div>
+                        </div>
+                        <p class="match-excerpt">{data.get('current_preview', 'Match preview')[:120]}...</p>
+                        <a href="{filename}" class="match-link">
+                            Read More & Watch Live
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </a>
+                    </article>"""
+    return card_html
 
 
 async def match_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -157,7 +1250,7 @@ async def date_time(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         match_datetime = datetime.strptime(text, "%Y-%m-%d %H:%M")
 
-        # Check if date is in the future
+        # Check if date is in the past
         if match_datetime < datetime.now():
             await update.message.reply_text(
                 "⚠️ Warning: This date is in the past. Continue anyway?\n"
@@ -369,27 +1462,44 @@ async def image_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         with open(f"generated/cards/{filename_base}-card.html", "w", encoding="utf-8") as f:
             f.write(card_code)
 
-        # Send results
-        await send_generated_code(update, context, html_code, json_code, card_code, filename_base)
+        # AUTO-INTEGRATE: Copy files and update index/events
+        await update.message.reply_text("⏳ Auto-integrating into your website... Please wait.")
+
+        integration_results = []
+
+        # 1. Copy HTML to project root
+        html_filename = f"{filename_base}.html"
+        if copy_html_to_root(html_filename, html_code):
+            integration_results.append("✅ HTML copied to project root")
+        else:
+            integration_results.append("⚠️ Could not copy HTML to root")
+
+        # 2. Add entry to events.json
+        if add_to_events_json(json_code):
+            integration_results.append("✅ Added to data/events.json")
+        else:
+            integration_results.append("⚠️ Could not add to events.json")
+
+        # 3. Add card to index.html
+        if add_card_to_index(card_code):
+            integration_results.append("✅ Added card to index.html")
+        else:
+            integration_results.append("⚠️ Could not add card to index.html")
+
+        # Send results as files
+        await send_generated_files(update, context, html_code, json_code, card_code, filename_base, integration_results)
 
     except Exception as e:
         await update.message.reply_text(f"❌ Error generating code: {str(e)}")
         return ConversationHandler.END
 
-    return ConversationHandler.END
+    # Show main menu again
+    await show_main_menu(update, context, edit_message=False)
+    return MAIN_MENU
 
 
 def generate_html(data: Dict[str, Any]) -> str:
     """Generate complete HTML event file."""
-    # Read template
-    template_path = "templates/event_template.html"
-    if os.path.exists(template_path):
-        with open(template_path, "r", encoding="utf-8") as f:
-            template = f.read()
-    else:
-        # Use inline template if file doesn't exist
-        template = get_inline_event_template()
-
     # Prepare data
     date_obj = data["datetime_obj"]
     home_slug = slugify(data["home_team"])
@@ -403,15 +1513,15 @@ def generate_html(data: Dict[str, Any]) -> str:
     from urllib.parse import quote
     match_name_encoded = quote(data["match_name"])
 
-    # Generate stream links HTML
-    stream_links = generate_stream_links_html(data["stream_urls"])
+    # Use template
+    html = get_inline_event_template()
 
     # Replace placeholders
-    html = template.replace("{{MATCH_NAME}}", data["match_name"])
+    html = html.replace("{{MATCH_NAME}}", data["match_name"])
     html = html.replace("{{HOME_TEAM}}", data["home_team"])
     html = html.replace("{{AWAY_TEAM}}", data["away_team"])
-    html = html.replace("{{HOME_EMOJI}}", "⚽")  # Default emoji for home team
-    html = html.replace("{{AWAY_EMOJI}}", "⚽")  # Default emoji for away team
+    html = html.replace("{{HOME_EMOJI}}", "⚽")
+    html = html.replace("{{AWAY_EMOJI}}", "⚽")
     html = html.replace("{{DATE}}", date_obj.strftime("%B %d, %Y"))
     html = html.replace("{{DATE_SHORT}}", date_obj.strftime("%b %d, %Y"))
     html = html.replace("{{ISO_DATE}}", iso_date)
@@ -421,7 +1531,6 @@ def generate_html(data: Dict[str, Any]) -> str:
     html = html.replace("{{STADIUM}}", data["stadium"])
     html = html.replace("{{PREVIEW}}", data["preview"])
     html = html.replace("{{IMAGE_FILE}}", data["image_file"])
-    html = html.replace("{{STREAM_LINKS}}", stream_links)
     html = html.replace("{{FILE_NAME}}", filename)
     html = html.replace("{{SLUG}}", f"{home_slug}-vs-{away_slug}")
     html = html.replace("{{MATCH_NAME_ENCODED}}", match_name_encoded)
@@ -431,7 +1540,6 @@ def generate_html(data: Dict[str, Any]) -> str:
 
 def generate_json(data: Dict[str, Any]) -> str:
     """Generate JSON entry for events.json."""
-    date_obj = data["datetime_obj"]
     home_slug = slugify(data["home_team"])
     away_slug = slugify(data["away_team"])
     slug = f"{data['date']}-{home_slug}-vs-{away_slug}"
@@ -465,12 +1573,7 @@ def generate_json(data: Dict[str, Any]) -> str:
 
 def generate_card(data: Dict[str, Any]) -> str:
     """Generate homepage card HTML."""
-    template_path = "templates/card_template.html"
-    if os.path.exists(template_path):
-        with open(template_path, "r", encoding="utf-8") as f:
-            template = f.read()
-    else:
-        template = get_inline_card_template()
+    template = get_inline_card_template()
 
     date_obj = data["datetime_obj"]
     home_slug = slugify(data["home_team"])
@@ -493,108 +1596,90 @@ def generate_card(data: Dict[str, Any]) -> str:
     return card
 
 
-def generate_stream_links_html(urls: list) -> str:
-    """Generate HTML for stream links."""
-    if not urls:
-        return "<p>Stream links will be added soon.</p>"
-
-    html_parts = []
-    for i, url in enumerate(urls, 1):
-        html_parts.append(f"""
-                    <div class="stream-option">
-                        <div class="stream-info">
-                            <h4>🎥 Stream Option {i}</h4>
-                            <p>HD Quality • Multiple Languages</p>
-                        </div>
-                        <a href="p/{i}-live.html" class="btn btn-primary">
-                            Watch Stream {i}
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
-                        </a>
-                    </div>""")
-
-    return "\n".join(html_parts)
-
-
-async def send_generated_code(
+async def send_generated_files(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     html_code: str,
     json_code: str,
     card_code: str,
-    filename_base: str
+    filename_base: str,
+    integration_results: list = None
 ) -> None:
-    """Send generated code to user in formatted messages."""
+    """Send generated code as files instead of text."""
 
-    success_msg = """
-🎉 **MATCH CODE GENERATED SUCCESSFULLY!**
+    # Show integration results
+    if integration_results:
+        integration_status = "\n".join(integration_results)
+        await update.message.reply_text(
+            f"🎉 **AUTO-INTEGRATION COMPLETE!**\n\n{integration_status}",
+            parse_mode="Markdown"
+        )
 
-All files have been saved in the `generated/` folder.
-"""
-    await update.message.reply_text(success_msg, parse_mode="Markdown")
+    await update.message.reply_text(
+        "📦 **Files Generated & Saved**\n\n"
+        "Sending backup files to you...",
+        parse_mode="Markdown"
+    )
 
-    # Send HTML file (in parts if too long)
-    html_msg = f"📄 **1. HTML FILE:** `{filename_base}.html`\n\n```html\n{html_code[:3800]}\n```"
-    await update.message.reply_text(html_msg, parse_mode="Markdown")
+    # Send HTML file (as backup)
+    html_bytes = BytesIO(html_code.encode('utf-8'))
+    html_bytes.name = f"{filename_base}.html"
+    await update.message.reply_document(
+        document=html_bytes,
+        filename=f"{filename_base}.html",
+        caption="📄 **HTML File** (Backup - Already copied to root!)"
+    )
 
-    if len(html_code) > 3800:
-        remaining = html_code[3800:]
-        while remaining:
-            chunk = remaining[:3900]
-            await update.message.reply_text(f"```html\n{chunk}\n```", parse_mode="Markdown")
-            remaining = remaining[3900:]
+    # Send JSON entry (as backup)
+    json_bytes = BytesIO(json_code.encode('utf-8'))
+    json_bytes.name = f"{filename_base}.json"
+    await update.message.reply_document(
+        document=json_bytes,
+        filename=f"{filename_base}.json",
+        caption="📊 **JSON Entry** (Backup - Already added to events.json!)"
+    )
 
-    # Send JSON entry
-    json_msg = f"📊 **2. JSON ENTRY** (add to top of events.json):\n\n```json\n{json_code}\n```"
-    await update.message.reply_text(json_msg, parse_mode="Markdown")
+    # Send card HTML (as backup)
+    card_bytes = BytesIO(card_code.encode('utf-8'))
+    card_bytes.name = f"{filename_base}-card.html"
+    await update.message.reply_document(
+        document=card_bytes,
+        filename=f"{filename_base}-card.html",
+        caption="🏠 **Homepage Card** (Backup - Already added to index.html!)"
+    )
 
-    # Send card HTML
-    card_msg = f"🏠 **3. HOMEPAGE CARD** (add to matches grid):\n\n```html\n{card_code[:3800]}\n```"
-    await update.message.reply_text(card_msg, parse_mode="Markdown")
-
-    # Send instructions
+    # Send simplified instructions
     instructions = f"""
-📋 **NEXT STEPS:**
+🎉 **MATCH CREATED & INTEGRATED!**
 
-1️⃣ Create HTML file:
-   • Copy the HTML code above
-   • Save as `{filename_base}.html` in root directory
+✅ **Automatically Done:**
+• HTML file copied to project root
+• Entry added to `data/events.json`
+• Card added to `index.html`
 
-2️⃣ Update events.json:
-   • Open `data/events.json`
-   • Add the JSON entry at the **top** of the array
+📋 **You Just Need To:**
 
-3️⃣ Update homepage:
-   • Open `index.html`
-   • Add the card HTML at the **top** of matches grid (line ~123)
+1️⃣ **Upload Image:**
+   Upload match poster to `assets/img/{context.user_data['image_file']}`
+   Recommended size: 1200x630px
 
-4️⃣ Add match image:
-   • Upload poster image to `assets/img/{context.user_data['image_file']}`
-   • Recommended size: 1200x630px
+2️⃣ **Commit and push:**
+```bash
+git add .
+git commit -m "Add {context.user_data['match_name']} match"
+git push
+```
 
-5️⃣ Create player pages:
-   • Copy `p/1-live.html` to `p/2-live.html`, `p/3-live.html`, etc.
-   • Update the iframe `src` URLs in each file
+🚀 **That's it!** Your match will be live in 60 seconds!
 
-6️⃣ Push to GitHub:
-   ```bash
-   git add .
-   git commit -m "Add {context.user_data['match_name']} match"
-   git push
-   ```
-
-✅ All done! Your match is ready to go live!
-
-Type /start to add another match.
+💡 **Tip:** The files sent above are backups in case you need them later.
 """
 
     await update.message.reply_text(instructions, parse_mode="Markdown")
 
 
 def get_inline_event_template() -> str:
-    """Return inline HTML template matching the brentford-vs-liverpool structure."""
+    """Return inline HTML template."""
     return """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -607,7 +1692,7 @@ def get_inline_event_template() -> str:
     <meta property="og:title" content="{{MATCH_NAME}} - {{LEAGUE}} Live Stream">
     <meta property="og:description" content="Watch the {{LEAGUE}} match between {{HOME_TEAM}} and {{AWAY_TEAM}} live on {{DATE}}.">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="/assets/img/{{IMAGE_FILE}}">
+    <meta property="og:image" content="assets/img/{{IMAGE_FILE}}">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -971,7 +2056,7 @@ def get_inline_event_template() -> str:
 
 
 def get_inline_card_template() -> str:
-    """Return inline card template if file doesn't exist."""
+    """Return inline card template."""
     return """                    <!-- Match Card -->
                     <article class="glass-card match-card">
                         <img src="assets/img/{{IMAGE_FILE}}" alt="{{MATCH_NAME}}" class="match-poster" loading="lazy">
@@ -1018,7 +2103,7 @@ def get_inline_card_template() -> str:
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel the conversation."""
     await update.message.reply_text(
-        "❌ Operation cancelled. Type /start to begin again.",
+        "❌ Operation cancelled.\n\nType /start to use the bot again.",
         parse_mode="Markdown"
     )
     context.user_data.clear()
@@ -1042,6 +2127,7 @@ def main() -> None:
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
+            MAIN_MENU: [CallbackQueryHandler(main_menu_handler)],
             MATCH_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, match_name)],
             DATE_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, date_time)],
             LEAGUE: [CallbackQueryHandler(league_selection, pattern="^league_")],
@@ -1049,6 +2135,25 @@ def main() -> None:
             PREVIEW: [MessageHandler(filters.TEXT & ~filters.COMMAND, preview)],
             STREAM_URLS: [MessageHandler(filters.TEXT & ~filters.COMMAND, stream_urls)],
             IMAGE_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, image_name)],
+            DELETE_SELECT: [
+                CallbackQueryHandler(delete_match_handler, pattern="^delete_"),
+                CallbackQueryHandler(confirm_delete_handler, pattern="^confirm_delete_"),
+                CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
+            ],
+            UPDATE_SELECT: [
+                CallbackQueryHandler(update_match_handler, pattern="^update_"),
+                CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
+            ],
+            UPDATE_FIELD_CHOICE: [
+                CallbackQueryHandler(update_field_choice_handler, pattern="^update_field_"),
+                CallbackQueryHandler(update_field_choice_handler, pattern="^update_save"),
+                CallbackQueryHandler(update_league_handler, pattern="^update_league_"),
+                CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
+            ],
+            UPDATE_FIELD_INPUT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, update_field_input_handler)
+            ],
+            GENERATE_CARD_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, generate_card_input)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )

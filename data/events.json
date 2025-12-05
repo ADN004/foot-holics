@@ -1,30 +1,30 @@
 [
   {
-  "id": "event-1761574334",
-  "date": "2025-10-27",
-  "time": "20:00",
-  "slug": "2025-10-28-real-betis-vs-atletico-madrid",
-  "title": "Real Betis vs Atletico Madrid",
-  "homeTeam": "Real Betis",
-  "awayTeam": "Atletico Madrid",
-  "league": "La Liga",
-  "leagueSlug": "laliga",
-  "stadium": "Estadio de La Cartuja",
-  "poster": "assets/img/real-betis-atletico-madrid.jpg",
-  "excerpt": "Real Betis is going head to head with Atl\u00e9tico Madrid starting on 27 Oct 2025 at 20:00 UTC at Estadio de la Cartuja stadium, Seville city, Spain. The ...",
-  "status": "upcoming",
-  "broadcast": [
-    {
-      "name": "Stream 1",
-      "url": "https://youtu.be/MlnRu99ytyg?si=KHrw1kTAs_l7hIIx"
-    },
-    {
-      "name": "Stream 2",
-      "url": "https://youtu.be/EP-Yby1NhRw?si=IwHyJ0LrUsQQMSiG"
-    }
-  ],
-  "streams": 2
-},
+    "id": "event-1764915694",
+    "date": "2025-12-11",
+    "time": "01:30",
+    "slug": "2025-12-11-man-city-vs-real-madrid",
+    "title": "Man City vs Real Madrid",
+    "homeTeam": "Man City",
+    "awayTeam": "Real Madrid",
+    "league": "Champions League",
+    "leagueSlug": "champions-league",
+    "stadium": "Estadio Bernabeu",
+    "poster": "assets/img/man-city-real-madrid-poster.jpg",
+    "excerpt": "We will host the Spanish side at the Etihad Stadium on Tuesday 11 February, before travelling to the Spanish capital for the second leg on Wednesday 1...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://example.com/stream1"
+      },
+      {
+        "name": "Stream 2",
+        "url": "https://example.com/stream2"
+      }
+    ],
+    "streams": 2
+  },
   {
     "id": "brentford-vs-liverpool-2025-10-26",
     "date": "2025-10-26T16:30:00Z",
