@@ -1663,8 +1663,10 @@ def generate_json(data: Dict[str, Any]) -> str:
         "broadcast": [
             {"name": "Stream 1", "url": data["stream_urls"][0] if len(data["stream_urls"]) > 0 else "#"},
             {"name": "Stream 2", "url": data["stream_urls"][1] if len(data["stream_urls"]) > 1 else "#"},
+            {"name": "Stream 3", "url": data["stream_urls"][2] if len(data["stream_urls"]) > 2 else "#"},
+            {"name": "Stream 4", "url": data["stream_urls"][3] if len(data["stream_urls"]) > 3 else "#"},
         ],
-        "streams": len(data["stream_urls"])
+        "streams": len([url for url in data["stream_urls"] if url and url != "#"])
     }
 
     return json.dumps(event_data, indent=2)
@@ -2154,7 +2156,7 @@ def get_inline_event_template() -> str:
                 All team names, logos, and trademarks are property of their respective owners.
             </p>
             <p style="margin-top: 1rem;">
-                For takedown requests or concerns, contact: <a href="mailto:copyright@footholics.in" style="color: var(--accent);">copyright@footholics.in</a>
+                For takedown requests or concerns, contact: <a href="mailto:footholicsin@gmail.com" style="color: var(--accent);">footholicsin@gmail.com</a>
             </p>
         </div>
     </main>
@@ -2178,7 +2180,7 @@ def get_inline_event_template() -> str:
                         <li><a href="index.html">Home</a></li>
                         <li><a href="#" onclick="document.getElementById('heroSearch').focus(); scrollTo(0, 0); return false;">Search Matches</a></li>
                         <li><a href="/#leagues">Browse Leagues</a></li>
-                        <li><a href="mailto:contact@footholics.in">Contact</a></li>
+                        <li><a href="mailto:footholicsin@gmail.com">Contact</a></li>
                     </ul>
                 </div>
 

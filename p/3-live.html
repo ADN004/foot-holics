@@ -159,5 +159,80 @@
 
     <!-- JavaScript -->
     <script src="../assets/js/main.js" defer></script>
+
+    <!-- Iframe Protection - Prevent Hotlinking -->
+    <script>
+        (function() {
+            'use strict';
+
+            // Check if page is being embedded in an iframe from a different domain
+            if (window.self !== window.top) {
+                const parentDomain = document.referrer;
+                const allowedDomains = ['footholics.in', 'localhost', '127.0.0.1'];
+
+                let isAllowed = false;
+                for (const domain of allowedDomains) {
+                    if (parentDomain.includes(domain)) {
+                        isAllowed = true;
+                        break;
+                    }
+                }
+
+                // If not from allowed domain, break out of iframe or redirect
+                if (!isAllowed) {
+                    window.top.location = window.self.location;
+                }
+            }
+        })();
+    </script>
+
+    <!-- Dynamic Stream Loader -->
+    <script>
+        (function() {
+            'use strict';
+
+            // Get match parameter from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const matchSlug = urlParams.get('match');
+
+            if (!matchSlug) {
+                console.error('No match parameter provided');
+                return;
+            }
+
+            // Fetch events.json and load the stream
+            fetch('../data/events.json')
+                .then(response => response.json())
+                .then(events => {
+                    // Find the matching event
+                    const event = events.find(e => {
+                        const slug = e.slug.replace('.html', '').replace('/', '').replace(/^2025-\d{2}-\d{2}-/, '');
+                        return slug === matchSlug || e.slug.includes(matchSlug);
+                    });
+
+                    if (!event) {
+                        console.error('Event not found for match:', matchSlug);
+                        return;
+                    }
+
+                    // Get the stream URL for this player (Link 3 = broadcast[2], fallback to broadcast[0])
+                    const streamUrl = event.broadcast && event.broadcast[2] ? event.broadcast[2].url :
+                                    (event.broadcast && event.broadcast[0] ? event.broadcast[0].url : null);
+
+                    if (streamUrl && streamUrl !== '#') {
+                        // Update iframe src
+                        const iframe = document.querySelector('.player-iframe');
+                        if (iframe) {
+                            iframe.src = streamUrl;
+                        }
+                    } else {
+                        console.warn('No stream URL available for this match');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading stream:', error);
+                });
+        })();
+    </script>
 </body>
 </html>
