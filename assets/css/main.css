@@ -1048,7 +1048,7 @@ p {
   padding-top: 56.25%;
   background: #000;
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to visible */
   margin-bottom: var(--space-3);
   box-shadow: var(--card-shadow);
 }
@@ -1060,6 +1060,10 @@ p {
   width: 100%;
   height: 100%;
   border: none;
+  pointer-events: auto; /* Ensure iframe is interactive */
+  /* Add slight padding to prevent covering controls */
+  transform: scale(0.98);
+  transform-origin: center;
 }
 
 .player-alert {
