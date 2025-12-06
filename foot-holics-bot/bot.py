@@ -614,6 +614,7 @@ async def generate_card_input(update: Update, context: ContextTypes.DEFAULT_TYPE
         league = re.search(r'<span class="league-badge (.*?)">(.*?)</span>', html_content)
         date = re.search(r'<span>(.*? at .*? GMT)</span>', html_content)
         stadium = re.search(r'<svg.*?</svg>\s*<span>(.*?)</span>(?!.*at.*GMT)', html_content, re.DOTALL)
+        poster = re.search(r'<img src="(assets/img/.*?\.jpg)".*?class="event-hero-bg"', html_content)
 
         if not all([match_name, league, date]):
             await update.message.reply_text("❌ Could not extract match details from HTML.")
@@ -626,11 +627,12 @@ async def generate_card_input(update: Update, context: ContextTypes.DEFAULT_TYPE
         league_name = league.group(2)
         date_time = date.group(1)
         stadium_name = stadium.group(1) if stadium else "Stadium TBD"
+        poster_img = poster.group(1) if poster else "assets/img/match-poster.jpg"
 
         # Generate card
         card_html = f"""                    <!-- Match Card -->
                     <article class="glass-card match-card">
-                        <img src="assets/img/match-poster.jpg" alt="{match_title}" class="match-poster" loading="lazy">
+                        <img src="{poster_img}" alt="{match_title}" class="match-poster" loading="lazy">
                         <div class="match-header">
                             <h3 class="match-title">{match_title}</h3>
                             <span class="league-badge {league_slug}">{league_name}</span>
