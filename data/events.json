@@ -1,5 +1,39 @@
 [
   {
+    "id": "event-1765042921",
+    "date": "2025-12-06",
+    "time": "17:30",
+    "slug": "2025-12-06-real-betis-vs-barcelona",
+    "title": "Real betis vs Barcelona",
+    "homeTeam": "Real betis",
+    "awayTeam": "Barcelona",
+    "league": "La Liga",
+    "leagueSlug": "laliga",
+    "stadium": "Estadio de La Cartuja",
+    "poster": "assets/img/real-betis-barcelona-poster.jpg",
+    "excerpt": "Real Betis vs FC Barcelona — the two clubs meet on Saturday, 6 December 2025, at Estadio de La Cartuja in Seville. \n\nIt’s a big La Liga clash: the hom...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://sportzonline.top/channels/hd/hd2.php"
+      },
+      {
+        "name": "Stream 2",
+        "url": "https://sportzonline.top/channels/hd/hd6.php"
+      },
+      {
+        "name": "Stream 3",
+        "url": "https://sportzonline.top/channels/pt/eleven2.php"
+      },
+      {
+        "name": "Stream 4",
+        "url": "https://sportzonline.top/channels/bra/br2.php"
+      }
+    ],
+    "streams": 4
+  },
+  {
     "id": "event-1765032360",
     "date": "2025-12-06",
     "time": "14:30",
