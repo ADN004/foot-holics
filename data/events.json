@@ -76,14 +76,22 @@
     "broadcast": [
       {
         "name": "Stream 1",
-        "url": "#"
+        "url": "https://sportzonline.top/channels/hd/hd10.php"
       },
       {
         "name": "Stream 2",
-        "url": "#"
+        "url": "https://sportzonline.top/channels/hd/hd10.php"
+      },
+      {
+        "name": "Stream 3",
+        "url": "https://sportzonline.top/channels/hd/hd10.php"
+      },
+      {
+        "name": "Stream 4",
+        "url": "https://sportzonline.top/channels/hd/hd10.php"
       }
     ],
-    "streams": 0
+    "streams": 4
   },
   {
     "id": "event-1764927038",

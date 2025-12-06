@@ -1042,6 +1042,17 @@ async def update_field_input_handler(update: Update, context: ContextTypes.DEFAU
             links.append("#")
         context.user_data["current_stream_links"] = links[:4]  # Max 4 links
 
+        # Count valid links (non-empty and not "#")
+        valid_links = len([l for l in links[:4] if l and l != "#"])
+        await update.message.reply_text(
+            f"✅ Updated {valid_links} streaming link(s)!\n\n"
+            f"• Link 1: {'✓' if links[0] and links[0] != '#' else '✗'}\n"
+            f"• Link 2: {'✓' if links[1] and links[1] != '#' else '✗'}\n"
+            f"• Link 3: {'✓' if links[2] and links[2] != '#' else '✗'}\n"
+            f"• Link 4: {'✓' if links[3] and links[3] != '#' else '✗'}\n\n"
+            f"Continue editing or save changes."
+        )
+
     if field != "streams":
         await update.message.reply_text(f"✅ Updated! Continue editing or save changes.")
 
@@ -1208,6 +1219,16 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                         event["leagueSlug"] = context.user_data.get("current_league_slug", "others")
                     if "current_stadium" in context.user_data:
                         event["stadium"] = context.user_data["current_stadium"]
+                    if "current_stream_links" in context.user_data:
+                        # Update all 4 streaming links
+                        stream_links = context.user_data["current_stream_links"]
+                        event["broadcast"] = [
+                            {"name": "Stream 1", "url": stream_links[0] if len(stream_links) > 0 else "#"},
+                            {"name": "Stream 2", "url": stream_links[1] if len(stream_links) > 1 else "#"},
+                            {"name": "Stream 3", "url": stream_links[2] if len(stream_links) > 2 else "#"},
+                            {"name": "Stream 4", "url": stream_links[3] if len(stream_links) > 3 else "#"},
+                        ]
+                        event["streams"] = len([url for url in stream_links if url and url != "#"])
                     break
 
             with open(events_path, "w", encoding="utf-8") as f:
