@@ -147,9 +147,11 @@ def find_team_logo(team_name: str, league_slug: str = None) -> str:
                     return f"assets/img/logos/teams/{folder}/{team_slug}{ext}"
 
             # Try partial match (for variations like "man-city" vs "manchester-city")
+            # Make comparison case-insensitive for better matching
             for file in os.listdir(logo_dir):
-                file_name = os.path.splitext(file)[0]
-                if team_slug in file_name or file_name in team_slug:
+                file_name = os.path.splitext(file)[0].lower()
+                team_slug_lower = team_slug.lower()
+                if team_slug_lower in file_name or file_name in team_slug_lower:
                     return f"assets/img/logos/teams/{folder}/{file}"
 
     # Fallback: return placeholder path
@@ -2218,6 +2220,10 @@ def get_inline_event_template() -> str:
                 </a>
 
                 <a href="p/3-live.html?match={{SLUG}}" class="stream-link-card">
+                    <span class="live-badge">
+                        <span class="live-dot"></span>
+                        LIVE
+                    </span>
                     <span class="stream-link-label">LINK 3</span>
                     <div class="stream-badges">
                         <span class="quality-badge sd">SD</span>
