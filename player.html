@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FootHolics Player - Live Stream</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+
+    <!-- Google Analytics 4 - Replace G-XXXXXXXXXX with your Measurement ID -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX', {
+            'page_title': 'FootHolics Player',
+            'page_path': '/player.html'
+        });
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+        }
+
+        #player-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #2D0854 0%, #14132A 50%, #7B3BC4 100%);
+        }
+
+        /* JW Player */
+        #jwplayer {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Branded Watermark - Top Left */
+        .branded-watermark {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 9999;
+            background: #D50000;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(213, 0, 0, 0.5);
+            animation: pulse 2.5s ease-in-out infinite;
+            pointer-events: none;
+            user-select: none;
+            text-transform: uppercase;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        /* Thumbnail Overlay */
+        .thumbnail-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2D0854 0%, #14132A 50%, #7B3BC4 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .thumbnail-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.03) 10px,
+                    rgba(255,255,255,0.03) 11px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.03) 10px,
+                    rgba(255,255,255,0.03) 11px
+                );
+            opacity: 0.5;
+        }
+
+        .thumbnail-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .thumbnail-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .thumbnail-logo-text {
+            font-size: clamp(32px, 8vw, 96px);
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .thumbnail-badge {
+            display: inline-block;
+            background: rgba(123, 59, 196, 0.3);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(123, 59, 196, 0.6);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .play-button {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            margin: 0 auto;
+        }
+
+        .play-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .play-button::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 30px solid #fff;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            margin-left: 8px;
+        }
+
+        .thumbnail-subtitle {
+            font-size: clamp(16px, 3vw, 24px);
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        /* Soccer ball decoration */
+        .soccer-ball {
+            position: absolute;
+            top: 15%;
+            right: 10%;
+            font-size: 80px;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-30px) rotate(180deg);
+            }
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #7B3BC4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 5;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Error Message */
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(213, 0, 0, 0.95);
+            color: #fff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .error-message h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .error-message p {
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* Bottom branding */
+        .bottom-branding {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            z-index: 9998;
+            pointer-events: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Branded Watermark -->
+    <div class="branded-watermark">
+        🔴 LIVE • FootHolics.in
+    </div>
+
+    <!-- Player Container -->
+    <div id="player-container">
+        <!-- Thumbnail Overlay -->
+        <div class="thumbnail-overlay" id="thumbnailOverlay">
+            <div class="soccer-ball">⚽</div>
+            <div class="thumbnail-content">
+                <div class="thumbnail-badge">🔴 LIVE STREAM</div>
+                <div class="thumbnail-logo-text">FootHolics.in</div>
+                <div class="play-button"></div>
+                <div class="thumbnail-subtitle">GAME PLAY • HD QUALITY</div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner"></div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage">
+            <h3>⚠️ Stream Error</h3>
+            <p>Unable to load the stream. Please check the URL or try again later.</p>
+        </div>
+
+        <!-- JW Player -->
+        <div id="jwplayer"></div>
+    </div>
+
+    <!-- Bottom Branding -->
+    <div class="bottom-branding">
+        FootHolics.in
+    </div>
+
+    <!-- JW Player Library -->
+    <script src="https://cdn.jwplayer.com/libraries/KB5zFt7A.js"></script>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // Security: Disable right-click
+            document.addEventListener('contextmenu', event => event.preventDefault());
+
+            // Security: Disable specific keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.keyCode === 123 || // F12
+                    (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                    (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                    (e.ctrlKey && e.keyCode === 67)) { // Ctrl+C
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Get stream URL from query parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedUrl = urlParams.get('get');
+
+            if (!encodedUrl) {
+                showError('No stream URL provided. Usage: ?get=BASE64_ENCODED_STREAM_URL');
+                return;
+            }
+
+            let streamUrl;
+            try {
+                // Decode base64 stream URL
+                streamUrl = atob(encodedUrl);
+            } catch (e) {
+                showError('Invalid stream URL encoding. Please provide a valid base64 encoded URL.');
+                return;
+            }
+
+            // Optional authentication keys
+            const key = urlParams.get('key');
+            const key2 = urlParams.get('key2');
+            const img = urlParams.get('img'); // Optional custom thumbnail
+
+            // Apply keys to stream URL if provided
+            if (key) {
+                streamUrl += (streamUrl.includes('?') ? '&' : '?') + 'key=' + key;
+            }
+            if (key2) {
+                streamUrl += (streamUrl.includes('?') ? '&' : '?') + 'key2=' + key2;
+            }
+
+            console.log('Initializing player with stream URL');
+
+            // Initialize JW Player
+            const player = jwplayer('jwplayer');
+
+            player.setup({
+                file: streamUrl,
+                width: '100%',
+                height: '100%',
+                aspectratio: '16:9',
+                autostart: false,
+                preload: 'auto',
+                primary: 'html5',
+                hlshtml: true,
+                androidhls: true,
+                stretching: 'uniform',
+                logo: {
+                    file: 'assets/img/logos/site/logo.png',
+                    link: 'https://t.me/+XyKdBR9chQpjM2I9',
+                    position: 'top-right',
+                    margin: 15
+                },
+                skin: {
+                    name: 'bekle'
+                }
+            });
+
+            // Event Handlers
+            const thumbnailOverlay = document.getElementById('thumbnailOverlay');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Play on thumbnail click
+            thumbnailOverlay.addEventListener('click', function() {
+                thumbnailOverlay.classList.add('hidden');
+                loadingSpinner.style.display = 'block';
+                player.play();
+            });
+
+            player.on('ready', function() {
+                console.log('Player ready');
+            });
+
+            player.on('play', function() {
+                thumbnailOverlay.classList.add('hidden');
+                loadingSpinner.style.display = 'none';
+
+                // Track play event in analytics
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'video_play', {
+                        'event_category': 'Player',
+                        'event_label': streamUrl,
+                        'value': 1
+                    });
+                }
+            });
+
+            player.on('buffer', function() {
+                loadingSpinner.style.display = 'block';
+            });
+
+            player.on('idle', function() {
+                loadingSpinner.style.display = 'none';
+            });
+
+            player.on('complete', function() {
+                thumbnailOverlay.classList.remove('hidden');
+            });
+
+            player.on('error', function(e) {
+                console.error('Player error:', e);
+                showError('Player Error: ' + (e.message || 'Unable to play stream. Please check the stream URL.'));
+            });
+
+            function showError(message) {
+                loadingSpinner.style.display = 'none';
+                errorMessage.querySelector('p').textContent = message;
+                errorMessage.style.display = 'block';
+                thumbnailOverlay.classList.add('hidden');
+            }
+
+            // Anti-embedding protection (optional - shows branding even when embedded)
+            if (window.self !== window.top) {
+                const parentDomain = document.referrer;
+                const allowedDomains = ['footholics.in', 'localhost', '127.0.0.1'];
+
+                let isAllowed = allowedDomains.some(domain => parentDomain.includes(domain));
+
+                if (!isAllowed) {
+                    console.log('Player embedded from external domain - branding watermark active');
+                    // Watermark will still show, enforcing your branding
+                }
+            }
+
+        })();
+    </script>
+</body>
+</html>

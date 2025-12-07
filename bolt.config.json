@@ -1,9 +1,0 @@
-{
-  "build": {
-    "command": "npm run build",
-    "output": "."
-  },
-  "dev": {
-    "command": "python -m http.server 8000"
-  }
-}

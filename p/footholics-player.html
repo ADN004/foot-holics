@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FootHolics Live Stream Player</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="../assets/img/logos/site/logo.png">
+
+    <!-- Google Analytics 4 - Replace G-XXXXXXXXXX with your Measurement ID -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX', {
+            'page_title': 'FootHolics Player',
+            'page_path': '/p/footholics-player.html'
+        });
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+        }
+
+        #player-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+        }
+
+        /* JW Player will be placed here */
+        #jwplayer {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Branded Watermark - Top Left */
+        .branded-watermark {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 9999;
+            background: #D50000;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(213, 0, 0, 0.4);
+            animation: pulse 2.5s ease-in-out infinite;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        /* Thumbnail Overlay - Shows before play */
+        .thumbnail-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NzUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWQxIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzJEMDg1NDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxNDEzMkE7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzdCM0JDNDtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY3NSIgZmlsbD0idXJsKCNncmFkMSkiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjgwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgb3BhY2l0eT0iMC4xIj5GT09USE9MSUNTLklOPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMzUwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNjAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjN0IzQkM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5HQURFIFBMQVK8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSI0MzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNSIgZmlsbD0iI2NjYyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TElWRSBTVFJFQU08L3RleHQ+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iNTAwIiByPSI1MCIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iMC4yIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI1ODAsNDgwIDYyMCw1MDAgNTgwLDUyMCIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .thumbnail-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .play-button {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .play-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+        }
+
+        .play-button::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 30px solid #fff;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            margin-left: 8px;
+        }
+
+        .thumbnail-branding {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            margin-top: -100px;
+        }
+
+        .thumbnail-logo {
+            font-size: 72px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .thumbnail-tagline {
+            font-size: 24px;
+            color: #ddd;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #7B3BC4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 5;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Error Message */
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(213, 0, 0, 0.95);
+            color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            z-index: 100;
+            display: none;
+        }
+
+        .error-message h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .error-message p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        /* Disable right-click and keyboard shortcuts */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Branded Watermark -->
+    <div class="branded-watermark">
+        🔴 LIVE • FootHolics.in
+    </div>
+
+    <!-- Player Container -->
+    <div id="player-container">
+        <!-- Thumbnail Overlay -->
+        <div class="thumbnail-overlay" id="thumbnailOverlay">
+            <div class="thumbnail-branding">
+                <div class="thumbnail-logo">FootHolics.in</div>
+                <div class="thumbnail-tagline">LIVE STREAM • GAME PLAY</div>
+            </div>
+            <div class="play-button"></div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner"></div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage">
+            <h3>⚠️ Stream Error</h3>
+            <p>Unable to load the stream. Please check the URL or try again later.</p>
+        </div>
+
+        <!-- JW Player -->
+        <div id="jwplayer"></div>
+    </div>
+
+    <!-- JW Player Library -->
+    <script src="https://cdn.jwplayer.com/libraries/KB5zFt7A.js"></script>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // Disable right-click
+            document.addEventListener('contextmenu', event => event.preventDefault());
+
+            // Disable specific keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Disable F12, Ctrl+Shift+I, Ctrl+U, Ctrl+C, Ctrl+S
+                if (e.keyCode === 123 || // F12
+                    (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                    (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                    (e.ctrlKey && e.keyCode === 67) || // Ctrl+C
+                    (e.ctrlKey && e.keyCode === 83)) { // Ctrl+S
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Get stream URL from query parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedUrl = urlParams.get('get');
+
+            if (!encodedUrl) {
+                showError('No stream URL provided. Please use: ?get=BASE64_ENCODED_URL');
+                return;
+            }
+
+            let streamUrl;
+            try {
+                streamUrl = atob(encodedUrl);
+            } catch (e) {
+                showError('Invalid stream URL encoding');
+                return;
+            }
+
+            // Optional key parameters for authentication
+            const key = urlParams.get('key');
+            const key2 = urlParams.get('key2');
+
+            // Apply keys to stream URL if needed
+            if (key) {
+                streamUrl += (streamUrl.includes('?') ? '&' : '?') + 'key=' + key;
+            }
+            if (key2) {
+                streamUrl += '&key2=' + key2;
+            }
+
+            // Initialize JW Player
+            const player = jwplayer('jwplayer');
+
+            player.setup({
+                file: streamUrl,
+                width: '100%',
+                height: '100%',
+                aspectratio: '16:9',
+                autostart: false,
+                preload: 'auto',
+                primary: 'html5',
+                hlshtml: true,
+                androidhls: true,
+                stretching: 'uniform',
+                logo: {
+                    file: '../assets/img/logos/site/logo.png',
+                    link: 'https://t.me/+XyKdBR9chQpjM2I9',
+                    position: 'top-right',
+                    margin: 15
+                },
+                skin: {
+                    name: 'bekle'
+                }
+            });
+
+            // Event Handlers
+            const thumbnailOverlay = document.getElementById('thumbnailOverlay');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Play on thumbnail click
+            thumbnailOverlay.addEventListener('click', function() {
+                thumbnailOverlay.classList.add('hidden');
+                loadingSpinner.style.display = 'block';
+                player.play();
+            });
+
+            player.on('play', function() {
+                thumbnailOverlay.classList.add('hidden');
+                loadingSpinner.style.display = 'none';
+            });
+
+            player.on('buffer', function() {
+                loadingSpinner.style.display = 'block';
+            });
+
+            player.on('idle', function() {
+                loadingSpinner.style.display = 'none';
+            });
+
+            player.on('error', function(e) {
+                showError('Player Error: ' + (e.message || 'Unable to play stream'));
+            });
+
+            function showError(message) {
+                loadingSpinner.style.display = 'none';
+                errorMessage.querySelector('p').textContent = message;
+                errorMessage.style.display = 'block';
+                thumbnailOverlay.classList.add('hidden');
+            }
+
+            // Prevent iframe embedding from unauthorized domains
+            if (window.self !== window.top) {
+                const parentDomain = document.referrer;
+                const allowedDomains = ['footholics.in', 'localhost', '127.0.0.1'];
+
+                let isAllowed = false;
+                for (const domain of allowedDomains) {
+                    if (parentDomain.includes(domain)) {
+                        isAllowed = true;
+                        break;
+                    }
+                }
+
+                // Show branding watermark prominently when embedded
+                if (!isAllowed) {
+                    console.log('Player embedded from external domain - branding enforced');
+                }
+            }
+
+        })();
+    </script>
+</body>
+</html>

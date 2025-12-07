@@ -56,3 +56,23 @@ guides/
 DEPLOYMENT-STEPS.md
 QUICK-START.txt
 deploy.ps1
+
+# Bolt.new and hosting configs (not needed for git)
+.boltignore
+bolt.config.json
+static.json
+vercel.json
+
+# Claude Code
+.claude/
+
+# Old player files (replaced by new branded player)
+p/1-live.html
+p/2-live.html
+p/3-live.html
+p/4-live.html
+
+# Test and temporary files
+test*.html
+demo*.html
+example*.html

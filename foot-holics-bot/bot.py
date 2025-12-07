@@ -8,6 +8,7 @@ import os
 import json
 import re
 import glob
+import base64
 from datetime import datetime
 from typing import Dict, Any
 from dotenv import load_dotenv
@@ -93,6 +94,16 @@ LEAGUES = {
         "color": "#8B5CF6",
     },
 }
+
+
+def encode_stream_url(url: str) -> str:
+    """Encode stream URL to base64 for the branded player."""
+    if not url or url == "#" or url.startswith("https://t.me/"):
+        return "#"
+    # Encode the URL to base64
+    encoded_bytes = base64.b64encode(url.encode('utf-8'))
+    encoded_str = encoded_bytes.decode('utf-8')
+    return encoded_str
 
 
 def slugify(text: str) -> str:
@@ -1744,6 +1755,26 @@ def generate_html(data: Dict[str, Any]) -> str:
     home_logo = find_team_logo(data["home_team"], data["league_slug"])
     away_logo = find_team_logo(data["away_team"], data["league_slug"])
 
+    # Encode stream URLs for branded player
+    stream_urls = data.get("stream_urls", ["#", "#", "#", "#"])
+    encoded_urls = []
+    player_urls = []
+
+    for url in stream_urls[:4]:  # Max 4 streams
+        if url and url != "#" and not url.startswith("https://t.me/"):
+            encoded = encode_stream_url(url)
+            player_url = f"player.html?get={encoded}"
+        else:
+            player_url = url if url else "#"
+
+        encoded_urls.append(encoded if url and url != "#" else "#")
+        player_urls.append(player_url)
+
+    # Ensure we have 4 URLs
+    while len(player_urls) < 4:
+        player_urls.append("#")
+        encoded_urls.append("#")
+
     # Replace placeholders
     html = html.replace("{{MATCH_NAME}}", data["match_name"])
     html = html.replace("{{HOME_TEAM}}", data["home_team"])
@@ -1762,6 +1793,12 @@ def generate_html(data: Dict[str, Any]) -> str:
     html = html.replace("{{FILE_NAME}}", filename)
     html = html.replace("{{SLUG}}", f"{home_slug}-vs-{away_slug}")
     html = html.replace("{{MATCH_NAME_ENCODED}}", match_name_encoded)
+
+    # Replace stream URLs with branded player links
+    html = html.replace("{{STREAM_URL_1}}", player_urls[0])
+    html = html.replace("{{STREAM_URL_2}}", player_urls[1])
+    html = html.replace("{{STREAM_URL_3}}", player_urls[2])
+    html = html.replace("{{STREAM_URL_4}}", player_urls[3])
 
     return html
 
@@ -2193,7 +2230,7 @@ def get_inline_event_template() -> str:
             </p>
 
             <div class="stream-links">
-                <a href="p/1-live.html?match={{SLUG}}" class="stream-link-card">
+                <a href="{{STREAM_URL_1}}" class="stream-link-card">
                     <span class="live-badge">
                         <span class="live-dot"></span>
                         LIVE
@@ -2206,7 +2243,7 @@ def get_inline_event_template() -> str:
                     <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Desktop / Mobile</p>
                 </a>
 
-                <a href="p/2-live.html?match={{SLUG}}" class="stream-link-card">
+                <a href="{{STREAM_URL_2}}" class="stream-link-card">
                     <span class="live-badge">
                         <span class="live-dot"></span>
                         LIVE
@@ -2219,7 +2256,7 @@ def get_inline_event_template() -> str:
                     <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Desktop / Mobile</p>
                 </a>
 
-                <a href="p/3-live.html?match={{SLUG}}" class="stream-link-card">
+                <a href="{{STREAM_URL_3}}" class="stream-link-card">
                     <span class="live-badge">
                         <span class="live-dot"></span>
                         LIVE
@@ -2232,7 +2269,7 @@ def get_inline_event_template() -> str:
                     <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Mobile Optimized</p>
                 </a>
 
-                <a href="p/4-live.html?match={{SLUG}}" class="stream-link-card">
+                <a href="{{STREAM_URL_4}}" class="stream-link-card">
                     <span class="live-badge">
                         <span class="live-dot"></span>
                         LIVE
