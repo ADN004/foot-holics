@@ -1939,6 +1939,9 @@ def get_inline_event_template() -> str:
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <!-- Stylesheet -->
     <link rel="stylesheet" href="assets/css/main.css">
 
@@ -2248,19 +2251,19 @@ def get_inline_event_template() -> str:
             <h3 style="color: var(--accent); margin-bottom: 1rem;">Share This Match</h3>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 <a href="https://api.whatsapp.com/send?text=Watch%20{{MATCH_NAME_ENCODED}}%20Live%20-%20https://footholics.in/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💚</span> WhatsApp
+                    <i class="fa-brands fa-whatsapp" style="font-size: 20px; margin-right: 8px;"></i> WhatsApp
                 </a>
                 <a href="https://www.facebook.com/sharer/sharer.php?u=https://footholics.in/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <img src="assets/img/logos/site/facebook.png" alt="Facebook" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📘</span> Facebook
+                    <i class="fa-brands fa-facebook" style="font-size: 20px; margin-right: 8px;"></i> Facebook
                 </a>
                 <a href="https://twitter.com/intent/tweet?url=https://footholics.in/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <img src="assets/img/logos/site/x.png" alt="X" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✖️</span> X
+                    <i class="fa-brands fa-x-twitter" style="font-size: 20px; margin-right: 8px;"></i> X
                 </a>
                 <a href="https://t.me/share/url?url=https://footholics.in/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✈️</span> Telegram
+                    <i class="fa-brands fa-telegram" style="font-size: 20px; margin-right: 8px;"></i> Telegram
                 </a>
                 <a href="https://discord.com/channels/@me" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;" onclick="navigator.clipboard.writeText('Watch {{MATCH_NAME}} Live - https://footholics.in/{{FILE_NAME}}'); alert('Link copied! Paste it in Discord.'); return false;">
-                    <img src="assets/img/logos/site/discord.png" alt="Discord" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💬</span> Discord
+                    <i class="fa-brands fa-discord" style="font-size: 20px; margin-right: 8px;"></i> Discord
                 </a>
             </div>
         </section>
@@ -2325,13 +2328,13 @@ def get_inline_event_template() -> str:
                     <h4>Connect With Us</h4>
                     <ul class="footer-links">
                         <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">
-                            <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';">WhatsApp Channel
+                            <i class="fa-brands fa-whatsapp" style="font-size: 18px; margin-right: 8px;"></i>WhatsApp Channel
                         </a></li>
                         <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">
-                            <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';">Telegram
+                            <i class="fa-brands fa-telegram" style="font-size: 18px; margin-right: 8px;"></i>Telegram
                         </a></li>
                         <li><a href="https://discord.gg/example" target="_blank" rel="noopener noreferrer">
-                            <img src="assets/img/logos/site/discord.png" alt="Discord" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';">Discord
+                            <i class="fa-brands fa-discord" style="font-size: 18px; margin-right: 8px;"></i>Discord
                         </a></li>
                     </ul>
                 </div>
