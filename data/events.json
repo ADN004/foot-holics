@@ -1,5 +1,39 @@
 [
   {
+    "id": "event-1765121324",
+    "date": "2025-12-07",
+    "time": "20:00",
+    "slug": "2025-12-07-real-madrid-vs-celta-vigo",
+    "title": "Real Madrid vs Celta Vigo",
+    "homeTeam": "Real Madrid",
+    "awayTeam": "Celta Vigo",
+    "league": "La Liga",
+    "leagueSlug": "laliga",
+    "stadium": "Estadio Bernabeu",
+    "poster": "assets/img/real-madrid-celta-vigo-poster.jpg",
+    "excerpt": "Real Madrid vs Celta Vigo — set for Sunday, 7 December 2025 at Santiago Bernabéu Stadium (Madrid).\n\nReal Madrid — second in the table, just behind riv...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "#"
+      },
+      {
+        "name": "Stream 2",
+        "url": "#"
+      },
+      {
+        "name": "Stream 3",
+        "url": "#"
+      },
+      {
+        "name": "Stream 4",
+        "url": "#"
+      }
+    ],
+    "streams": 0
+  },
+  {
     "id": "event-1765042921",
     "date": "2025-12-06",
     "time": "17:30",
