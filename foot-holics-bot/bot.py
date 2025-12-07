@@ -344,6 +344,90 @@ def add_card_to_index(card_html: str) -> bool:
         return False
 
 
+def add_to_sitemap(filename: str, date: str = None) -> bool:
+    """Add a match to sitemap.xml."""
+    try:
+        root_dir = get_project_root()
+        sitemap_path = os.path.join(root_dir, "sitemap.xml")
+
+        if not os.path.exists(sitemap_path):
+            return False
+
+        with open(sitemap_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Use current date if not provided
+        if not date:
+            date = datetime.now().strftime("%Y-%m-%d")
+
+        # Create new URL entry
+        new_url = f"""    <url>
+        <loc>https://footholics.in/{filename}</loc>
+        <lastmod>{date}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+"""
+
+        # Find the Event Detail Pages section and add after the comment
+        pattern = r'(<!-- Event Detail Pages -->\n)'
+
+        if re.search(pattern, content):
+            new_content = re.sub(
+                pattern,
+                f'\\1{new_url}',
+                content,
+                count=1
+            )
+
+            # Write back
+            with open(sitemap_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+
+            return True
+        else:
+            print("Could not find Event Detail Pages section in sitemap.xml")
+            return False
+
+    except Exception as e:
+        print(f"Error adding to sitemap.xml: {e}")
+        return False
+
+
+def remove_from_sitemap(filename: str) -> bool:
+    """Remove a match from sitemap.xml."""
+    try:
+        root_dir = get_project_root()
+        sitemap_path = os.path.join(root_dir, "sitemap.xml")
+
+        if not os.path.exists(sitemap_path):
+            return False
+
+        with open(sitemap_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Pattern to match the entire URL block for this file
+        pattern = rf'    <url>\s*<loc>https://footholics\.in/{re.escape(filename)}</loc>.*?</url>\s*\n'
+
+        # Check if match exists
+        if not re.search(pattern, content, re.DOTALL):
+            return False
+
+        # Remove the URL block
+        new_content = re.sub(pattern, '', content, flags=re.DOTALL)
+
+        # Write back
+        with open(sitemap_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        return True
+
+    except Exception as e:
+        print(f"Error removing from sitemap.xml: {e}")
+        return False
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the conversation and show main menu."""
     return await show_main_menu(update, context)
@@ -765,6 +849,12 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
         deleted_files.append("✓ Removed from events.json")
     else:
         failed_operations.append("✗ Could not remove from events.json (may not exist)")
+
+    # Remove from sitemap.xml
+    if remove_from_sitemap(filename):
+        deleted_files.append("✓ Removed from sitemap.xml")
+    else:
+        failed_operations.append("✗ Could not remove from sitemap.xml (may not exist)")
 
     # Delete card file
     card_filename = filename.replace(".html", "-card.html")
@@ -1237,8 +1327,16 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
         # Update index.html card (remove old, add new)
         remove_match_from_index(filename)
 
+        # Get poster from events.json for the updated card
+        poster_path = "assets/img/match-poster.jpg"  # fallback
+        filename_without_ext = filename.replace(".html", "")
+        for event in events:
+            if filename_without_ext in event.get("slug", ""):
+                poster_path = event.get("poster", poster_path)
+                break
+
         # Generate new card with updated info
-        card_html = generate_updated_card(context.user_data, filename)
+        card_html = generate_updated_card(context.user_data, filename, poster_path)
         add_card_to_index(card_html)
 
         success_msg = f"""
@@ -1278,11 +1376,11 @@ Your changes will be live in 60 seconds!
     return MAIN_MENU
 
 
-def generate_updated_card(data: dict, filename: str) -> str:
+def generate_updated_card(data: dict, filename: str, poster_path: str = "assets/img/match-poster.jpg") -> str:
     """Generate updated card HTML."""
     card_html = f"""                    <!-- Match Card -->
                     <article class="glass-card match-card">
-                        <img src="assets/img/match-poster.jpg" alt="{data.get('current_title', 'Match')}" class="match-poster" loading="lazy">
+                        <img src="{poster_path}" alt="{data.get('current_title', 'Match')}" class="match-poster" loading="lazy">
                         <div class="match-header">
                             <h3 class="match-title">{data.get('current_title', 'Match')}</h3>
                             <span class="league-badge {data.get('current_league_slug', 'others')}">{data.get('current_league', 'Football')}</span>
@@ -1603,6 +1701,12 @@ async def image_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             integration_results.append("✅ Added card to index.html")
         else:
             integration_results.append("⚠️ Could not add card to index.html")
+
+        # 4. Add to sitemap.xml
+        if add_to_sitemap(html_filename, context.user_data["date"]):
+            integration_results.append("✅ Added to sitemap.xml")
+        else:
+            integration_results.append("⚠️ Could not add to sitemap.xml")
 
         # Send results as files
         await send_generated_files(update, context, html_code, json_code, card_code, filename_base, integration_results)
@@ -2144,19 +2248,19 @@ def get_inline_event_template() -> str:
             <h3 style="color: var(--accent); margin-bottom: 1rem;">Share This Match</h3>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 <a href="https://api.whatsapp.com/send?text=Watch%20{{MATCH_NAME_ENCODED}}%20Live%20-%20https://footholics.in/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💚</span> WhatsApp
+                    <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💚</span> WhatsApp
                 </a>
                 <a href="https://www.facebook.com/sharer/sharer.php?u=https://footholics.in/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <img src="assets/img/logos/site/facebook.png" alt="Facebook" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📘</span> Facebook
+                    <img src="assets/img/logos/site/facebook.png" alt="Facebook" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📘</span> Facebook
                 </a>
                 <a href="https://twitter.com/intent/tweet?url=https://footholics.in/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <img src="assets/img/logos/site/x.png" alt="X" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✖️</span> X
+                    <img src="assets/img/logos/site/x.png" alt="X" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✖️</span> X
                 </a>
                 <a href="https://t.me/share/url?url=https://footholics.in/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✈️</span> Telegram
+                    <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✈️</span> Telegram
                 </a>
                 <a href="https://discord.com/channels/@me" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;" onclick="navigator.clipboard.writeText('Watch {{MATCH_NAME}} Live - https://footholics.in/{{FILE_NAME}}'); alert('Link copied! Paste it in Discord.'); return false;">
-                    <img src="assets/img/logos/site/discord.png" alt="Discord" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💬</span> Discord
+                    <img src="assets/img/logos/site/discord.png" alt="Discord" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💬</span> Discord
                 </a>
             </div>
         </section>
@@ -2221,13 +2325,13 @@ def get_inline_event_template() -> str:
                     <h4>Connect With Us</h4>
                     <ul class="footer-links">
                         <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">
-                            <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none';">WhatsApp Channel
+                            <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';">WhatsApp Channel
                         </a></li>
                         <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">
-                            <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none';">Telegram
+                            <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';">Telegram
                         </a></li>
                         <li><a href="https://discord.gg/example" target="_blank" rel="noopener noreferrer">
-                            <img src="assets/img/logos/site/discord.png" alt="Discord" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;" onerror="this.style.display='none';">Discord
+                            <img src="assets/img/logos/site/discord.png" alt="Discord" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';">Discord
                         </a></li>
                     </ul>
                 </div>
