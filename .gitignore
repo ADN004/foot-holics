@@ -57,11 +57,13 @@ DEPLOYMENT-STEPS.md
 QUICK-START.txt
 deploy.ps1
 
-# Bolt.new and hosting configs (not needed for git)
+# Bolt.new configs (not needed for git)
 .boltignore
 bolt.config.json
 static.json
-vercel.json
+
+# Keep vercel.json for deployment
+# vercel.json
 
 # Claude Code
 .claude/
