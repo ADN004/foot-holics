@@ -204,6 +204,15 @@
                 return;
             }
 
+            // Update alternate links with match parameter
+            const alternateLinks = document.querySelectorAll('.glass-card a[href*="live.html"]');
+            alternateLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && !href.includes('?match=')) {
+                    link.setAttribute('href', href + '?match=' + matchSlug);
+                }
+            });
+
             // Fetch events.json and load the stream
             fetch('../data/events.json')
                 .then(response => response.json())
