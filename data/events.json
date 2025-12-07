@@ -55,6 +55,14 @@
       {
         "name": "Stream 2",
         "url": "https://sportzonline.top/channels/hd/hd11.php"
+      },
+      {
+        "name": "Stream 3",
+        "url": "https://sportzonline.top/channels/bra/br1.php"
+      },
+      {
+        "name": "Stream 4",
+        "url": "https://sportzonline.top/channels/hd/hd11.php"
       }
     ],
     "streams": 4
@@ -115,8 +123,16 @@
       {
         "name": "Stream 2",
         "url": "https://t.me/+XyKdBR9chQpjM2I9"
+      },
+      {
+        "name": "Stream 3",
+        "url": "https://t.me/+XyKdBR9chQpjM2I9"
+      },
+      {
+        "name": "Stream 4",
+        "url": "https://t.me/+XyKdBR9chQpjM2I9"
       }
     ],
-    "streams": 2
+    "streams": 4
   }
 ]
