@@ -343,8 +343,16 @@
             try {
                 // Decode base64 stream URL
                 streamUrl = atob(encodedUrl);
+                console.log('Decoded stream URL:', streamUrl);
             } catch (e) {
+                console.error('Base64 decode error:', e);
                 showError('Invalid stream URL encoding. Please provide a valid base64 encoded URL.');
+                return;
+            }
+
+            // Validate stream URL
+            if (!streamUrl.startsWith('http://') && !streamUrl.startsWith('https://')) {
+                showError('Invalid stream URL. Must start with http:// or https://');
                 return;
             }
 
@@ -432,12 +440,33 @@
 
             player.on('error', function(e) {
                 console.error('Player error:', e);
-                showError('Player Error: ' + (e.message || 'Unable to play stream. Please check the stream URL.'));
+                console.error('Error code:', e.code);
+                console.error('Error message:', e.message);
+                console.error('Stream URL:', streamUrl);
+
+                let errorMsg = 'Player Error: ';
+                if (e.message) {
+                    errorMsg += e.message;
+                } else if (e.code) {
+                    errorMsg += 'Error code ' + e.code;
+                } else {
+                    errorMsg += 'Unable to play stream. Please check the stream URL.';
+                }
+
+                errorMsg += '\n\nTroubleshooting:\n';
+                errorMsg += '- Check if the stream URL is accessible\n';
+                errorMsg += '- Try the stream URL directly in VLC or browser\n';
+                errorMsg += '- Check if stream requires authentication\n';
+                errorMsg += '- Verify the stream is HLS (.m3u8) format';
+
+                showError(errorMsg);
             });
 
             function showError(message) {
                 loadingSpinner.style.display = 'none';
-                errorMessage.querySelector('p').textContent = message;
+                const errorP = errorMessage.querySelector('p');
+                errorP.style.whiteSpace = 'pre-line';
+                errorP.textContent = message;
                 errorMessage.style.display = 'block';
                 thumbnailOverlay.classList.add('hidden');
             }

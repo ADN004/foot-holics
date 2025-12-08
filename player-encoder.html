@@ -266,16 +266,16 @@
         <div class="result-box" id="resultBox">
             <div class="result-label">📺 Your Player URL:</div>
             <div class="result-value" id="playerUrl"></div>
-            <button class="copy-btn" onclick="copyToClipboard('playerUrl')">📋 Copy Player URL</button>
+            <button class="copy-btn" onclick="copyToClipboard('playerUrl', this)">📋 Copy Player URL</button>
             <a class="test-btn" id="testLink" target="_blank">🧪 Test in New Tab</a>
 
             <div class="result-label" style="margin-top: 25px;">🔑 Base64 Encoded Stream:</div>
             <div class="result-value" id="encodedStream"></div>
-            <button class="copy-btn" onclick="copyToClipboard('encodedStream')">📋 Copy Encoded URL</button>
+            <button class="copy-btn" onclick="copyToClipboard('encodedStream', this)">📋 Copy Encoded URL</button>
 
             <div class="result-label" style="margin-top: 25px;">📱 Embed Code (iframe):</div>
             <div class="result-value" id="embedCode"></div>
-            <button class="copy-btn" onclick="copyToClipboard('embedCode')">📋 Copy Embed Code</button>
+            <button class="copy-btn" onclick="copyToClipboard('embedCode', this)">📋 Copy Embed Code</button>
         </div>
 
         <div class="info-box">
@@ -344,22 +344,42 @@
             document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
 
-        function copyToClipboard(elementId) {
+        function copyToClipboard(elementId, buttonElement) {
             const element = document.getElementById(elementId);
             const text = element.textContent;
 
             navigator.clipboard.writeText(text).then(function() {
                 // Show success feedback
-                const originalText = event.target.textContent;
-                event.target.textContent = '✅ Copied!';
-                event.target.style.background = 'rgba(40, 167, 69, 0.5)';
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = '✅ Copied!';
+                buttonElement.style.background = 'rgba(40, 167, 69, 0.5)';
+                buttonElement.style.borderColor = '#28a745';
 
                 setTimeout(() => {
-                    event.target.textContent = originalText;
-                    event.target.style.background = 'rgba(123, 59, 196, 0.3)';
+                    buttonElement.textContent = originalText;
+                    buttonElement.style.background = 'rgba(123, 59, 196, 0.3)';
+                    buttonElement.style.borderColor = '#7B3BC4';
                 }, 2000);
             }).catch(function(err) {
-                alert('Failed to copy: ' + err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    buttonElement.textContent = '✅ Copied!';
+                    buttonElement.style.background = 'rgba(40, 167, 69, 0.5)';
+                    setTimeout(() => {
+                        buttonElement.textContent = '📋 Copy';
+                        buttonElement.style.background = 'rgba(123, 59, 196, 0.3)';
+                    }, 2000);
+                } catch (err) {
+                    alert('Copy failed. Please copy manually: ' + text);
+                }
+                document.body.removeChild(textArea);
             });
         }
 
