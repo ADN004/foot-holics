@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Player - FootHolics</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+        }
+        #player {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        video {
+            width: 100%;
+            background: #000;
+        }
+        .info {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #222;
+            border-radius: 8px;
+        }
+        .error {
+            color: #f44336;
+        }
+        .success {
+            color: #4caf50;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+    <div id="player">
+        <video id="video" controls></video>
+    </div>
+
+    <div class="info">
+        <h3>Stream Debug Info:</h3>
+        <div id="status">Loading...</div>
+        <div id="streamUrl" style="margin-top: 10px; word-break: break-all;"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedUrl = urlParams.get('get');
+        const statusDiv = document.getElementById('status');
+        const streamUrlDiv = document.getElementById('streamUrl');
+
+        if (!encodedUrl) {
+            statusDiv.innerHTML = '<span class="error">❌ No stream URL provided</span>';
+            statusDiv.innerHTML += '<p>Usage: player-debug.html?get=BASE64_ENCODED_URL</p>';
+        } else {
+            try {
+                const streamUrl = atob(encodedUrl);
+                streamUrlDiv.innerHTML = `<strong>Stream URL:</strong> ${streamUrl}`;
+
+                const video = document.getElementById('video');
+
+                if (Hls.isSupported()) {
+                    const hls = new Hls({
+                        debug: true,
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 90
+                    });
+
+                    hls.loadSource(streamUrl);
+                    hls.attachMedia(video);
+
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        statusDiv.innerHTML = '<span class="success">✅ Stream loaded successfully!</span>';
+                        video.play().catch(e => {
+                            statusDiv.innerHTML = '<span class="error">❌ Autoplay blocked. Click play button.</span>';
+                        });
+                    });
+
+                    hls.on(Hls.Events.ERROR, function(event, data) {
+                        console.error('HLS Error:', data);
+                        if (data.fatal) {
+                            statusDiv.innerHTML = `<span class="error">❌ Fatal Error: ${data.type} - ${data.details}</span>`;
+
+                            switch(data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    statusDiv.innerHTML += '<p>Network error. Trying to recover...</p>';
+                                    hls.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    statusDiv.innerHTML += '<p>Media error. Trying to recover...</p>';
+                                    hls.recoverMediaError();
+                                    break;
+                                default:
+                                    statusDiv.innerHTML += '<p>Unrecoverable error. Stream may be protected or offline.</p>';
+                                    break;
+                            }
+                        }
+                    });
+
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Native HLS support (Safari)
+                    video.src = streamUrl;
+                    video.addEventListener('loadedmetadata', function() {
+                        statusDiv.innerHTML = '<span class="success">✅ Stream loaded (native HLS)</span>';
+                        video.play().catch(e => {
+                            statusDiv.innerHTML = '<span class="error">❌ Autoplay blocked. Click play button.</span>';
+                        });
+                    });
+
+                    video.addEventListener('error', function(e) {
+                        statusDiv.innerHTML = `<span class="error">❌ Video Error: ${video.error.message}</span>`;
+                    });
+                } else {
+                    statusDiv.innerHTML = '<span class="error">❌ HLS not supported in this browser</span>';
+                }
+
+            } catch(e) {
+                statusDiv.innerHTML = `<span class="error">❌ Error decoding URL: ${e.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
