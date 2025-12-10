@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Watch Real Madrid vs Manchester City live - Champions League clash on December 10, 2025 at Santiago Bernabéu. Find multiple streaming links and match preview.">
-    <meta name="keywords" content="Real Madrid vs Manchester City, Champions League live stream, watch football online, Santiago Bernabéu">
+    <meta name="description" content="Watch Real Madrid vs Manchester City live stream free - Champions League clash on December 10, 2025 at Santiago Bernabéu. Find HD streaming links, match preview, and live football coverage on Foot Holics.">
+    <meta name="keywords" content="Real Madrid vs Manchester City, Real Madrid vs Manchester City, Champions League live stream, watch football online, football live streaming, free football stream, Santiago Bernabéu, Real Madrid live, Manchester City live, football match today, live soccer stream, watch Champions League online">
 
     <!-- Open Graph -->
     <meta property="og:title" content="Real Madrid vs Manchester City - Champions League Live Stream">
@@ -29,14 +29,15 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 
-        <!-- Font Awesome -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <!-- Stylesheet -->
     <link rel="stylesheet" href="assets/css/main.css">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/img/favicon.png">
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+    <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -44,20 +45,88 @@
       "@context": "https://schema.org",
       "@type": "SportsEvent",
       "name": "Real Madrid vs Manchester City",
-      "startDate": "2025-12-10T20:00:00Z",
+      "description": "Watch Real Madrid vs Manchester City live stream free on Foot Holics. Champions League match with multiple HD streaming links.",
+      "startDate": "2025-12-10T00:00:00Z",
       "location": {
         "@type": "Place",
-        "name": "Santiago Bernabéu"
+        "name": "Santiago Bernabéu",
+        "address": {
+          "@type": "PostalAddress"
+        }
       },
       "homeTeam": {
         "@type": "SportsTeam",
-        "name": "Real Madrid"
+        "name": "Real Madrid",
+        "sport": "Football"
       },
       "awayTeam": {
         "@type": "SportsTeam",
-        "name": "Manchester City"
+        "name": "Manchester City",
+        "sport": "Football"
       },
-      "sport": "Football"
+      "sport": "Football",
+      "competitor": [
+        {
+          "@type": "SportsTeam",
+          "name": "Real Madrid"
+        },
+        {
+          "@type": "SportsTeam",
+          "name": "Manchester City"
+        }
+      ],
+      "organizer": {
+        "@type": "SportsOrganization",
+        "name": "Champions League"
+      },
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+      "isAccessibleForFree": false,
+      "url": "https://footholics.in/{{FILENAME}}"
+    }
+    </script>
+
+    <!-- Organization Schema for Foot Holics -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Foot Holics",
+      "url": "https://footholics.in",
+      "logo": "https://footholics.in/assets/img/logos/site/logo.png",
+      "description": "Premium football streaming aggregator providing links to live football matches from around the world",
+      "sameAs": [
+        "https://t.me/+XyKdBR9chQpjM2I9",
+        "https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T"
+      ]
+    }
+    </script>
+
+    <!-- BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://footholics.in/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Champions League",
+          "item": "https://footholics.in/#leagues"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Real Madrid vs Manchester City",
+          "item": "https://footholics.in/{{FILENAME}}"
+        }
+      ]
     }
     </script>
 </head>
@@ -67,7 +136,7 @@
         <div class="container">
             <div class="header-inner">
                 <a href="index.html" class="logo">
-                    <div class="logo-icon">⚽</div>
+                    <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="logo-icon">
                     <span>Foot Holics</span>
                 </a>
 
@@ -78,13 +147,13 @@
                 </nav>
 
                 <div class="cta-group" id="ctaGroup">
-                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" onclick="return handleAdClick(this);">
+                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
                         <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                         </svg>
                         WhatsApp
                     </a>
-                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary" onclick="return handleAdClick(this);">
+                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
                         <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
                         </svg>
@@ -142,13 +211,15 @@
         <!-- Teams Block -->
         <div class="teams-block">
             <div class="team">
-                <img src="assets/img/logos/teams/la-liga/real-madrid.png" alt="Real Madrid" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <img src="assets/img/logos/teams/laliga/placeholder.png" alt="Real Madrid" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: contain; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="team-crest" style="background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%); display: none;">⚽</div>
                 <h2 class="team-name">Real Madrid</h2>
                 <p class="text-muted">Home</p>
             </div>
             <div class="vs">VS</div>
             <div class="team">
-                <img src="assets/img/logos/teams/premier-league/manchester-city.png" alt="Manchester City" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <img src="assets/img/logos/teams/laliga/placeholder.png" alt="Manchester City" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: contain; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="team-crest" style="background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%); display: none;">⚽</div>
                 <h2 class="team-name">Manchester City</h2>
                 <p class="text-muted">Away</p>
             </div>
@@ -157,7 +228,7 @@
         <!-- Match Preview -->
         <section class="glass-card mb-4">
             <h2 style="color: var(--accent); margin-bottom: 1rem;">Match Preview</h2>
-            <p>Real Madrid host Manchester City at the Santiago Bernabéu in a high-stakes Champions League clash between two of Europe’s strongest sides. Madrid will look to use their home advantage and attacking depth, while City aim to control the game with their possession-based style and clinical finishing. With both teams in strong form and a history of thrilling encounters, this match is expected to deliver top-quality football and decisive moments.</p>
+            <p>Real Madrid host Manchester City at the Santiago Bernabéu in a high-stakes Champions League clash between two of Europe’s strongest sides. Madrid will...</p>
         </section>
 
         <!-- Broadcast Channels -->
@@ -210,7 +281,7 @@
             </p>
 
             <div class="stream-links">
-                <a href="p/1-live.html?match=real-madrid-vs-manchester-city" class="stream-link-card" onclick="return handleAdClick(this);">
+                <a href="https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3" class="stream-link-card">
                     <span class="live-badge">
                         <span class="live-dot"></span>
                         LIVE
@@ -223,7 +294,7 @@
                     <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Desktop / Mobile</p>
                 </a>
 
-                <a href="p/2-live.html?match=real-madrid-vs-manchester-city" class="stream-link-card" onclick="return handleAdClick(this);">
+                <a href="https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3" class="stream-link-card">
                     <span class="live-badge">
                         <span class="live-dot"></span>
                         LIVE
@@ -236,7 +307,7 @@
                     <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Desktop / Mobile</p>
                 </a>
 
-                <a href="p/3-live.html?match=real-madrid-vs-manchester-city" class="stream-link-card" onclick="return handleAdClick(this);">
+                <a href="https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3" class="stream-link-card">
                     <span class="live-badge">
                         <span class="live-dot"></span>
                         LIVE
@@ -249,7 +320,7 @@
                     <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Mobile Optimized</p>
                 </a>
 
-                <a href="p/4-live.html?match=real-madrid-vs-manchester-city" class="stream-link-card" onclick="return handleAdClick(this);">
+                <a href="https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3" class="stream-link-card">
                     <span class="live-badge">
                         <span class="live-dot"></span>
                         LIVE
@@ -283,9 +354,11 @@
                     <i class="fa-brands fa-x-twitter" style="font-size: 20px; margin-right: 8px;"></i> X
                 </a>
                 <a href="https://t.me/share/url?url=https://footholics.in/2025-12-10-real-madrid-vs-manchester-city.html&text=Watch%20Real%20Madrid%20vs%20Manchester%20City%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <i class="fa-brands fa-telegram" style="font-size: 20px; margin-right: 8px;"></i> Telegram</a>
+                    <i class="fa-brands fa-telegram" style="font-size: 20px; margin-right: 8px;"></i> Telegram
+                </a>
                 <a href="https://discord.com/channels/@me" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;" onclick="navigator.clipboard.writeText('Watch Real Madrid vs Manchester City Live - https://footholics.in/2025-12-10-real-madrid-vs-manchester-city.html'); alert('Link copied! Paste it in Discord.'); return false;">
-                    <i class="fa-brands fa-discord" style="font-size: 20px; margin-right: 8px;"></i> Discord</a>
+                    <i class="fa-brands fa-discord" style="font-size: 20px; margin-right: 8px;"></i> Discord
+                </a>
             </div>
         </section>
 
@@ -349,12 +422,14 @@
                     <h4>Connect With Us</h4>
                     <ul class="footer-links">
                         <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">
-                            <i class="fa-brands fa-whatsapp" style="font-size: 20px; margin-right: 8px;"></i> WhatsApp Channel
+                            <i class="fa-brands fa-whatsapp" style="font-size: 18px; margin-right: 8px;"></i>WhatsApp Channel
                         </a></li>
                         <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">
-                            <i class="fa-brands fa-telegram" style="font-size: 20px; margin-right: 8px;"></i> Telegram</a></li>
+                            <i class="fa-brands fa-telegram" style="font-size: 18px; margin-right: 8px;"></i>Telegram
+                        </a></li>
                         <li><a href="https://discord.gg/example" target="_blank" rel="noopener noreferrer">
-                            <i class="fa-brands fa-discord" style="font-size: 20px; margin-right: 8px;"></i> Discord</a></li>
+                            <i class="fa-brands fa-discord" style="font-size: 18px; margin-right: 8px;"></i>Discord
+                        </a></li>
                     </ul>
                 </div>
             </div>
@@ -369,16 +444,32 @@
         </div>
     </footer>
 
-    <!-- Adsterra Ad Scripts -->
-    <!-- Popunder Ad (triggers on click) -->
-    <script type="text/javascript" src="//pl28190353.effectivegatecpm.com/52/30/74/5230747febbb777e6e14a3c30aa1fd30.js"></script>
+    <!-- ========================================
+         ADSTERRA AD SLOTS (REDUCED)
+         ======================================== -->
 
-    <!-- Social Bar Ad (sticky) -->
-    <script type="text/javascript" src="//pl28190484.effectivegatecpm.com/ad/f7/17/adf7172d701fdcad288330f7b67c9293.js"></script>
+    <!-- Native Banner Ad - Less intrusive, blends with content -->
+    <div id="ad-slot-native-1" style="margin: 30px auto; max-width: 1200px;">
+        <script async="async" data-cfasync="false" src="//pensivedean.com/0eafec7e4106026e364203d54ba0c8e9/invoke.js"></script>
+        <div id="container-0eafec7e4106026e364203d54ba0c8e9"></div>
+    </div>
+
+    <!-- Popunder Ad Slot -->
+    <div id="ad-slot-popunder"></div>
+
+    <!-- Smartlink Ad (Used for outbound links) -->
+    <!-- Smartlink URL: https://pensivedean.com/w5hzdwkr3h?key=bfbd283ffe1573110488645fe30c5cfd -->
+
+    <!-- Social Bar Ad (Sticky) -->
+    <div id="ad-slot-social-bar">
+        <script type="text/javascript" src="//pensivedean.com/ad/f7/17/adf7172d701fdcad288330f7b67c9293.js"></script>
+    </div>
+
+    <!-- Adsterra Scripts Section -->
+    <!-- Popunder Ad Script -->
+    <script type="text/javascript" src="//pensivedean.com/98/b2/61/98b2610dbd944ffe41efc4663be4b3ad.js"></script>
 
     <!-- JavaScript -->
     <script src="assets/js/main.js" defer></script>
 </body>
 </html>
-
-
