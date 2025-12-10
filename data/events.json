@@ -152,19 +152,19 @@
     "broadcast": [
       {
         "name": "Stream 1",
-        "url": "https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3"
+        "url": "https://aeriswispx.github.io/mpdhls?get=aHR0cHM6Ly9obHMuY2Rub2s5LmNvbS9saXZlL0xVVUJJL2luZGV4Lm0zdTg/ZXhwaXJlPTE3ODg0MjcyNTYmc2lnbj1lMTVmOGIxODRkYzljNjFjYzVkYWNmZDk2Mjg0MWFlMQ=="
       },
       {
         "name": "Stream 2",
-        "url": "https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3"
+        "url": "https://sportzonline.top/channels/hd/hd6.php"
       },
       {
         "name": "Stream 3",
-        "url": "https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3"
+        "url": "https://sportzonline.top/channels/hd/hd1.php"
       },
       {
         "name": "Stream 4",
-        "url": "https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3"
+        "url": "https://sportzonline.top/channels/pt/eleven1.php"
       }
     ],
     "streams": 4
