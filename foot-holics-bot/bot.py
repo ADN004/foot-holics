@@ -1841,25 +1841,13 @@ def generate_html(data: Dict[str, Any]) -> str:
     player_urls = []
 
     for url in stream_urls[:4]:  # Max 4 streams
-        if url and url != "#" and not url.startswith("https://t.me/"):
+            if url and url != "#" and not url.startswith("https://t.me/"):
             if use_player_links:
                 # Convert to player link
                 encoded = encode_stream_url(url)
-                # Detect stream type for better player handling
-                stream_type = detect_stream_type(url)
-                
-                # player.html auto-detects stream type, but we can add type parameter for clarity
-                # This helps with debugging and ensures proper player selection
-                if stream_type == "hls":
-                    # HLS streams will use HLS.js player
-                    player_url = f"player.html?get={encoded}&type=hls"
-                elif stream_type == "video":
-                    # Video files will use JW Player
-                    player_url = f"player.html?get={encoded}&type=video"
-                else:
-                    # Unknown type - player.html will auto-detect
-                    player_url = f"player.html?get={encoded}"
-                
+                # Simple player URL - player.html will auto-detect stream type
+                # We don't add type parameter to maintain backward compatibility with existing links
+                player_url = f"player.html?get={encoded}"
                 encoded_urls.append(encoded)
             else:
                 # Use raw link

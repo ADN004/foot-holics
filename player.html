@@ -339,12 +339,30 @@
                 }
             });
 
+            // Define showError function first (before it's used)
+            function showError(message) {
+                const loadingSpinner = document.getElementById('loadingSpinner');
+                const errorMessage = document.getElementById('errorMessage');
+                const thumbnailOverlay = document.getElementById('thumbnailOverlay');
+                
+                if (loadingSpinner) loadingSpinner.style.display = 'none';
+                if (errorMessage) {
+                    const errorP = errorMessage.querySelector('p');
+                    if (errorP) {
+                        errorP.style.whiteSpace = 'pre-line';
+                        errorP.textContent = message;
+                    }
+                    errorMessage.style.display = 'block';
+                }
+                if (thumbnailOverlay) thumbnailOverlay.classList.add('hidden');
+            }
+
             // Get stream URL from query parameter
             const urlParams = new URLSearchParams(window.location.search);
             const encodedUrl = urlParams.get('get');
 
-            if (!encodedUrl) {
-                showError('No stream URL provided. Usage: ?get=BASE64_ENCODED_STREAM_URL');
+            if (!encodedUrl || encodedUrl.trim() === '' || encodedUrl === 'null' || encodedUrl === 'undefined') {
+                showError('No stream URL provided. Usage: ?get=BASE64_ENCODED_STREAM_URL\n\nPlease check the link and try again.');
                 return;
             }
 
@@ -353,15 +371,21 @@
                 // Decode base64 stream URL
                 streamUrl = atob(encodedUrl);
                 console.log('Decoded stream URL:', streamUrl);
+                
+                // Check if decoded URL is valid
+                if (!streamUrl || streamUrl.trim() === '' || streamUrl === 'null' || streamUrl === 'undefined') {
+                    showError('Invalid stream URL: Decoded URL is empty or null.\n\nPlease check the link and try again.');
+                    return;
+                }
             } catch (e) {
                 console.error('Base64 decode error:', e);
-                showError('Invalid stream URL encoding. Please provide a valid base64 encoded URL.');
+                showError('Invalid stream URL encoding. Please provide a valid base64 encoded URL.\n\nError: ' + e.message);
                 return;
             }
 
             // Validate stream URL
-            if (!streamUrl.startsWith('http://') && !streamUrl.startsWith('https://')) {
-                showError('Invalid stream URL. Must start with http:// or https://');
+            if (!streamUrl || (!streamUrl.startsWith('http://') && !streamUrl.startsWith('https://'))) {
+                showError('Invalid stream URL. Must start with http:// or https://\n\nReceived: ' + (streamUrl ? streamUrl.substring(0, 50) + '...' : 'null'));
                 return;
             }
 
@@ -668,14 +692,7 @@
                 });
             }
 
-            function showError(message) {
-                loadingSpinner.style.display = 'none';
-                const errorP = errorMessage.querySelector('p');
-                errorP.style.whiteSpace = 'pre-line';
-                errorP.textContent = message;
-                errorMessage.style.display = 'block';
-                thumbnailOverlay.classList.add('hidden');
-            }
+            // showError function already defined above at the beginning
 
             // Cleanup on page unload
             window.addEventListener('beforeunload', function() {
