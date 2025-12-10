@@ -288,10 +288,10 @@
                 streamUrl += '&key2=' + key2;
             }
 
-            // Initialize JW Player
-            const player = jwplayer('jwplayer');
-
-            player.setup({
+            // Detect if it's an m3u8/HLS stream
+            const isHLS = streamUrl.includes('.m3u8') || streamUrl.includes('m3u8');
+            
+            const playerConfig = {
                 file: streamUrl,
                 width: '100%',
                 height: '100%',
@@ -299,8 +299,6 @@
                 autostart: false,
                 preload: 'auto',
                 primary: 'html5',
-                hlshtml: true,
-                androidhls: true,
                 stretching: 'uniform',
                 logo: {
                     file: '../assets/img/logos/site/logo.png',
@@ -311,7 +309,49 @@
                 skin: {
                     name: 'bekle'
                 }
-            });
+            };
+
+            // Add HLS-specific configuration for m3u8 streams
+            if (isHLS) {
+                // Use sources array for better HLS support
+                playerConfig.sources = [{
+                    file: streamUrl,
+                    type: 'hls'
+                }];
+                playerConfig.hlshtml = true;
+                playerConfig.androidhls = true;
+                playerConfig.hlsjsConfig = {
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90,
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 60,
+                    maxBufferSize: 60 * 1000 * 1000,
+                    maxBufferHole: 0.5,
+                    highBufferWatchdogPeriod: 2,
+                    nudgeOffset: 0.1,
+                    nudgeMaxRetry: 3,
+                    maxFragLoadingTimeOut: 200000,
+                    maxLoadingDelay: 4,
+                    minAutoBitrate: 0,
+                    emeEnabled: false,
+                    drmSystemOptions: {},
+                    widevineLicenseUrl: undefined,
+                    xhrSetup: function(xhr, url) {
+                        // Handle CORS if needed
+                        xhr.withCredentials = false;
+                    }
+                };
+                // Remove file property when using sources
+                delete playerConfig.file;
+            } else {
+                playerConfig.hlshtml = true;
+                playerConfig.androidhls = true;
+            }
+
+            // Initialize JW Player
+            const player = jwplayer('jwplayer');
+            player.setup(playerConfig);
 
             // Event Handlers
             const thumbnailOverlay = document.getElementById('thumbnailOverlay');

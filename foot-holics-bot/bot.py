@@ -37,6 +37,7 @@ load_dotenv()
     STADIUM,
     PREVIEW,
     STREAM_URLS,
+    USE_PLAYER_CONFIRM,
     IMAGE_NAME,
     DELETE_SELECT,
     UPDATE_SELECT,
@@ -44,7 +45,7 @@ load_dotenv()
     UPDATE_FIELD_INPUT,
     UPDATE_STREAM_LINKS,
     GENERATE_CARD_INPUT,
-) = range(14)
+) = range(15)
 
 # League data with emojis and colors
 LEAGUES = {
@@ -1594,11 +1595,28 @@ async def preview(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def stream_urls(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Store stream URLs and ask for image name."""
+    """Store stream URLs and ask for player conversion permission."""
     text = update.message.text.strip()
 
     if text.lower() == "skip":
         context.user_data["stream_urls"] = []
+        # If skipped, default to not using player links
+        context.user_data["use_player_links"] = False
+        # Generate suggested image name
+        home_slug = slugify(context.user_data["home_team"])
+        away_slug = slugify(context.user_data["away_team"])
+        suggested_name = f"{home_slug}-{away_slug}-poster.jpg"
+        context.user_data["suggested_image"] = suggested_name
+        
+        await update.message.reply_text(
+            f"✅ Stream URLs skipped.\n\n"
+            f"🖼️ **Step 7/7:** Image file name:\n\n"
+            f"Suggested: `{suggested_name}`\n\n"
+            f"Press Enter to accept or type a custom name.\n"
+            f"(Just the filename, it will be saved in `assets/img/`)",
+            parse_mode="Markdown"
+        )
+        return IMAGE_NAME
     else:
         # Split by newlines and validate URLs
         urls = [url.strip() for url in text.split("\n") if url.strip()]
@@ -1629,6 +1647,42 @@ async def stream_urls(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
         context.user_data["stream_urls"] = urls
 
+    stream_count = len(context.user_data["stream_urls"])
+
+    # Ask if user wants to convert links to player links
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Yes, use player", callback_data="use_player_yes"),
+            InlineKeyboardButton("❌ No, use raw links", callback_data="use_player_no")
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        f"✅ {stream_count} stream URL(s) saved!\n\n"
+        f"🎬 **Convert to player links?**\n\n"
+        f"Do you want to automatically convert these links to branded player links?\n"
+        f"• **Yes**: Links will be converted to player.html format\n"
+        f"• **No**: Raw links will be used as-is\n\n"
+        f"Please choose:",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
+    )
+    return USE_PLAYER_CONFIRM
+
+
+async def use_player_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle user's choice for player link conversion."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "use_player_yes":
+        context.user_data["use_player_links"] = True
+        choice_text = "✅ Player links will be used"
+    else:
+        context.user_data["use_player_links"] = False
+        choice_text = "✅ Raw links will be used"
+
     # Generate suggested image name
     home_slug = slugify(context.user_data["home_team"])
     away_slug = slugify(context.user_data["away_team"])
@@ -1636,10 +1690,8 @@ async def stream_urls(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     context.user_data["suggested_image"] = suggested_name
 
-    stream_count = len(context.user_data["stream_urls"])
-
-    await update.message.reply_text(
-        f"✅ {stream_count} stream URL(s) saved!\n\n"
+    await query.edit_message_text(
+        f"{choice_text}\n\n"
         f"🖼️ **Step 7/7:** Image file name:\n\n"
         f"Suggested: `{suggested_name}`\n\n"
         f"Press Enter to accept or type a custom name.\n"
@@ -1755,19 +1807,27 @@ def generate_html(data: Dict[str, Any]) -> str:
     home_logo = find_team_logo(data["home_team"], data["league_slug"])
     away_logo = find_team_logo(data["away_team"], data["league_slug"])
 
-    # Encode stream URLs for branded player
+    # Handle stream URLs based on user's choice
     stream_urls = data.get("stream_urls", ["#", "#", "#", "#"])
+    use_player_links = data.get("use_player_links", True)  # Default to True for backward compatibility
     encoded_urls = []
     player_urls = []
 
     for url in stream_urls[:4]:  # Max 4 streams
         if url and url != "#" and not url.startswith("https://t.me/"):
-            encoded = encode_stream_url(url)
-            player_url = f"player.html?get={encoded}"
+            if use_player_links:
+                # Convert to player link
+                encoded = encode_stream_url(url)
+                player_url = f"player.html?get={encoded}"
+                encoded_urls.append(encoded)
+            else:
+                # Use raw link
+                player_url = url
+                encoded_urls.append("#")
         else:
             player_url = url if url else "#"
+            encoded_urls.append("#")
 
-        encoded_urls.append(encoded if url and url != "#" else "#")
         player_urls.append(player_url)
 
     # Ensure we have 4 URLs
@@ -2503,6 +2563,7 @@ def main() -> None:
             STADIUM: [MessageHandler(filters.TEXT & ~filters.COMMAND, stadium)],
             PREVIEW: [MessageHandler(filters.TEXT & ~filters.COMMAND, preview)],
             STREAM_URLS: [MessageHandler(filters.TEXT & ~filters.COMMAND, stream_urls)],
+            USE_PLAYER_CONFIRM: [CallbackQueryHandler(use_player_confirm)],
             IMAGE_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, image_name)],
             DELETE_SELECT: [
                 CallbackQueryHandler(delete_match_handler, pattern="^delete_"),
