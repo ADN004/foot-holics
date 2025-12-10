@@ -39,10 +39,17 @@
             background: linear-gradient(135deg, #2D0854 0%, #14132A 50%, #7B3BC4 100%);
         }
 
-        /* JW Player */
+        /* Video Player */
         #jwplayer {
             width: 100% !important;
             height: 100% !important;
+            position: relative;
+        }
+
+        #video-player {
+            width: 100% !important;
+            height: 100% !important;
+            background: #000;
         }
 
         /* Branded Watermark - Top Left */
@@ -309,8 +316,8 @@
         FootHolics.in
     </div>
 
-    <!-- JW Player Library -->
-    <script src="https://cdn.jwplayer.com/libraries/KB5zFt7A.js"></script>
+    <!-- HLS.js Library for m3u8 support -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <script>
         (function() {
@@ -369,90 +376,42 @@
                 streamUrl += (streamUrl.includes('?') ? '&' : '?') + 'key2=' + key2;
             }
 
-            console.log('Initializing player with stream URL');
+            console.log('Initializing player with stream URL:', streamUrl);
 
             // Detect if it's an m3u8/HLS stream
             const isHLS = streamUrl.includes('.m3u8') || streamUrl.includes('m3u8');
+
+            // Create video element
+            const video = document.createElement('video');
+            video.id = 'video-player';
+            video.style.width = '100%';
+            video.style.height = '100%';
+            video.style.objectFit = 'contain';
+            video.controls = true;
+            video.playsInline = true;
             
-            const playerConfig = {
-                file: streamUrl,
-                width: '100%',
-                height: '100%',
-                aspectratio: '16:9',
-                autostart: false,
-                preload: 'auto',
-                primary: 'html5',
-                stretching: 'uniform',
-                logo: {
-                    file: 'assets/img/logos/site/logo.png',
-                    link: 'https://t.me/+XyKdBR9chQpjM2I9',
-                    position: 'top-right',
-                    margin: 15
-                },
-                skin: {
-                    name: 'bekle'
-                }
-            };
-
-            // Add HLS-specific configuration for m3u8 streams
-            if (isHLS) {
-                // Use sources array for better HLS support
-                playerConfig.sources = [{
-                    file: streamUrl,
-                    type: 'hls'
-                }];
-                playerConfig.hlshtml = true;
-                playerConfig.androidhls = true;
-                playerConfig.hlsjsConfig = {
-                    enableWorker: true,
-                    lowLatencyMode: true,
-                    backBufferLength: 90,
-                    maxBufferLength: 30,
-                    maxMaxBufferLength: 60,
-                    maxBufferSize: 60 * 1000 * 1000,
-                    maxBufferHole: 0.5,
-                    highBufferWatchdogPeriod: 2,
-                    nudgeOffset: 0.1,
-                    nudgeMaxRetry: 3,
-                    maxFragLoadingTimeOut: 200000,
-                    maxLoadingDelay: 4,
-                    minAutoBitrate: 0,
-                    emeEnabled: false,
-                    drmSystemOptions: {},
-                    widevineLicenseUrl: undefined,
-                    xhrSetup: function(xhr, url) {
-                        // Handle CORS if needed
-                        xhr.withCredentials = false;
-                    }
-                };
-                // Remove file property when using sources
-                delete playerConfig.file;
-            } else {
-                playerConfig.hlshtml = true;
-                playerConfig.androidhls = true;
-            }
-
-            // Initialize JW Player
-            const player = jwplayer('jwplayer');
-            player.setup(playerConfig);
+            // Replace JW Player div with video element
+            const jwplayerDiv = document.getElementById('jwplayer');
+            jwplayerDiv.appendChild(video);
 
             // Event Handlers
             const thumbnailOverlay = document.getElementById('thumbnailOverlay');
             const loadingSpinner = document.getElementById('loadingSpinner');
             const errorMessage = document.getElementById('errorMessage');
+            let hls = null;
 
             // Play on thumbnail click
             thumbnailOverlay.addEventListener('click', function() {
                 thumbnailOverlay.classList.add('hidden');
                 loadingSpinner.style.display = 'block';
-                player.play();
+                video.play().catch(function(err) {
+                    console.error('Play error:', err);
+                    showError('Autoplay blocked. Please click the play button on the video player.');
+                });
             });
 
-            player.on('ready', function() {
-                console.log('Player ready');
-            });
-
-            player.on('play', function() {
+            // Video event handlers
+            video.addEventListener('play', function() {
                 thumbnailOverlay.classList.add('hidden');
                 loadingSpinner.style.display = 'none';
 
@@ -466,29 +425,42 @@
                 }
             });
 
-            player.on('buffer', function() {
+            video.addEventListener('waiting', function() {
                 loadingSpinner.style.display = 'block';
             });
 
-            player.on('idle', function() {
+            video.addEventListener('playing', function() {
                 loadingSpinner.style.display = 'none';
             });
 
-            player.on('complete', function() {
+            video.addEventListener('ended', function() {
                 thumbnailOverlay.classList.remove('hidden');
             });
 
-            player.on('error', function(e) {
-                console.error('Player error:', e);
-                console.error('Error code:', e.code);
-                console.error('Error message:', e.message);
+            video.addEventListener('error', function(e) {
+                console.error('Video error:', e);
+                console.error('Error code:', video.error ? video.error.code : 'unknown');
+                console.error('Error message:', video.error ? video.error.message : 'unknown');
                 console.error('Stream URL:', streamUrl);
 
-                let errorMsg = 'Player Error: ';
-                if (e.message) {
-                    errorMsg += e.message;
-                } else if (e.code) {
-                    errorMsg += 'Error code ' + e.code;
+                let errorMsg = 'Video Error: ';
+                if (video.error) {
+                    switch(video.error.code) {
+                        case 1:
+                            errorMsg += 'MEDIA_ERR_ABORTED - The video download was aborted';
+                            break;
+                        case 2:
+                            errorMsg += 'MEDIA_ERR_NETWORK - A network error occurred';
+                            break;
+                        case 3:
+                            errorMsg += 'MEDIA_ERR_DECODE - The video could not be decoded';
+                            break;
+                        case 4:
+                            errorMsg += 'MEDIA_ERR_SRC_NOT_SUPPORTED - The video format is not supported';
+                            break;
+                        default:
+                            errorMsg += 'Unknown error occurred';
+                    }
                 } else {
                     errorMsg += 'Unable to play stream. Please check the stream URL.';
                 }
@@ -502,6 +474,78 @@
                 showError(errorMsg);
             });
 
+            // Initialize player based on stream type
+            if (isHLS) {
+                // Use HLS.js for m3u8 streams
+                if (Hls.isSupported()) {
+                    hls = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 90,
+                        maxBufferLength: 30,
+                        maxMaxBufferLength: 60,
+                        maxBufferSize: 60 * 1000 * 1000,
+                        maxBufferHole: 0.5,
+                        highBufferWatchdogPeriod: 2,
+                        nudgeOffset: 0.1,
+                        nudgeMaxRetry: 3,
+                        maxFragLoadingTimeOut: 200000,
+                        maxLoadingDelay: 4,
+                        minAutoBitrate: 0,
+                        xhrSetup: function(xhr, url) {
+                            // Handle CORS if needed
+                            xhr.withCredentials = false;
+                        }
+                    });
+
+                    hls.loadSource(streamUrl);
+                    hls.attachMedia(video);
+
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        console.log('HLS manifest parsed successfully');
+                        loadingSpinner.style.display = 'none';
+                    });
+
+                    hls.on(Hls.Events.ERROR, function(event, data) {
+                        console.error('HLS Error:', data);
+                        if (data.fatal) {
+                            switch(data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    console.log('Network error, trying to recover...');
+                                    hls.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    console.log('Media error, trying to recover...');
+                                    hls.recoverMediaError();
+                                    break;
+                                default:
+                                    console.error('Fatal error, cannot recover');
+                                    showError('Fatal HLS Error: ' + data.type + ' - ' + data.details + '\n\nStream may be offline or protected.');
+                                    hls.destroy();
+                                    break;
+                            }
+                        }
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Native HLS support (Safari)
+                    console.log('Using native HLS support');
+                    video.src = streamUrl;
+                    video.addEventListener('loadedmetadata', function() {
+                        console.log('Stream loaded (native HLS)');
+                        loadingSpinner.style.display = 'none';
+                    });
+                } else {
+                    showError('HLS playback is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Safari.');
+                }
+            } else {
+                // Regular video stream
+                video.src = streamUrl;
+                video.addEventListener('loadedmetadata', function() {
+                    console.log('Stream loaded');
+                    loadingSpinner.style.display = 'none';
+                });
+            }
+
             function showError(message) {
                 loadingSpinner.style.display = 'none';
                 const errorP = errorMessage.querySelector('p');
@@ -510,6 +554,13 @@
                 errorMessage.style.display = 'block';
                 thumbnailOverlay.classList.add('hidden');
             }
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', function() {
+                if (hls) {
+                    hls.destroy();
+                }
+            });
 
             // Anti-embedding protection (optional - shows branding even when embedded)
             if (window.self !== window.top) {
