@@ -107,6 +107,33 @@ def encode_stream_url(url: str) -> str:
     return encoded_str
 
 
+def detect_stream_type(url: str) -> str:
+    """
+    Detect stream type based on URL extension.
+    Returns: 'hls' for m3u8 streams, 'video' for other video formats, 'unknown' otherwise.
+    """
+    if not url or url == "#":
+        return "unknown"
+    
+    url_lower = url.lower()
+    
+    # Check for HLS/m3u8 streams
+    if '.m3u8' in url_lower or 'm3u8' in url_lower:
+        return "hls"
+    
+    # Check for other video formats (MP4, WebM, etc.)
+    video_extensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.flv', '.m4v']
+    if any(ext in url_lower for ext in video_extensions):
+        return "video"
+    
+    # Check for streaming protocols
+    if 'rtmp://' in url_lower or 'rtsp://' in url_lower:
+        return "stream"
+    
+    # Default to unknown (player.html will try to auto-detect)
+    return "unknown"
+
+
 def slugify(text: str) -> str:
     """Convert text to URL-friendly slug."""
     text = text.lower()
@@ -1818,7 +1845,21 @@ def generate_html(data: Dict[str, Any]) -> str:
             if use_player_links:
                 # Convert to player link
                 encoded = encode_stream_url(url)
-                player_url = f"player.html?get={encoded}"
+                # Detect stream type for better player handling
+                stream_type = detect_stream_type(url)
+                
+                # player.html auto-detects stream type, but we can add type parameter for clarity
+                # This helps with debugging and ensures proper player selection
+                if stream_type == "hls":
+                    # HLS streams will use HLS.js player
+                    player_url = f"player.html?get={encoded}&type=hls"
+                elif stream_type == "video":
+                    # Video files will use JW Player
+                    player_url = f"player.html?get={encoded}&type=video"
+                else:
+                    # Unknown type - player.html will auto-detect
+                    player_url = f"player.html?get={encoded}"
+                
                 encoded_urls.append(encoded)
             else:
                 # Use raw link
