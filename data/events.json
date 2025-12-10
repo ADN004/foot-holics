@@ -144,7 +144,7 @@
     "homeTeam": "Real Madrid",
     "awayTeam": "Manchester City",
     "league": "Champions League",
-    "leagueSlug": "champions-league",
+    "leagueSlug": "others",
     "stadium": "Santiago Bernabéu",
     "poster": "assets/img/real-madrid-manchester-city-poster.jpg",
     "excerpt": "Real Madrid host Manchester City at the Santiago Bernabéu in a high-stakes Champions League clash between two of Europe’s strongest sides. Madrid will...",
@@ -152,19 +152,19 @@
     "broadcast": [
       {
         "name": "Stream 1",
-        "url": "https://t.me/+XyKdBR9chQpjM2I9"
+        "url": "https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3"
       },
       {
         "name": "Stream 2",
-        "url": "https://t.me/+XyKdBR9chQpjM2I9"
+        "url": "https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3"
       },
       {
         "name": "Stream 3",
-        "url": "https://t.me/+XyKdBR9chQpjM2I9"
+        "url": "https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3"
       },
       {
         "name": "Stream 4",
-        "url": "https://t.me/+XyKdBR9chQpjM2I9"
+        "url": "https://hls.cdnok9.com/live/TO6A/index.m3u8?expire=1891408380&sign=df6b95775ca8cf6b58a17d54271d96e3"
       }
     ],
     "streams": 4
