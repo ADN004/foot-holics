@@ -68,12 +68,6 @@ static.json
 # Claude Code
 .claude/
 
-# Old player files (replaced by new branded player)
-p/1-live.html
-p/2-live.html
-p/3-live.html
-p/4-live.html
-
 # Test and temporary files
 test*.html
 demo*.html
