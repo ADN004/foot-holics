@@ -1782,19 +1782,26 @@ def generate_html(data: Dict[str, Any]) -> str:
     home_logo = find_team_logo(data["home_team"], data["league_slug"])
     away_logo = find_team_logo(data["away_team"], data["league_slug"])
 
-    # Use raw stream URLs as provided
+    # Generate player URLs with raw stream URLs
     stream_urls = data.get("stream_urls", ["#", "#", "#", "#"])
     player_urls = []
 
-    for url in stream_urls[:4]:  # Max 4 streams
+    # Create player URLs for each stream
+    from urllib.parse import quote
+    for i in range(4):
+        stream_num = i + 1
+        url = stream_urls[i] if i < len(stream_urls) else "#"
+
+        # Only generate player URL if stream is valid
         if url and url != "#" and not url.startswith("https://t.me/"):
-            # Use raw link as-is
-            player_url = url
+            # Use raw URL with player
+            player_url = f"p/{stream_num}-live.html?url={quote(url)}"
         else:
-            player_url = url if url else "#"
+            player_url = "#"
+
         player_urls.append(player_url)
 
-    # Ensure we have 4 URLs
+    # Ensure we have exactly 4 URLs
     while len(player_urls) < 4:
         player_urls.append("#")
 

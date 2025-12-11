@@ -89,11 +89,27 @@ def generate_html_from_event(event):
     html = html.replace("{{SLUG}}", f"{home_slug}-vs-{away_slug}")
     html = html.replace("{{MATCH_NAME_ENCODED}}", match_name_encoded)
     
-    # Replace stream URLs with raw URLs from events.json
-    html = html.replace("{{STREAM_URL_1}}", stream_urls[0])
-    html = html.replace("{{STREAM_URL_2}}", stream_urls[1])
-    html = html.replace("{{STREAM_URL_3}}", stream_urls[2])
-    html = html.replace("{{STREAM_URL_4}}", stream_urls[3])
+    # Generate player URLs with raw stream URLs
+    player_urls = []
+
+    for i in range(4):
+        stream_num = i + 1
+        url = stream_urls[i] if i < len(stream_urls) else "#"
+
+        # Only generate player URL if stream is valid
+        if url and url != "#" and not url.startswith("https://t.me/"):
+            # Use raw URL with player
+            player_url = f"p/{stream_num}-live.html?url={quote(url)}"
+        else:
+            player_url = "#"
+
+        player_urls.append(player_url)
+
+    # Replace stream URLs with player URLs
+    html = html.replace("{{STREAM_URL_1}}", player_urls[0])
+    html = html.replace("{{STREAM_URL_2}}", player_urls[1])
+    html = html.replace("{{STREAM_URL_3}}", player_urls[2])
+    html = html.replace("{{STREAM_URL_4}}", player_urls[3])
     
     return html
 
