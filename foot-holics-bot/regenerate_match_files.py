@@ -132,12 +132,12 @@ def regenerate_match_files():
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(html)
             
-            print(f"✅ Regenerated {filename}")
+            print(f"[OK] Regenerated {filename}")
             regenerated += 1
         else:
-            print(f"❌ Failed to regenerate {event['slug']}.html")
-    
-    print(f"\n✅ Successfully regenerated {regenerated}/{len(events)} match files")
+            print(f"[ERROR] Failed to regenerate {event['slug']}.html")
+
+    print(f"\n[OK] Successfully regenerated {regenerated}/{len(events)} match files")
     return regenerated == len(events)
 
 if __name__ == "__main__":
