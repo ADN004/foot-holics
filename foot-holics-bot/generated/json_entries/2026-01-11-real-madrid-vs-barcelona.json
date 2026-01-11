@@ -10,12 +10,12 @@
   "leagueSlug": "others",
   "stadium": "King Abdullah Sports City, Jeddah",
   "poster": "assets/img/real-madrid-barcelona-poster.jpg",
-  "excerpt": "Tonight\u2019s Barcelona vs Real Madrid is a huge El Cl\u00e1sico \u2014 the Spanish Supercopa final in Jeddah, Saudi Arabia. It\u2019s one of the biggest fixtures in wor...",
+  "excerpt": "Tonight’s Barcelona vs Real Madrid is a huge El Clásico — the Spanish Supercopa final in Jeddah, Saudi Arabia. It’s one of the biggest fixtures in wor...",
   "status": "upcoming",
   "broadcast": [
     {
       "name": "Stream 1",
-      "url": "https://sportsonline.cv/channels/hd/hd1.php"
+      "url": "https://hls.cdnok9.com/live/LUUBI/index.m3u8?expire=1788427256&sign=e15f8b184dc9c61cc5dacfd962841ae1"
     },
     {
       "name": "Stream 2",

@@ -1329,9 +1329,36 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 flags=re.DOTALL
             )
 
+        if "current_stream_links" in context.user_data:
+            # Update stream link URLs in HTML
+            from urllib.parse import quote
+            stream_links = context.user_data["current_stream_links"]
+
+            # Generate new player URLs with URL encoding
+            for i in range(4):
+                stream_num = i + 1
+                url = stream_links[i] if i < len(stream_links) else "#"
+
+                if url and url != "#":
+                    player_url = f"p/{stream_num}-live.html?url={quote(url)}"
+                else:
+                    player_url = f"p/{stream_num}-live.html?url=#"
+
+                # Replace the href attribute for this stream link
+                # Pattern: href="p/X-live.html?url=ANYTHING"
+                pattern = rf'href="p/{stream_num}-live\.html\?url=[^"]*"'
+                replacement = f'href="{player_url}"'
+                html_content = re.sub(pattern, replacement, html_content)
+
         # Write updated HTML
         with open(match_file, "w", encoding="utf-8") as f:
             f.write(html_content)
+
+        # Also update the generated backup file if it exists
+        gen_file = os.path.join(root_dir, "foot-holics-bot", "generated", "html_files", filename)
+        if os.path.exists(gen_file):
+            with open(gen_file, "w", encoding="utf-8") as f:
+                f.write(html_content)
 
         # Update events.json
         events_path = os.path.join(root_dir, "data", "events.json")
@@ -1363,6 +1390,17 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
             with open(events_path, "w", encoding="utf-8") as f:
                 json.dump(events, f, indent=2, ensure_ascii=False)
+
+            # Also update the generated JSON entry file if it exists
+            filename_without_ext = filename.replace(".html", "")
+            gen_json_file = os.path.join(root_dir, "foot-holics-bot", "generated", "json_entries", f"{filename_without_ext}.json")
+            if os.path.exists(gen_json_file):
+                # Find the updated event data
+                for event in events:
+                    if filename_without_ext in event.get("slug", ""):
+                        with open(gen_json_file, "w", encoding="utf-8") as f:
+                            json.dump(event, f, indent=2, ensure_ascii=False)
+                        break
 
         # Update index.html card (remove old, add new)
         remove_match_from_index(filename)
