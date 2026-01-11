@@ -1,0 +1,34 @@
+{
+  "id": "event-1768153753",
+  "date": "2026-01-11",
+  "time": "19:00",
+  "slug": "2026-01-11-real-madrid-vs-barcelona",
+  "title": "Real Madrid vs Barcelona",
+  "homeTeam": "Real Madrid",
+  "awayTeam": "Barcelona",
+  "league": "Others",
+  "leagueSlug": "others",
+  "stadium": "King Abdullah Sports City, Jeddah",
+  "poster": "assets/img/real-madrid-barcelona-poster.jpg",
+  "excerpt": "Tonight\u2019s Barcelona vs Real Madrid is a huge El Cl\u00e1sico \u2014 the Spanish Supercopa final in Jeddah, Saudi Arabia. It\u2019s one of the biggest fixtures in wor...",
+  "status": "upcoming",
+  "broadcast": [
+    {
+      "name": "Stream 1",
+      "url": "https://sportsonline.cv/channels/hd/hd1.php"
+    },
+    {
+      "name": "Stream 2",
+      "url": "https://sportsonline.cv/channels/hd/hd6.php"
+    },
+    {
+      "name": "Stream 3",
+      "url": "https://sportsonline.cv/channels/pt/sporttv2.php"
+    },
+    {
+      "name": "Stream 4",
+      "url": "https://sportsonline.cv/channels/bra/br2.php"
+    }
+  ],
+  "streams": 4
+}
