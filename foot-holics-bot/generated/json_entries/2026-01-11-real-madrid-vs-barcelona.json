@@ -15,11 +15,11 @@
   "broadcast": [
     {
       "name": "Stream 1",
-      "url": "https://aeriswispx.github.io/mpdhls?get=aHR0cHM6Ly9obHMuY2Rub2s5LmNvbS9saXZlL0tFVklMTC9pbmRleC5tM3U4P2V4cGlyZT0xNzg4NDI3MjU2JnNpZ249MTg5YWZjZjdmODAwZDRjNmM4YTVhYTk3NjQ5YTExMDc="
+      "url": "https://hls.cdnok9.com/live/KEVILL/index.m3u8?expire=1788427256&sign=189afcf7f800d4c6c8a5aa97649a1107"
     },
     {
       "name": "Stream 2",
-      "url": "https://aeriswispx.github.io/mpdhls?get=aHR0cHM6Ly9obHMuY2Rub2s5LmNvbS9saXZlL1ZVT05HTFVBTi9pbmRleC5tM3U4P2V4cGlyZT0xNzg4NDI3MjU2JnNpZ249MzBhMTU0NjNlZWM5NDk1OTc5YzQ1MjEzMGZkOWM3NWY="
+      "url": "https://hls.cdnok9.com/live/VUONGLUAN/index.m3u8?expire=1788427256&sign=30a15463eec9495979c452130fd9c75f"
     },
     {
       "name": "Stream 3",
