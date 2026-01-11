@@ -15,19 +15,19 @@
   "broadcast": [
     {
       "name": "Stream 1",
-      "url": "https://hls.cdnok9.com/live/KEVILL/index.m3u8?expire=1788427256&sign=189afcf7f800d4c6c8a5aa97649a1107"
+      "url": "https://aeriswispx.github.io/mpdhls?get=aHR0cHM6Ly9obHMuY2Rub2s5LmNvbS9saXZlL0tFVklMTC9pbmRleC5tM3U4P2V4cGlyZT0xNzg4NDI3MjU2JnNpZ249MTg5YWZjZjdmODAwZDRjNmM4YTVhYTk3NjQ5YTExMDc="
     },
     {
       "name": "Stream 2",
-      "url": "https://sportsonline.cv/channels/hd/hd6.php"
+      "url": "https://aeriswispx.github.io/mpdhls?get=aHR0cHM6Ly9obHMuY2Rub2s5LmNvbS9saXZlL1ZVT05HTFVBTi9pbmRleC5tM3U4P2V4cGlyZT0xNzg4NDI3MjU2JnNpZ249MzBhMTU0NjNlZWM5NDk1OTc5YzQ1MjEzMGZkOWM3NWY="
     },
     {
       "name": "Stream 3",
-      "url": "https://sportsonline.cv/channels/pt/sporttv2.php"
+      "url": "https://sportsonline.cv/channels/bra/br2.php"
     },
     {
       "name": "Stream 4",
-      "url": "https://sportsonline.cv/channels/bra/br2.php"
+      "url": "https://sportsonline.cv/channels/hd/hd6.php"
     }
   ],
   "streams": 4

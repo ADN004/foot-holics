@@ -141,6 +141,34 @@ def slugify(text: str) -> str:
     return text.strip("-")
 
 
+def wrap_m3u8_with_proxy(url: str) -> str:
+    """
+    Wrap m3u8/HLS URLs with CORS proxy to avoid cross-origin issues.
+    Only wraps direct m3u8 links, not already-proxied URLs.
+
+    Args:
+        url: Original stream URL
+
+    Returns:
+        Proxied URL if m3u8, original URL otherwise
+    """
+    if not url or url == "#" or url.startswith("https://t.me/"):
+        return url
+
+    # Check if it's already wrapped with a proxy
+    if "aeriswispx.github.io" in url or "mpdhls" in url:
+        return url
+
+    # Check if it's an m3u8/HLS stream
+    if ".m3u8" in url.lower() or "/hls/" in url.lower():
+        # Encode the URL to base64
+        encoded_url = base64.b64encode(url.encode()).decode()
+        # Wrap with CORS proxy
+        return f"https://aeriswispx.github.io/mpdhls?get={encoded_url}"
+
+    return url
+
+
 def find_team_logo(team_name: str, league_slug: str = None) -> str:
     """
     Automatically find team logo based on team name.
@@ -1340,6 +1368,8 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 url = stream_links[i] if i < len(stream_links) else "#"
 
                 if url and url != "#":
+                    # Wrap m3u8 URLs with CORS proxy
+                    url = wrap_m3u8_with_proxy(url)
                     player_url = f"p/{stream_num}-live.html?url={quote(url)}"
                 else:
                     player_url = f"p/{stream_num}-live.html?url=#"
@@ -1377,13 +1407,13 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     if "current_stadium" in context.user_data:
                         event["stadium"] = context.user_data["current_stadium"]
                     if "current_stream_links" in context.user_data:
-                        # Update all 4 streaming links
+                        # Update all 4 streaming links (wrap m3u8 with proxy)
                         stream_links = context.user_data["current_stream_links"]
                         event["broadcast"] = [
-                            {"name": "Stream 1", "url": stream_links[0] if len(stream_links) > 0 else "#"},
-                            {"name": "Stream 2", "url": stream_links[1] if len(stream_links) > 1 else "#"},
-                            {"name": "Stream 3", "url": stream_links[2] if len(stream_links) > 2 else "#"},
-                            {"name": "Stream 4", "url": stream_links[3] if len(stream_links) > 3 else "#"},
+                            {"name": "Stream 1", "url": wrap_m3u8_with_proxy(stream_links[0]) if len(stream_links) > 0 else "#"},
+                            {"name": "Stream 2", "url": wrap_m3u8_with_proxy(stream_links[1]) if len(stream_links) > 1 else "#"},
+                            {"name": "Stream 3", "url": wrap_m3u8_with_proxy(stream_links[2]) if len(stream_links) > 2 else "#"},
+                            {"name": "Stream 4", "url": wrap_m3u8_with_proxy(stream_links[3]) if len(stream_links) > 3 else "#"},
                         ]
                         event["streams"] = len([url for url in stream_links if url and url != "#"])
                     break
@@ -1832,7 +1862,9 @@ def generate_html(data: Dict[str, Any]) -> str:
 
         # Only generate player URL if stream is valid
         if url and url != "#" and not url.startswith("https://t.me/"):
-            # Use raw URL with player
+            # Wrap m3u8 URLs with CORS proxy
+            url = wrap_m3u8_with_proxy(url)
+            # Use URL with player
             player_url = f"p/{stream_num}-live.html?url={quote(url)}"
         else:
             player_url = "#"
@@ -1895,10 +1927,10 @@ def generate_json(data: Dict[str, Any]) -> str:
         "excerpt": excerpt,
         "status": "upcoming",
         "broadcast": [
-            {"name": "Stream 1", "url": data["stream_urls"][0] if len(data["stream_urls"]) > 0 else "#"},
-            {"name": "Stream 2", "url": data["stream_urls"][1] if len(data["stream_urls"]) > 1 else "#"},
-            {"name": "Stream 3", "url": data["stream_urls"][2] if len(data["stream_urls"]) > 2 else "#"},
-            {"name": "Stream 4", "url": data["stream_urls"][3] if len(data["stream_urls"]) > 3 else "#"},
+            {"name": "Stream 1", "url": wrap_m3u8_with_proxy(data["stream_urls"][0]) if len(data["stream_urls"]) > 0 else "#"},
+            {"name": "Stream 2", "url": wrap_m3u8_with_proxy(data["stream_urls"][1]) if len(data["stream_urls"]) > 1 else "#"},
+            {"name": "Stream 3", "url": wrap_m3u8_with_proxy(data["stream_urls"][2]) if len(data["stream_urls"]) > 2 else "#"},
+            {"name": "Stream 4", "url": wrap_m3u8_with_proxy(data["stream_urls"][3]) if len(data["stream_urls"]) > 3 else "#"},
         ],
         "streams": len([url for url in data["stream_urls"] if url and url != "#"])
     }
