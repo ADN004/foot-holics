@@ -2424,29 +2424,44 @@ def get_inline_event_template() -> str:
     </footer>
 
     <!-- ========================================
-         ADSTERRA AD SLOTS (REDUCED)
+         ADSTERRA AD SLOTS - OPTIMIZED FOR MAXIMUM REVENUE
          ======================================== -->
 
-    <!-- Native Banner Ad - Less intrusive, blends with content -->
+    <!-- Native Banner Ad - Blends with content, high CTR -->
     <div id="ad-slot-native-1" style="margin: 30px auto; max-width: 1200px;">
-        <script async="async" data-cfasync="false" src="//pensivedean.com/0eafec7e4106026e364203d54ba0c8e9/invoke.js"></script>
+        <script async="async" data-cfasync="false" src="https://pl28194628.effectivegatecpm.com/0eafec7e4106026e364203d54ba0c8e9/invoke.js"></script>
         <div id="container-0eafec7e4106026e364203d54ba0c8e9"></div>
     </div>
 
-    <!-- Popunder Ad Slot -->
+    <!-- 300x250 Banner Ad - High visibility placement -->
+    <div id="ad-slot-banner-300x250" style="margin: 30px auto; text-align: center;">
+        <script>
+            atOptions = {
+                'key' : '66dc201b64275feeae63bc4b419a241c',
+                'format' : 'iframe',
+                'height' : 250,
+                'width' : 300,
+                'params' : {}
+            };
+        </script>
+        <script src="https://www.highperformanceformat.com/66dc201b64275feeae63bc4b419a241c/invoke.js"></script>
+    </div>
+
+    <!-- Popunder Ad Slots (Multiple for better coverage) -->
     <div id="ad-slot-popunder"></div>
 
     <!-- Smartlink Ad (Used for outbound links) -->
-    <!-- Smartlink URL: https://pensivedean.com/w5hzdwkr3h?key=bfbd283ffe1573110488645fe30c5cfd -->
+    <!-- Smartlink URL: https://www.effectivegatecpm.com/w5hzdwkr3h?key=bfbd283ffe1573110488645fe30c5cfd -->
 
-    <!-- Social Bar Ad (Sticky) -->
+    <!-- Social Bar Ad (Sticky - Always visible) -->
     <div id="ad-slot-social-bar">
-        <script type="text/javascript" src="//pensivedean.com/ad/f7/17/adf7172d701fdcad288330f7b67c9293.js"></script>
+        <script src="https://pl28190484.effectivegatecpm.com/ad/f7/17/adf7172d701fdcad288330f7b67c9293.js"></script>
     </div>
 
     <!-- Adsterra Scripts Section -->
-    <!-- Popunder Ad Script -->
-    <script type="text/javascript" src="//pensivedean.com/98/b2/61/98b2610dbd944ffe41efc4663be4b3ad.js"></script>
+    <!-- Popunder Ad Scripts - Multiple for maximum impressions -->
+    <script src="https://pl28194614.effectivegatecpm.com/98/b2/61/98b2610dbd944ffe41efc4663be4b3ad.js"></script>
+    <script src="https://pl28190353.effectivegatecpm.com/52/30/74/5230747febbb777e6e14a3c30aa1fd30.js"></script>
 
     <!-- JavaScript -->
     <script src="assets/js/main.js" defer></script>
