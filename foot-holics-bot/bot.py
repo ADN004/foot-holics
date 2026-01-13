@@ -1325,6 +1325,42 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 html_content
             )
 
+            # Extract team names and update logos
+            title = context.user_data["current_title"]
+            if " vs " in title.lower():
+                teams = re.split(r"\s+vs\s+", title, flags=re.IGNORECASE)
+                if len(teams) == 2:
+                    home_team = teams[0].strip()
+                    away_team = teams[1].strip()
+                    league_slug = context.user_data.get("current_league_slug", "others")
+
+                    # Fetch team logos
+                    home_logo = find_team_logo(home_team, league_slug)
+                    away_logo = find_team_logo(away_team, league_slug)
+
+                    # Update home team logo in HTML
+                    html_content = re.sub(
+                        r'(<img src=")([^"]*?)(" alt="[^"]*?" class="team-logo"[^>]*?>)',
+                        f'\\1{home_logo}\\3',
+                        html_content,
+                        count=1
+                    )
+
+                    # Update away team logo in HTML (second occurrence)
+                    # Find all team logo img tags and replace the second one
+                    def replace_second_logo(match_obj):
+                        replace_second_logo.counter += 1
+                        if replace_second_logo.counter == 2:
+                            return f'{match_obj.group(1)}{away_logo}{match_obj.group(3)}'
+                        return match_obj.group(0)
+
+                    replace_second_logo.counter = 0
+                    html_content = re.sub(
+                        r'(<img src=")([^"]*?)(" alt="[^"]*?" class="team-logo"[^>]*?>)',
+                        replace_second_logo,
+                        html_content
+                    )
+
         if "current_date" in context.user_data:
             html_content = re.sub(
                 r'<span>(.*?) at (.*?) GMT</span>',
@@ -1340,6 +1376,44 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f'<span class="league-badge {context.user_data.get("current_league_slug", "others")}">{context.user_data["current_league"]}</span>',
                 html_content
             )
+
+            # Refresh team logos with new league context
+            # Extract team names from title
+            title_match = re.search(r'<h1 class="event-title">(.*?)</h1>', html_content)
+            if title_match:
+                title = title_match.group(1)
+                if " vs " in title.lower():
+                    teams = re.split(r"\s+vs\s+", title, flags=re.IGNORECASE)
+                    if len(teams) == 2:
+                        home_team = teams[0].strip()
+                        away_team = teams[1].strip()
+                        league_slug = context.user_data.get("current_league_slug", "others")
+
+                        # Fetch team logos with new league context
+                        home_logo = find_team_logo(home_team, league_slug)
+                        away_logo = find_team_logo(away_team, league_slug)
+
+                        # Update home team logo in HTML
+                        html_content = re.sub(
+                            r'(<img src=")([^"]*?)(" alt="[^"]*?" class="team-logo"[^>]*?>)',
+                            f'\\1{home_logo}\\3',
+                            html_content,
+                            count=1
+                        )
+
+                        # Update away team logo in HTML (second occurrence)
+                        def replace_second_logo(match_obj):
+                            replace_second_logo.counter += 1
+                            if replace_second_logo.counter == 2:
+                                return f'{match_obj.group(1)}{away_logo}{match_obj.group(3)}'
+                            return match_obj.group(0)
+
+                        replace_second_logo.counter = 0
+                        html_content = re.sub(
+                            r'(<img src=")([^"]*?)(" alt="[^"]*?" class="team-logo"[^>]*?>)',
+                            replace_second_logo,
+                            html_content
+                        )
 
         if "current_stadium" in context.user_data:
             html_content = re.sub(
