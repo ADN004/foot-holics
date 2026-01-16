@@ -21,7 +21,6 @@
             position: relative;
         }
 
-        /* Animated Background */
         body::before {
             content: '';
             position: fixed;
@@ -51,7 +50,6 @@
             justify-content: center;
         }
 
-        /* Video Player */
         #video-player, iframe {
             width: 100%;
             height: 100%;
@@ -63,7 +61,6 @@
             border: none;
         }
 
-        /* Premium Watermark */
         .branded-watermark {
             position: fixed;
             top: 20px;
@@ -112,13 +109,13 @@
             }
         }
 
-        /* Loading Spinner */
         .loading-spinner {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 100;
+            text-align: center;
         }
 
         .spinner-ring {
@@ -128,6 +125,7 @@
             border-top: 4px solid #7B3BC4;
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin: 0 auto;
         }
 
         @keyframes spin {
@@ -145,7 +143,6 @@
             text-transform: uppercase;
         }
 
-        /* Error Message */
         .error-message {
             position: absolute;
             top: 50%;
@@ -176,7 +173,6 @@
             opacity: 0.9;
         }
 
-        /* Stream Info Badge */
         .stream-info {
             position: fixed;
             bottom: 20px;
@@ -194,7 +190,6 @@
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .branded-watermark {
                 top: 10px;
@@ -213,45 +208,39 @@
     </style>
 </head>
 <body>
-    <!-- Branded Watermark -->
     <div class="branded-watermark">
         <div class="live-indicator"></div>
-        <span>LINK 1 • FootHolics.in</span>
+        <span>LINK 1 - FootHolics.in</span>
     </div>
 
-    <!-- Stream Info -->
-    <div class="stream-info">HD Quality • Powered by FootHolics</div>
+    <div class="stream-info">HD Quality - Powered by FootHolics</div>
 
-    <!-- Player Container -->
     <div id="player-container">
-        <!-- Loading Spinner -->
         <div class="loading-spinner" id="loadingSpinner">
             <div class="spinner-ring"></div>
             <div class="loading-text">Loading Stream...</div>
         </div>
 
-        <!-- Error Message -->
         <div class="error-message" id="errorMessage">
-            <h3>⚠️ Stream Unavailable</h3>
+            <h3>Stream Unavailable</h3>
             <p>Unable to load this stream. Please try another link or contact support.</p>
         </div>
 
-        <!-- Video Player -->
-        <video id="video-player" controls playsinline></video>
+        <video id="video-player" controls playsinline style="display: none;"></video>
     </div>
 
-    <!-- HLS.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
 
     <script>
         (function() {
             'use strict';
 
             const urlParams = new URLSearchParams(window.location.search);
-            const streamUrl = urlParams.get('url') || urlParams.get('match');
+            let streamUrl = urlParams.get('url') || urlParams.get('match') || urlParams.get('get');
             const loadingSpinner = document.getElementById('loadingSpinner');
             const errorMessage = document.getElementById('errorMessage');
             const video = document.getElementById('video-player');
+            const playerContainer = document.getElementById('player-container');
 
             function showError(message) {
                 loadingSpinner.style.display = 'none';
@@ -260,76 +249,138 @@
                 video.style.display = 'none';
             }
 
+            // Check if 'get' parameter is base64 encoded
+            if (urlParams.get('get')) {
+                try {
+                    streamUrl = atob(urlParams.get('get'));
+                } catch (e) {
+                    streamUrl = urlParams.get('get');
+                }
+            }
+
             if (!streamUrl || streamUrl === '#') {
                 showError('No stream URL provided. Please check your link and try again.');
                 return;
             }
 
+            // Detect stream type
             const urlLower = streamUrl.toLowerCase();
-            const isHLS = urlLower.includes('.m3u8') || urlLower.includes('m3u8');
-            const isIframeEmbed = urlLower.includes('.php') || urlLower.includes('iframe') || urlLower.includes('embed');
 
-            // Handle iframe embeds
+            // Check for iframe/external embed indicators
+            const iframeIndicators = ['.php', '/embed/', '/player/', 'embed.', 'player.',
+                                      'sportsonline', 'stream2watch', 'rojadirecta',
+                                      'hesgoal', 'totalsportek', 'livesoccertv'];
+            const isIframeEmbed = iframeIndicators.some(indicator => urlLower.includes(indicator));
+
+            // Check for HLS
+            const isHLS = urlLower.includes('.m3u8') || urlLower.includes('m3u8') || urlLower.includes('/hls/');
+
+            // Handle iframe embeds (external player pages)
             if (isIframeEmbed) {
+                console.log('Detected iframe embed, loading in iframe');
                 loadingSpinner.style.display = 'none';
                 video.style.display = 'none';
+
                 const iframe = document.createElement('iframe');
                 iframe.src = streamUrl;
                 iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
                 iframe.allowFullscreen = true;
-                document.getElementById('player-container').appendChild(iframe);
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                playerContainer.appendChild(iframe);
+
+                iframe.onload = function() {
+                    console.log('Iframe loaded successfully');
+                };
+                iframe.onerror = function() {
+                    showError('Failed to load external player. The source may be blocking iframe embedding.');
+                };
                 return;
             }
 
             // Handle HLS streams
+            video.style.display = 'block';
+
             if (isHLS && Hls.isSupported()) {
+                console.log('Detected HLS stream, using HLS.js');
                 const hls = new Hls({
                     enableWorker: true,
                     lowLatencyMode: false,
-                    backBufferLength: 30,
+                    backBufferLength: 60,
                     maxBufferLength: 30,
-                    maxMaxBufferLength: 60
+                    maxMaxBufferLength: 60,
+                    fragLoadingTimeOut: 20000,
+                    manifestLoadingTimeOut: 20000
                 });
 
                 hls.loadSource(streamUrl);
                 hls.attachMedia(video);
 
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    console.log('HLS manifest parsed');
                     loadingSpinner.style.display = 'none';
-                    video.play().catch(() => {});
+                    video.play().catch(function(e) {
+                        console.log('Autoplay blocked:', e);
+                    });
                 });
 
-                hls.on(Hls.Events.ERROR, (event, data) => {
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    console.error('HLS error:', data);
                     if (data.fatal) {
-                        showError('Stream error: ' + (data.details || 'Unable to load stream'));
-                        hls.destroy();
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
+                                    showError('Network error: Unable to load stream. This may be due to CORS restrictions or the stream being offline.');
+                                } else {
+                                    hls.startLoad();
+                                }
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                showError('Stream error: ' + (data.details || 'Unable to play stream'));
+                                hls.destroy();
+                                break;
+                        }
                     }
                 });
 
-                video.addEventListener('waiting', () => loadingSpinner.style.display = 'block');
-                video.addEventListener('playing', () => loadingSpinner.style.display = 'none');
-            }
-            // Native HLS (Safari)
-            else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = streamUrl;
-                video.addEventListener('loadedmetadata', () => {
-                    loadingSpinner.style.display = 'none';
-                    video.play().catch(() => {});
+                video.addEventListener('waiting', function() {
+                    loadingSpinner.style.display = 'block';
                 });
-                video.addEventListener('error', () => showError('Failed to load stream'));
+                video.addEventListener('playing', function() {
+                    loadingSpinner.style.display = 'none';
+                });
+            }
+            // Native HLS support (Safari/iOS)
+            else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
+                console.log('Using native HLS support');
+                video.src = streamUrl;
+                video.addEventListener('loadedmetadata', function() {
+                    loadingSpinner.style.display = 'none';
+                    video.play().catch(function() {});
+                });
+                video.addEventListener('error', function() {
+                    showError('Failed to load stream. Please try another link.');
+                });
             }
             // Direct video
             else {
+                console.log('Using direct video playback');
                 video.src = streamUrl;
-                video.addEventListener('loadedmetadata', () => {
+                video.addEventListener('loadedmetadata', function() {
                     loadingSpinner.style.display = 'none';
-                    video.play().catch(() => {});
+                    video.play().catch(function() {});
                 });
-                video.addEventListener('error', () => showError('Failed to load video'));
+                video.addEventListener('error', function() {
+                    showError('Failed to load video. The format may not be supported.');
+                });
             }
 
             // Security
-            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
         })();
     </script>
 </body>

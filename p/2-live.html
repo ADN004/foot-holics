@@ -8,250 +8,67 @@
     <link rel="icon" type="image/png" href="../assets/img/logos/site/logo.png">
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             overflow: hidden;
-            position: relative;
         }
-
-        /* Animated Background */
         body::before {
             content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background:
                 radial-gradient(circle at 20% 50%, rgba(123, 59, 196, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(213, 0, 0, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(45, 8, 84, 0.2) 0%, transparent 50%);
-            animation: backgroundShift 15s ease infinite;
+                radial-gradient(circle at 80% 80%, rgba(213, 0, 0, 0.1) 0%, transparent 50%);
             z-index: -1;
         }
-
-        @keyframes backgroundShift {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.1); }
-        }
-
-        #player-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Video Player */
-        #video-player, iframe {
-            width: 100%;
-            height: 100%;
-            background: #000;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        iframe {
-            border: none;
-        }
-
-        /* Premium Watermark */
+        #player-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        #video-player, iframe { width: 100%; height: 100%; background: #000; }
+        iframe { border: none; }
         .branded-watermark {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 99999;
+            position: fixed; top: 20px; left: 20px; z-index: 99999;
             background: linear-gradient(135deg, #D50000 0%, #8B0000 100%);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 30px;
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: 1px;
+            color: #fff; padding: 10px 20px; border-radius: 30px;
+            font-size: 14px; font-weight: 700; letter-spacing: 1px;
             box-shadow: 0 8px 20px rgba(213, 0, 0, 0.4);
             animation: pulseGlow 3s ease-in-out infinite;
-            pointer-events: none;
-            user-select: none;
-            text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            pointer-events: none; user-select: none; text-transform: uppercase;
+            display: flex; align-items: center; gap: 10px;
+            backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.1);
         }
-
-        .live-indicator {
-            width: 8px;
-            height: 8px;
-            background: #fff;
-            border-radius: 50%;
-            animation: blink 1.5s ease-in-out infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        @keyframes pulseGlow {
-            0%, 100% {
-                box-shadow: 0 8px 20px rgba(213, 0, 0, 0.4);
-                transform: translateY(0);
-            }
-            50% {
-                box-shadow: 0 12px 30px rgba(213, 0, 0, 0.6);
-                transform: translateY(-2px);
-            }
-        }
-
-        /* Loading Spinner */
-        .loading-spinner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 100;
-        }
-
-        .spinner-ring {
-            width: 80px;
-            height: 80px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top: 4px solid #7B3BC4;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            color: #fff;
-            font-size: 16px;
-            font-weight: 600;
-            margin-top: 20px;
-            text-align: center;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        /* Error Message */
-        .error-message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, rgba(213, 0, 0, 0.95) 0%, rgba(139, 0, 0, 0.95) 100%);
-            color: #fff;
-            padding: 40px 50px;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 500px;
-            z-index: 100;
-            display: none;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .error-message h3 {
-            font-size: 28px;
-            margin-bottom: 15px;
-            font-weight: 700;
-        }
-
-        .error-message p {
-            font-size: 16px;
-            line-height: 1.8;
-            opacity: 0.9;
-        }
-
-        /* Stream Info Badge */
-        .stream-info {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            color: #fff;
-            padding: 12px 20px;
-            border-radius: 30px;
-            font-size: 13px;
-            font-weight: 600;
-            z-index: 99999;
-            pointer-events: none;
-            border: 2px solid rgba(123, 59, 196, 0.3);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .branded-watermark {
-                top: 10px;
-                left: 10px;
-                padding: 8px 16px;
-                font-size: 12px;
-            }
-
-            .stream-info {
-                bottom: 10px;
-                right: 10px;
-                font-size: 11px;
-                padding: 8px 14px;
-            }
-        }
+        .live-indicator { width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: blink 1.5s ease-in-out infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 8px 20px rgba(213, 0, 0, 0.4); } 50% { box-shadow: 0 12px 30px rgba(213, 0, 0, 0.6); } }
+        .loading-spinner { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; text-align: center; }
+        .spinner-ring { width: 80px; height: 80px; border: 4px solid rgba(255, 255, 255, 0.1); border-top: 4px solid #7B3BC4; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { color: #fff; font-size: 16px; font-weight: 600; margin-top: 20px; letter-spacing: 2px; text-transform: uppercase; }
+        .error-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: linear-gradient(135deg, rgba(213, 0, 0, 0.95) 0%, rgba(139, 0, 0, 0.95) 100%); color: #fff; padding: 40px 50px; border-radius: 20px; text-align: center; max-width: 500px; z-index: 100; display: none; }
+        .error-message h3 { font-size: 28px; margin-bottom: 15px; }
+        .error-message p { font-size: 16px; line-height: 1.8; opacity: 0.9; }
+        .stream-info { position: fixed; bottom: 20px; right: 20px; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; z-index: 99999; pointer-events: none; }
+        @media (max-width: 768px) { .branded-watermark { top: 10px; left: 10px; padding: 8px 16px; font-size: 12px; } .stream-info { bottom: 10px; right: 10px; font-size: 11px; padding: 8px 14px; } }
     </style>
 </head>
 <body>
-    <!-- Branded Watermark -->
-    <div class="branded-watermark">
-        <div class="live-indicator"></div>
-        <span>LINK 2 • FootHolics.in</span>
-    </div>
-
-    <!-- Stream Info -->
-    <div class="stream-info">HD Quality • Powered by FootHolics</div>
-
-    <!-- Player Container -->
+    <div class="branded-watermark"><div class="live-indicator"></div><span>LINK 2 - FootHolics.in</span></div>
+    <div class="stream-info">HD Quality - Powered by FootHolics</div>
     <div id="player-container">
-        <!-- Loading Spinner -->
-        <div class="loading-spinner" id="loadingSpinner">
-            <div class="spinner-ring"></div>
-            <div class="loading-text">Loading Stream...</div>
-        </div>
-
-        <!-- Error Message -->
-        <div class="error-message" id="errorMessage">
-            <h3>⚠️ Stream Unavailable</h3>
-            <p>Unable to load this stream. Please try another link or contact support.</p>
-        </div>
-
-        <!-- Video Player -->
-        <video id="video-player" controls playsinline></video>
+        <div class="loading-spinner" id="loadingSpinner"><div class="spinner-ring"></div><div class="loading-text">Loading Stream...</div></div>
+        <div class="error-message" id="errorMessage"><h3>Stream Unavailable</h3><p>Unable to load this stream.</p></div>
+        <video id="video-player" controls playsinline style="display: none;"></video>
     </div>
-
-    <!-- HLS.js Library -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
     <script>
         (function() {
             'use strict';
-
             const urlParams = new URLSearchParams(window.location.search);
-            const streamUrl = urlParams.get('url') || urlParams.get('match');
+            let streamUrl = urlParams.get('url') || urlParams.get('match') || urlParams.get('get');
             const loadingSpinner = document.getElementById('loadingSpinner');
             const errorMessage = document.getElementById('errorMessage');
             const video = document.getElementById('video-player');
+            const playerContainer = document.getElementById('player-container');
 
             function showError(message) {
                 loadingSpinner.style.display = 'none';
@@ -260,76 +77,51 @@
                 video.style.display = 'none';
             }
 
-            if (!streamUrl || streamUrl === '#') {
-                showError('No stream URL provided. Please check your link and try again.');
-                return;
-            }
+            if (urlParams.get('get')) { try { streamUrl = atob(urlParams.get('get')); } catch (e) { streamUrl = urlParams.get('get'); } }
+            if (!streamUrl || streamUrl === '#') { showError('No stream URL provided.'); return; }
 
             const urlLower = streamUrl.toLowerCase();
-            const isHLS = urlLower.includes('.m3u8') || urlLower.includes('m3u8');
-            const isIframeEmbed = urlLower.includes('.php') || urlLower.includes('iframe') || urlLower.includes('embed');
+            const iframeIndicators = ['.php', '/embed/', '/player/', 'embed.', 'player.', 'sportsonline', 'stream2watch', 'rojadirecta', 'hesgoal', 'totalsportek', 'livesoccertv'];
+            const isIframeEmbed = iframeIndicators.some(indicator => urlLower.includes(indicator));
+            const isHLS = urlLower.includes('.m3u8') || urlLower.includes('m3u8') || urlLower.includes('/hls/');
 
-            // Handle iframe embeds
             if (isIframeEmbed) {
                 loadingSpinner.style.display = 'none';
-                video.style.display = 'none';
                 const iframe = document.createElement('iframe');
                 iframe.src = streamUrl;
                 iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
                 iframe.allowFullscreen = true;
-                document.getElementById('player-container').appendChild(iframe);
+                iframe.style.cssText = 'width:100%;height:100%;border:none;';
+                playerContainer.appendChild(iframe);
                 return;
             }
 
-            // Handle HLS streams
+            video.style.display = 'block';
             if (isHLS && Hls.isSupported()) {
-                const hls = new Hls({
-                    enableWorker: true,
-                    lowLatencyMode: false,
-                    backBufferLength: 30,
-                    maxBufferLength: 30,
-                    maxMaxBufferLength: 60
-                });
-
+                const hls = new Hls({ enableWorker: true, lowLatencyMode: false, backBufferLength: 60, maxBufferLength: 30, fragLoadingTimeOut: 20000, manifestLoadingTimeOut: 20000 });
                 hls.loadSource(streamUrl);
                 hls.attachMedia(video);
-
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    loadingSpinner.style.display = 'none';
-                    video.play().catch(() => {});
-                });
-
-                hls.on(Hls.Events.ERROR, (event, data) => {
+                hls.on(Hls.Events.MANIFEST_PARSED, function() { loadingSpinner.style.display = 'none'; video.play().catch(function() {}); });
+                hls.on(Hls.Events.ERROR, function(event, data) {
                     if (data.fatal) {
-                        showError('Stream error: ' + (data.details || 'Unable to load stream'));
-                        hls.destroy();
+                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
+                            showError('Network error: Unable to load stream. May be CORS restricted or offline.');
+                        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) { hls.recoverMediaError(); }
+                        else { showError('Stream error: ' + (data.details || 'Unable to play')); hls.destroy(); }
                     }
                 });
-
-                video.addEventListener('waiting', () => loadingSpinner.style.display = 'block');
-                video.addEventListener('playing', () => loadingSpinner.style.display = 'none');
-            }
-            // Native HLS (Safari)
-            else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.addEventListener('waiting', function() { loadingSpinner.style.display = 'block'; });
+                video.addEventListener('playing', function() { loadingSpinner.style.display = 'none'; });
+            } else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = streamUrl;
-                video.addEventListener('loadedmetadata', () => {
-                    loadingSpinner.style.display = 'none';
-                    video.play().catch(() => {});
-                });
-                video.addEventListener('error', () => showError('Failed to load stream'));
-            }
-            // Direct video
-            else {
+                video.addEventListener('loadedmetadata', function() { loadingSpinner.style.display = 'none'; video.play().catch(function() {}); });
+                video.addEventListener('error', function() { showError('Failed to load stream.'); });
+            } else {
                 video.src = streamUrl;
-                video.addEventListener('loadedmetadata', () => {
-                    loadingSpinner.style.display = 'none';
-                    video.play().catch(() => {});
-                });
-                video.addEventListener('error', () => showError('Failed to load video'));
+                video.addEventListener('loadedmetadata', function() { loadingSpinner.style.display = 'none'; video.play().catch(function() {}); });
+                video.addEventListener('error', function() { showError('Failed to load video.'); });
             }
-
-            // Security
-            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
         })();
     </script>
 </body>

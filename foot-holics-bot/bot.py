@@ -141,32 +141,95 @@ def slugify(text: str) -> str:
     return text.strip("-")
 
 
+def detect_player_type(url: str) -> str:
+    """
+    Detect which player to use based on URL type.
+
+    Returns:
+        'hls' for m3u8/HLS streams -> uses player.html
+        'iframe' for external pages (php, embed, etc.) -> uses iframe-player.html
+        'direct' for other video files -> uses player.html
+    """
+    if not url or url == "#":
+        return "unknown"
+
+    url_lower = url.lower()
+
+    # Check for iframe/external embed URLs (PHP pages, embed pages, etc.)
+    iframe_indicators = ['.php', '/embed/', '/player/', 'embed.', 'player.',
+                         'sportsonline', 'stream2watch', 'rojadirecta',
+                         'hesgoal', 'totalsportek', 'livesoccertv']
+    if any(indicator in url_lower for indicator in iframe_indicators):
+        return "iframe"
+
+    # Check for HLS/m3u8 streams
+    if '.m3u8' in url_lower or 'm3u8' in url_lower or '/hls/' in url_lower:
+        return "hls"
+
+    # Check for direct video files
+    video_extensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.flv', '.m4v']
+    if any(ext in url_lower for ext in video_extensions):
+        return "direct"
+
+    # Default to HLS player (it handles most streams)
+    return "hls"
+
+
+def get_player_url(url: str, base_url: str = "https://footholics.in") -> str:
+    """
+    Generate the appropriate player URL based on stream type.
+    Routes to the correct player (HLS player or iframe player).
+
+    Args:
+        url: Original stream URL
+        base_url: Base URL of the website
+
+    Returns:
+        Full player URL with encoded stream
+    """
+    if not url or url == "#" or url.startswith("https://t.me/"):
+        return "#"
+
+    # Check if already a player URL
+    if "player.html" in url or "iframe-player.html" in url:
+        return url
+
+    # Encode the URL to base64
+    encoded_url = base64.b64encode(url.encode()).decode()
+
+    # Detect player type and route accordingly
+    player_type = detect_player_type(url)
+
+    if player_type == "iframe":
+        # Use iframe player for external pages
+        return f"{base_url}/iframe-player.html?get={encoded_url}"
+    else:
+        # Use HLS player for streams (handles HLS, direct video, etc.)
+        return f"{base_url}/player.html?get={encoded_url}"
+
+
 def wrap_m3u8_with_proxy(url: str) -> str:
     """
-    Wrap m3u8/HLS URLs with CORS proxy to avoid cross-origin issues.
-    Only wraps direct m3u8 links, not already-proxied URLs.
+    DEPRECATED: Use get_player_url() instead.
+    Kept for backward compatibility - now routes to appropriate player.
 
     Args:
         url: Original stream URL
 
     Returns:
-        Proxied URL if m3u8, original URL otherwise
+        Player URL with encoded stream
     """
     if not url or url == "#" or url.startswith("https://t.me/"):
         return url
 
-    # Check if it's already wrapped with a proxy
+    # Check if it's already wrapped with a player or proxy
+    if "player.html" in url or "iframe-player.html" in url:
+        return url
     if "aeriswispx.github.io" in url or "mpdhls" in url:
         return url
 
-    # Check if it's an m3u8/HLS stream
-    if ".m3u8" in url.lower() or "/hls/" in url.lower():
-        # Encode the URL to base64
-        encoded_url = base64.b64encode(url.encode()).decode()
-        # Wrap with CORS proxy
-        return f"https://aeriswispx.github.io/mpdhls?get={encoded_url}"
-
-    return url
+    # Use the new smart player routing
+    return get_player_url(url, "https://footholics.in")
 
 
 def find_team_logo(team_name: str, league_slug: str = None) -> str:
@@ -1924,22 +1987,26 @@ def generate_html(data: Dict[str, Any]) -> str:
     home_logo = find_team_logo(data["home_team"], data["league_slug"])
     away_logo = find_team_logo(data["away_team"], data["league_slug"])
 
-    # Generate player URLs with raw stream URLs
+    # Generate player URLs with smart routing based on stream type
     stream_urls = data.get("stream_urls", ["#", "#", "#", "#"])
     player_urls = []
 
-    # Create player URLs for each stream
-    from urllib.parse import quote
+    # Create player URLs for each stream - routes to correct player automatically
     for i in range(4):
-        stream_num = i + 1
         url = stream_urls[i] if i < len(stream_urls) else "#"
 
         # Only generate player URL if stream is valid
         if url and url != "#" and not url.startswith("https://t.me/"):
-            # Wrap m3u8 URLs with CORS proxy
-            url = wrap_m3u8_with_proxy(url)
-            # Use URL with player
-            player_url = f"p/{stream_num}-live.html?url={quote(url)}"
+            # Smart routing: detects stream type and uses correct player
+            # - HLS (.m3u8) streams -> player.html
+            # - External pages (.php, embed) -> iframe-player.html
+            encoded_url = base64.b64encode(url.encode()).decode()
+            player_type = detect_player_type(url)
+
+            if player_type == "iframe":
+                player_url = f"iframe-player.html?get={encoded_url}"
+            else:
+                player_url = f"player.html?get={encoded_url}"
         else:
             player_url = "#"
 
