@@ -1495,27 +1495,43 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
 
         if "current_stream_links" in context.user_data:
-            # Update stream link URLs in HTML
-            from urllib.parse import quote
+            # Update stream link URLs in HTML with smart player routing
             stream_links = context.user_data["current_stream_links"]
 
-            # Generate new player URLs with URL encoding
+            # Generate new player URLs with smart routing (same as generate_html)
             for i in range(4):
                 stream_num = i + 1
                 url = stream_links[i] if i < len(stream_links) else "#"
 
-                if url and url != "#":
-                    # Wrap m3u8 URLs with CORS proxy
-                    url = wrap_m3u8_with_proxy(url)
-                    player_url = f"p/{stream_num}-live.html?url={quote(url)}"
+                if url and url != "#" and not url.startswith("https://t.me/"):
+                    # Smart routing: detects stream type and uses correct player
+                    # - HLS (.m3u8) streams -> player.html
+                    # - External pages (.php, embed) -> iframe-player.html
+                    encoded_url = base64.b64encode(url.encode()).decode()
+                    player_type = detect_player_type(url)
+
+                    if player_type == "iframe":
+                        player_url = f"iframe-player.html?get={encoded_url}"
+                    else:
+                        player_url = f"player.html?get={encoded_url}"
                 else:
-                    player_url = f"p/{stream_num}-live.html?url=#"
+                    player_url = "#"
 
                 # Replace the href attribute for this stream link
-                # Pattern: href="p/X-live.html?url=ANYTHING"
-                pattern = rf'href="p/{stream_num}-live\.html\?url=[^"]*"'
-                replacement = f'href="{player_url}"'
-                html_content = re.sub(pattern, replacement, html_content)
+                # Match both old format (p/X-live.html) and new format (player.html/iframe-player.html)
+                old_pattern = rf'href="p/{stream_num}-live\.html\?(?:url|get)=[^"]*"'
+                new_pattern_player = rf'href="player\.html\?get=[^"]*"'
+                new_pattern_iframe = rf'href="iframe-player\.html\?get=[^"]*"'
+
+                # Try to replace old format first
+                if re.search(old_pattern, html_content):
+                    html_content = re.sub(old_pattern, f'href="{player_url}"', html_content, count=1)
+                # Try new player.html format
+                elif re.search(new_pattern_player, html_content):
+                    html_content = re.sub(new_pattern_player, f'href="{player_url}"', html_content, count=1)
+                # Try new iframe-player.html format
+                elif re.search(new_pattern_iframe, html_content):
+                    html_content = re.sub(new_pattern_iframe, f'href="{player_url}"', html_content, count=1)
 
         # Write updated HTML
         with open(match_file, "w", encoding="utf-8") as f:
