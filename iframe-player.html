@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FootHolics - Live Stream</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LQP123YCP6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-LQP123YCP6', {
+            'page_title': 'FootHolics Iframe Player',
+            'page_path': '/iframe-player.html'
+        });
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+        }
+
+        #player-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #2D0854 0%, #14132A 50%, #7B3BC4 100%);
+        }
+
+        /* Branded Watermark - Top Left */
+        .branded-watermark {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 9999;
+            background: #D50000;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(213, 0, 0, 0.5);
+            animation: pulse 2.5s ease-in-out infinite;
+            pointer-events: none;
+            user-select: none;
+            text-transform: uppercase;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Iframe Container */
+        #iframe-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #stream-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #000;
+        }
+
+        /* Thumbnail Overlay */
+        .thumbnail-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2D0854 0%, #14132A 50%, #7B3BC4 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .thumbnail-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.03) 10px,
+                    rgba(255,255,255,0.03) 11px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.03) 10px,
+                    rgba(255,255,255,0.03) 11px
+                );
+            opacity: 0.5;
+        }
+
+        .thumbnail-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .thumbnail-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .thumbnail-logo-text {
+            font-size: clamp(32px, 8vw, 96px);
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .thumbnail-badge {
+            display: inline-block;
+            background: rgba(123, 59, 196, 0.3);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(123, 59, 196, 0.6);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .play-button {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            margin: 0 auto;
+        }
+
+        .play-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .play-button::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 30px solid #fff;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            margin-left: 8px;
+        }
+
+        .thumbnail-subtitle {
+            font-size: clamp(16px, 3vw, 24px);
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        /* Soccer ball decoration */
+        .soccer-ball {
+            position: absolute;
+            top: 15%;
+            right: 10%;
+            font-size: 80px;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(180deg); }
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #7B3BC4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 5;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Error Message */
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(213, 0, 0, 0.95);
+            color: #fff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 500px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .error-message h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .error-message p {
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.9;
+            white-space: pre-line;
+        }
+
+        /* Bottom branding */
+        .bottom-branding {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            z-index: 9998;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        /* Fullscreen button */
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: rgba(123, 59, 196, 0.8);
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(123, 59, 196, 1);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Branded Watermark -->
+    <div class="branded-watermark">
+        LIVE - FootHolics.in
+    </div>
+
+    <!-- Player Container -->
+    <div id="player-container">
+        <!-- Thumbnail Overlay -->
+        <div class="thumbnail-overlay" id="thumbnailOverlay">
+            <div class="soccer-ball">&#9917;</div>
+            <div class="thumbnail-content">
+                <div class="thumbnail-badge">LIVE STREAM</div>
+                <div class="thumbnail-logo-text">FootHolics.in</div>
+                <div class="play-button"></div>
+                <div class="thumbnail-subtitle">GAME PLAY - HD QUALITY</div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner"></div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage">
+            <h3>Stream Error</h3>
+            <p>Unable to load the stream. Please check the URL or try again later.</p>
+        </div>
+
+        <!-- Iframe Container -->
+        <div id="iframe-container">
+            <iframe id="stream-iframe" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
+        </div>
+    </div>
+
+    <!-- Fullscreen Button -->
+    <button class="fullscreen-btn" id="fullscreenBtn">Fullscreen</button>
+
+    <!-- Bottom Branding -->
+    <div class="bottom-branding">
+        FootHolics.in
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // Security: Disable right-click
+            document.addEventListener('contextmenu', event => event.preventDefault());
+
+            // Security: Disable specific keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.keyCode === 123 || // F12
+                    (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                    (e.ctrlKey && e.keyCode === 85)) { // Ctrl+U
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            const thumbnailOverlay = document.getElementById('thumbnailOverlay');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const errorMessage = document.getElementById('errorMessage');
+            const streamIframe = document.getElementById('stream-iframe');
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const playerContainer = document.getElementById('player-container');
+
+            // Get stream URL from query parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedUrl = urlParams.get('get');
+
+            function showError(message) {
+                loadingSpinner.style.display = 'none';
+                const errorP = errorMessage.querySelector('p');
+                if (errorP) {
+                    errorP.textContent = message;
+                }
+                errorMessage.style.display = 'block';
+                thumbnailOverlay.classList.add('hidden');
+            }
+
+            if (!encodedUrl || encodedUrl.trim() === '' || encodedUrl === 'null' || encodedUrl === 'undefined') {
+                showError('No stream URL provided.\n\nUsage: ?get=BASE64_ENCODED_URL\n\nThis player embeds external player pages in an iframe.');
+                return;
+            }
+
+            let streamUrl;
+            try {
+                streamUrl = atob(encodedUrl);
+                console.log('Decoded stream URL:', streamUrl);
+
+                if (!streamUrl || streamUrl.trim() === '' || streamUrl === 'null' || streamUrl === 'undefined') {
+                    showError('Invalid stream URL: Decoded URL is empty.');
+                    return;
+                }
+            } catch (e) {
+                console.error('Base64 decode error:', e);
+                showError('Invalid stream URL encoding.\n\nError: ' + e.message);
+                return;
+            }
+
+            // Validate URL
+            if (!streamUrl.startsWith('http://') && !streamUrl.startsWith('https://')) {
+                showError('Invalid URL. Must start with http:// or https://');
+                return;
+            }
+
+            console.log('Loading iframe with URL:', streamUrl);
+
+            // Track analytics
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'iframe_player_load', {
+                    'event_category': 'Player',
+                    'event_label': streamUrl,
+                    'value': 1
+                });
+            }
+
+            // Handle thumbnail click
+            thumbnailOverlay.addEventListener('click', function() {
+                thumbnailOverlay.classList.add('hidden');
+                loadingSpinner.style.display = 'block';
+
+                // Set iframe source
+                streamIframe.src = streamUrl;
+            });
+
+            // Iframe load events
+            streamIframe.addEventListener('load', function() {
+                console.log('Iframe loaded successfully');
+                loadingSpinner.style.display = 'none';
+
+                // Track play event
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'iframe_stream_play', {
+                        'event_category': 'Player',
+                        'event_label': streamUrl,
+                        'value': 1
+                    });
+                }
+            });
+
+            streamIframe.addEventListener('error', function(e) {
+                console.error('Iframe error:', e);
+                showError('Failed to load the stream.\n\nThe source may be unavailable or blocking iframe embedding.');
+            });
+
+            // Fullscreen functionality
+            fullscreenBtn.addEventListener('click', function() {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else if (playerContainer.requestFullscreen) {
+                    playerContainer.requestFullscreen();
+                } else if (playerContainer.webkitRequestFullscreen) {
+                    playerContainer.webkitRequestFullscreen();
+                } else if (playerContainer.msRequestFullscreen) {
+                    playerContainer.msRequestFullscreen();
+                }
+            });
+
+            document.addEventListener('fullscreenchange', function() {
+                if (document.fullscreenElement) {
+                    fullscreenBtn.textContent = 'Exit Fullscreen';
+                } else {
+                    fullscreenBtn.textContent = 'Fullscreen';
+                }
+            });
+
+            // Double-click to fullscreen
+            playerContainer.addEventListener('dblclick', function() {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else if (playerContainer.requestFullscreen) {
+                    playerContainer.requestFullscreen();
+                }
+            });
+
+        })();
+    </script>
+</body>
+</html>

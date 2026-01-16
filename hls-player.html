@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FootHolics - HLS Stream Player</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LQP123YCP6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-LQP123YCP6', {
+            'page_title': 'FootHolics HLS Player',
+            'page_path': '/hls-player.html'
+        });
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+        }
+
+        #player-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #2D0854 0%, #14132A 50%, #7B3BC4 100%);
+        }
+
+        /* Video Player */
+        #video-player {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            object-fit: contain;
+        }
+
+        /* Branded Watermark - Top Left */
+        .branded-watermark {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 9999;
+            background: #D50000;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(213, 0, 0, 0.5);
+            animation: pulse 2.5s ease-in-out infinite;
+            pointer-events: none;
+            user-select: none;
+            text-transform: uppercase;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Thumbnail Overlay */
+        .thumbnail-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2D0854 0%, #14132A 50%, #7B3BC4 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .thumbnail-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.03) 10px,
+                    rgba(255,255,255,0.03) 11px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.03) 10px,
+                    rgba(255,255,255,0.03) 11px
+                );
+            opacity: 0.5;
+        }
+
+        .thumbnail-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .thumbnail-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .thumbnail-logo-text {
+            font-size: clamp(32px, 8vw, 96px);
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .thumbnail-badge {
+            display: inline-block;
+            background: rgba(123, 59, 196, 0.3);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(123, 59, 196, 0.6);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .play-button {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            margin: 0 auto;
+        }
+
+        .play-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .play-button::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 30px solid #fff;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            margin-left: 8px;
+        }
+
+        .thumbnail-subtitle {
+            font-size: clamp(16px, 3vw, 24px);
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        /* Soccer ball decoration */
+        .soccer-ball {
+            position: absolute;
+            top: 15%;
+            right: 10%;
+            font-size: 80px;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(180deg); }
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #7B3BC4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 5;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Status Message */
+        .status-message {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 9998;
+            display: none;
+        }
+
+        /* Error Message */
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(213, 0, 0, 0.95);
+            color: #fff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 600px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .error-message h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .error-message p {
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.9;
+            white-space: pre-line;
+            text-align: left;
+        }
+
+        .error-message .retry-btn {
+            margin-top: 20px;
+            background: #fff;
+            color: #D50000;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .error-message .retry-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Bottom branding */
+        .bottom-branding {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            z-index: 9998;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        /* Quality selector */
+        .quality-selector {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 6px;
+            padding: 5px;
+            display: none;
+        }
+
+        .quality-selector select {
+            background: transparent;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .quality-selector option {
+            background: #333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Branded Watermark -->
+    <div class="branded-watermark">
+        LIVE - FootHolics.in
+    </div>
+
+    <!-- Quality Selector -->
+    <div class="quality-selector" id="qualitySelector">
+        <select id="qualitySelect">
+            <option value="-1">Auto</option>
+        </select>
+    </div>
+
+    <!-- Player Container -->
+    <div id="player-container">
+        <!-- Thumbnail Overlay -->
+        <div class="thumbnail-overlay" id="thumbnailOverlay">
+            <div class="soccer-ball">&#9917;</div>
+            <div class="thumbnail-content">
+                <div class="thumbnail-badge">LIVE STREAM</div>
+                <div class="thumbnail-logo-text">FootHolics.in</div>
+                <div class="play-button"></div>
+                <div class="thumbnail-subtitle">HLS PLAYER - HD QUALITY</div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner"></div>
+
+        <!-- Status Message -->
+        <div class="status-message" id="statusMessage"></div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage">
+            <h3>Stream Error</h3>
+            <p id="errorText">Unable to load the stream.</p>
+            <button class="retry-btn" id="retryBtn">Try Again</button>
+        </div>
+
+        <!-- Video Player -->
+        <video id="video-player" controls playsinline preload="auto"></video>
+    </div>
+
+    <!-- Bottom Branding -->
+    <div class="bottom-branding">
+        FootHolics.in
+    </div>
+
+    <!-- HLS.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // Security: Disable right-click
+            document.addEventListener('contextmenu', event => event.preventDefault());
+
+            // Security: Disable specific keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.keyCode === 123 || // F12
+                    (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+                    (e.ctrlKey && e.keyCode === 85)) { // Ctrl+U
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            const thumbnailOverlay = document.getElementById('thumbnailOverlay');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const statusMessage = document.getElementById('statusMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            const retryBtn = document.getElementById('retryBtn');
+            const video = document.getElementById('video-player');
+            const qualitySelector = document.getElementById('qualitySelector');
+            const qualitySelect = document.getElementById('qualitySelect');
+            const playerContainer = document.getElementById('player-container');
+
+            let hls = null;
+            let streamUrl = '';
+            let retryCount = 0;
+            const maxRetries = 3;
+
+            // Get stream URL from query parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedUrl = urlParams.get('get');
+            const useProxy = urlParams.get('proxy') === 'true';
+            const proxyUrl = urlParams.get('proxyUrl') || '';
+
+            function showStatus(message) {
+                statusMessage.textContent = message;
+                statusMessage.style.display = 'block';
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 3000);
+            }
+
+            function showError(message) {
+                loadingSpinner.style.display = 'none';
+                errorText.textContent = message;
+                errorMessage.style.display = 'block';
+                thumbnailOverlay.classList.add('hidden');
+            }
+
+            function hideError() {
+                errorMessage.style.display = 'none';
+            }
+
+            if (!encodedUrl || encodedUrl.trim() === '' || encodedUrl === 'null' || encodedUrl === 'undefined') {
+                showError('No stream URL provided.\n\nUsage: ?get=BASE64_ENCODED_M3U8_URL\n\nOptional parameters:\n- proxy=true (use CORS proxy)\n- proxyUrl=YOUR_PROXY_URL');
+                return;
+            }
+
+            try {
+                streamUrl = atob(encodedUrl);
+                console.log('Decoded stream URL:', streamUrl);
+
+                if (!streamUrl || streamUrl.trim() === '' || streamUrl === 'null' || streamUrl === 'undefined') {
+                    showError('Invalid stream URL: Decoded URL is empty.');
+                    return;
+                }
+            } catch (e) {
+                console.error('Base64 decode error:', e);
+                showError('Invalid stream URL encoding.\n\nError: ' + e.message);
+                return;
+            }
+
+            // Validate URL
+            if (!streamUrl.startsWith('http://') && !streamUrl.startsWith('https://')) {
+                showError('Invalid URL. Must start with http:// or https://');
+                return;
+            }
+
+            console.log('Stream URL:', streamUrl);
+
+            // Apply proxy if needed
+            function getProxiedUrl(url) {
+                if (useProxy && proxyUrl) {
+                    return proxyUrl + encodeURIComponent(url);
+                }
+                return url;
+            }
+
+            // Track analytics
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'hls_player_load', {
+                    'event_category': 'Player',
+                    'event_label': streamUrl,
+                    'value': 1
+                });
+            }
+
+            // Initialize player
+            function initPlayer() {
+                hideError();
+                retryCount = 0;
+
+                // Check for native HLS support first (Safari, iOS)
+                if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    console.log('Using native HLS support');
+                    showStatus('Using native HLS playback');
+                    initNativeHLS();
+                } else if (Hls.isSupported()) {
+                    console.log('Using HLS.js');
+                    showStatus('Initializing HLS.js player');
+                    initHLSJS();
+                } else {
+                    showError('HLS playback is not supported in this browser.\n\nPlease use Safari, Chrome, Firefox, or Edge.');
+                }
+            }
+
+            function initNativeHLS() {
+                const finalUrl = getProxiedUrl(streamUrl);
+                video.src = finalUrl;
+
+                video.addEventListener('loadedmetadata', function() {
+                    console.log('Native HLS: Metadata loaded');
+                    loadingSpinner.style.display = 'none';
+                    showStatus('Stream ready');
+                });
+
+                video.addEventListener('error', function(e) {
+                    console.error('Native HLS error:', e);
+                    handlePlaybackError('Native playback error: ' + (video.error ? video.error.message : 'Unknown error'));
+                });
+            }
+
+            function initHLSJS() {
+                if (hls) {
+                    hls.destroy();
+                }
+
+                const finalUrl = getProxiedUrl(streamUrl);
+
+                hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: false,
+                    liveSyncDurationCount: 3,
+                    liveMaxLatencyDurationCount: 10,
+                    liveDurationInfinity: true,
+                    backBufferLength: 60,
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 60,
+                    maxBufferSize: 60 * 1000 * 1000, // 60MB
+                    maxBufferHole: 0.5,
+                    highBufferWatchdogPeriod: 2,
+                    nudgeOffset: 0.1,
+                    nudgeMaxRetry: 5,
+                    fragLoadingTimeOut: 20000,
+                    fragLoadingMaxRetry: 6,
+                    fragLoadingRetryDelay: 1000,
+                    manifestLoadingTimeOut: 20000,
+                    manifestLoadingMaxRetry: 4,
+                    manifestLoadingRetryDelay: 1000,
+                    levelLoadingTimeOut: 20000,
+                    levelLoadingMaxRetry: 4,
+                    levelLoadingRetryDelay: 1000,
+                    startLevel: -1,
+                    capLevelToPlayerSize: true,
+                    debug: false,
+                    xhrSetup: function(xhr, url) {
+                        xhr.withCredentials = false;
+                        // Add common headers that might help
+                        // xhr.setRequestHeader('Origin', window.location.origin);
+                    }
+                });
+
+                hls.loadSource(finalUrl);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+                    console.log('HLS.js: Manifest parsed', data);
+                    loadingSpinner.style.display = 'none';
+                    showStatus('Stream ready - ' + data.levels.length + ' quality levels');
+
+                    // Populate quality selector
+                    if (data.levels.length > 1) {
+                        qualitySelect.innerHTML = '<option value="-1">Auto</option>';
+                        data.levels.forEach((level, index) => {
+                            const height = level.height || 'Unknown';
+                            const bitrate = level.bitrate ? Math.round(level.bitrate / 1000) + 'kbps' : '';
+                            qualitySelect.innerHTML += '<option value="' + index + '">' + height + 'p ' + bitrate + '</option>';
+                        });
+                        qualitySelector.style.display = 'block';
+                    }
+                });
+
+                hls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
+                    console.log('HLS.js: Level switched to', data.level);
+                    const level = hls.levels[data.level];
+                    if (level) {
+                        showStatus('Quality: ' + (level.height || 'Auto') + 'p');
+                    }
+                });
+
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    console.error('HLS.js Error:', data);
+
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.log('Network error, attempting recovery...');
+                                if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR) {
+                                    handlePlaybackError('Network Error: Unable to load stream manifest.\n\nPossible causes:\n- CORS restriction (server blocks cross-origin requests)\n- Stream URL expired or invalid\n- Network connectivity issue\n\nTry using the iframe player or check if the stream is accessible.');
+                                } else if (retryCount < maxRetries) {
+                                    retryCount++;
+                                    showStatus('Network error, retrying... (' + retryCount + '/' + maxRetries + ')');
+                                    hls.startLoad();
+                                } else {
+                                    handlePlaybackError('Network Error: Failed after ' + maxRetries + ' retries.\n\nDetails: ' + data.details);
+                                }
+                                break;
+
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.log('Media error, attempting recovery...');
+                                showStatus('Media error, recovering...');
+                                hls.recoverMediaError();
+                                break;
+
+                            default:
+                                handlePlaybackError('Fatal Error: ' + data.type + '\n\nDetails: ' + data.details);
+                                hls.destroy();
+                                break;
+                        }
+                    }
+                });
+
+                // Quality selector change
+                qualitySelect.addEventListener('change', function() {
+                    const level = parseInt(this.value);
+                    hls.currentLevel = level;
+                    console.log('Quality changed to level:', level);
+                });
+            }
+
+            function handlePlaybackError(message) {
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    showStatus('Retrying... (' + retryCount + '/' + maxRetries + ')');
+                    setTimeout(() => {
+                        initPlayer();
+                    }, 2000);
+                } else {
+                    showError(message);
+                }
+            }
+
+            // Video event handlers
+            video.addEventListener('play', function() {
+                thumbnailOverlay.classList.add('hidden');
+                loadingSpinner.style.display = 'none';
+
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'hls_stream_play', {
+                        'event_category': 'Player',
+                        'event_label': streamUrl,
+                        'value': 1
+                    });
+                }
+            });
+
+            video.addEventListener('waiting', function() {
+                loadingSpinner.style.display = 'block';
+            });
+
+            video.addEventListener('playing', function() {
+                loadingSpinner.style.display = 'none';
+            });
+
+            video.addEventListener('ended', function() {
+                thumbnailOverlay.classList.remove('hidden');
+            });
+
+            video.addEventListener('error', function(e) {
+                console.error('Video element error:', e);
+                if (video.error) {
+                    console.error('Error code:', video.error.code);
+                    console.error('Error message:', video.error.message);
+                }
+            });
+
+            // Handle thumbnail click
+            thumbnailOverlay.addEventListener('click', function() {
+                thumbnailOverlay.classList.add('hidden');
+                loadingSpinner.style.display = 'block';
+                initPlayer();
+
+                // Try to play
+                video.play().catch(function(err) {
+                    console.log('Autoplay blocked:', err);
+                    loadingSpinner.style.display = 'none';
+                });
+            });
+
+            // Retry button
+            retryBtn.addEventListener('click', function() {
+                hideError();
+                retryCount = 0;
+                loadingSpinner.style.display = 'block';
+                initPlayer();
+            });
+
+            // Double-click to fullscreen
+            playerContainer.addEventListener('dblclick', function() {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else if (playerContainer.requestFullscreen) {
+                    playerContainer.requestFullscreen();
+                } else if (playerContainer.webkitRequestFullscreen) {
+                    playerContainer.webkitRequestFullscreen();
+                }
+            });
+
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', function() {
+                if (hls) {
+                    hls.destroy();
+                }
+            });
+
+        })();
+    </script>
+</body>
+</html>

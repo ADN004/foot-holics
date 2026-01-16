@@ -230,17 +230,29 @@
 
         <form id="encoderForm">
             <div class="form-group">
-                <label for="streamUrl">Stream URL (HLS/M3U8) *</label>
+                <label for="playerType">Player Type *</label>
+                <select id="playerType" name="playerType" style="width: 100%; padding: 14px 18px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #fff; font-size: 1rem;">
+                    <option value="player">HLS Player (player.html) - For .m3u8 streams</option>
+                    <option value="hls-player">Alt HLS Player (hls-player.html) - Better error handling</option>
+                    <option value="iframe-player">Iframe Player (iframe-player.html) - For external pages</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="streamUrl">Stream URL *</label>
                 <input
                     type="text"
                     id="streamUrl"
                     name="streamUrl"
-                    placeholder="https://example.com/stream.m3u8"
+                    placeholder="https://example.com/stream.m3u8 or https://site.com/player.php"
                     required
                 >
+                <small style="color: rgba(255,255,255,0.5); font-size: 0.85rem; display: block; margin-top: 5px;">
+                    For HLS players: .m3u8 stream URLs | For Iframe player: External player page URLs
+                </small>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="authKeyGroup">
                 <label for="authKey">Authentication Key (Optional)</label>
                 <input
                     type="text"
@@ -250,7 +262,7 @@
                 >
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="authKey2Group">
                 <label for="authKey2">Authentication Key 2 (Optional)</label>
                 <input
                     type="text"
@@ -260,7 +272,7 @@
                 >
             </div>
 
-            <button type="submit" class="btn">🔐 Generate Player URL</button>
+            <button type="submit" class="btn">Generate Player URL</button>
         </form>
 
         <div class="result-box" id="resultBox">
@@ -279,32 +291,53 @@
         </div>
 
         <div class="info-box">
-            <h3>ℹ️ How It Works</h3>
+            <h3>Player Types</h3>
             <ul>
-                <li>Enter your HLS/M3U8 stream URL above</li>
-                <li>Add authentication keys if your stream requires them</li>
-                <li>Click "Generate Player URL" to create your branded player link</li>
-                <li>Share this link - it will display FOOTHOLICS.IN branding</li>
-                <li>Even if others embed it, your brand stays visible!</li>
+                <li><strong>HLS Player (player.html):</strong> Standard player for .m3u8 streams using HLS.js</li>
+                <li><strong>Alt HLS Player (hls-player.html):</strong> Enhanced HLS player with better error handling and quality selector</li>
+                <li><strong>Iframe Player (iframe-player.html):</strong> Embeds external player pages (like sportsonline.cv) in an iframe</li>
             </ul>
         </div>
 
         <div class="warning">
-            <strong>⚠️ Important:</strong> This player only works with HLS streams (.m3u8 URLs). MP4 files and other formats are not supported. Make sure your stream URL is publicly accessible or includes proper authentication.
+            <strong>Important Notes:</strong><br>
+            - HLS Players work with .m3u8 stream URLs only<br>
+            - Iframe Player works with external player pages (PHP/HTML pages with embedded players)<br>
+            - CORS restrictions may block some HLS streams - try the iframe player as alternative<br>
+            - All players display FOOTHOLICS.IN branding
         </div>
 
         <div class="example">
-            <strong>Example Stream URLs:</strong><br>
-            https://example.com/live/stream.m3u8<br>
-            https://stream.provider.com/hls/channel1/playlist.m3u8<br>
-            https://cdn.example.com/live/sport/master.m3u8
+            <strong>Example URLs:</strong><br><br>
+            <strong>For HLS Players:</strong><br>
+            https://hls.cdnok9.com/live/KEVILL/index.m3u8?expire=...<br>
+            https://cdn.example.com/live/sport/master.m3u8<br><br>
+            <strong>For Iframe Player:</strong><br>
+            https://sportsonline.cv/channels/bra/br2.php<br>
+            https://example.com/embed/player.html
         </div>
     </div>
 
     <script>
+        // Handle player type change - show/hide auth fields for iframe player
+        document.getElementById('playerType').addEventListener('change', function() {
+            const isIframe = this.value === 'iframe-player';
+            document.getElementById('authKeyGroup').style.display = isIframe ? 'none' : 'block';
+            document.getElementById('authKey2Group').style.display = isIframe ? 'none' : 'block';
+
+            // Update placeholder based on player type
+            const streamInput = document.getElementById('streamUrl');
+            if (isIframe) {
+                streamInput.placeholder = 'https://sportsonline.cv/channels/bra/br2.php';
+            } else {
+                streamInput.placeholder = 'https://hls.cdnok9.com/live/KEVILL/index.m3u8?expire=...';
+            }
+        });
+
         document.getElementById('encoderForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
+            const playerType = document.getElementById('playerType').value;
             const streamUrl = document.getElementById('streamUrl').value.trim();
             const authKey = document.getElementById('authKey').value.trim();
             const authKey2 = document.getElementById('authKey2').value.trim();
@@ -317,15 +350,17 @@
             // Encode stream URL to base64
             const encodedStream = btoa(streamUrl);
 
-            // Build player URL
-            let playerUrl = `${window.location.origin}/player.html?get=${encodedStream}`;
+            // Build player URL based on selected player type
+            let playerUrl = `${window.location.origin}/${playerType}.html?get=${encodedStream}`;
 
-            if (authKey) {
-                playerUrl += `&key=${authKey}`;
-            }
-
-            if (authKey2) {
-                playerUrl += `&key2=${authKey2}`;
+            // Only add auth keys for non-iframe players
+            if (playerType !== 'iframe-player') {
+                if (authKey) {
+                    playerUrl += `&key=${authKey}`;
+                }
+                if (authKey2) {
+                    playerUrl += `&key2=${authKey2}`;
+                }
             }
 
             // Create embed code
