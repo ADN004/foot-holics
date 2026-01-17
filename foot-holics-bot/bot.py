@@ -55,7 +55,7 @@ LEAGUES = {
     },
     "La Liga": {
         "emoji": "⚽",
-        "slug": "laliga",
+        "slug": "la-liga",
         "color": "#FF6B00",
     },
     "Serie A": {
@@ -250,7 +250,7 @@ def find_team_logo(team_name: str, league_slug: str = None) -> str:
     # Define search paths in priority order
     logo_folders = [
         "premier-league",
-        "laliga",
+        "la-liga",
         "serie-a",
         "bundesliga",
         "ligue-1",
