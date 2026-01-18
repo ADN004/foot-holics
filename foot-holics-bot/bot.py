@@ -44,7 +44,9 @@ load_dotenv()
     UPDATE_FIELD_INPUT,
     UPDATE_STREAM_LINKS,
     GENERATE_CARD_INPUT,
-) = range(14)
+    UPDATE_STREAM_SELECT,  # New state for button-based stream link selection
+    UPDATE_STREAM_INPUT,   # New state for individual stream link input
+) = range(16)
 
 # League data with emojis and colors
 LEAGUES = {
@@ -1083,6 +1085,29 @@ async def update_match_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     if preview_match:
         context.user_data["current_preview"] = preview_match.group(1).strip()
 
+    # Extract existing stream links from HTML
+    stream_links = ["#", "#", "#", "#"]
+    # Look for player.html or iframe-player.html URLs with encoded stream
+    stream_patterns = re.findall(r'href="(?:player\.html|iframe-player\.html)\?get=([^"]+)"', html_content)
+    for i, encoded_url in enumerate(stream_patterns[:4]):
+        try:
+            decoded_url = base64.b64decode(encoded_url).decode('utf-8')
+            stream_links[i] = decoded_url
+        except:
+            stream_links[i] = "#"
+    # Also try old format (p/X-live.html)
+    if all(link == "#" for link in stream_links):
+        old_patterns = re.findall(r'href="p/(\d)-live\.html\?(?:url|get)=([^"]+)"', html_content)
+        for num, encoded_url in old_patterns:
+            idx = int(num) - 1
+            if 0 <= idx < 4:
+                try:
+                    decoded_url = base64.b64decode(encoded_url).decode('utf-8')
+                    stream_links[idx] = decoded_url
+                except:
+                    pass
+    context.user_data["current_stream_links"] = stream_links
+
     # Show update options
     keyboard = [
         [InlineKeyboardButton("📝 Match Name", callback_data="update_field_title")],
@@ -1205,19 +1230,250 @@ async def update_field_choice_handler(update: Update, context: ContextTypes.DEFA
         return UPDATE_FIELD_INPUT
 
     elif field == "streams":
+        # Show button-based stream link selection UI
+        stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
+
+        # Build buttons showing link status
+        keyboard = []
+        for i in range(4):
+            link = stream_links[i] if i < len(stream_links) else "#"
+            if link and link != "#":
+                # Show truncated URL for filled links
+                display_url = link[:35] + "..." if len(link) > 35 else link
+                status = f"✅ Link {i+1}: {display_url}"
+            else:
+                status = f"⬜ Link {i+1}: (empty)"
+            keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
+
+        keyboard.append([InlineKeyboardButton("✅ Done - Back to Menu", callback_data="stream_done")])
+        keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
+
+        # Count active links
+        active_count = len([l for l in stream_links if l and l != "#"])
+
         await query.edit_message_text(
             f"🔗 **Update Streaming Links**\n\n"
-            f"Enter streaming links (one per line or comma-separated):\n\n"
-            f"Format:\n"
-            f"`Link 1 URL\n`"
-            f"`Link 2 URL\n`"
-            f"`Link 3 URL\n`"
-            f"`Link 4 URL`\n\n"
-            f"Leave empty lines for unused links.\n\n"
-            f"_Type /cancel to go back_",
-            parse_mode="Markdown"
+            f"📊 Active streams: {active_count}/4\n\n"
+            f"Select a link to view/edit:\n"
+            f"_(Click on any link below to update it)_",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
-        return UPDATE_FIELD_INPUT
+        return UPDATE_STREAM_SELECT
+
+    return UPDATE_FIELD_CHOICE
+
+
+async def stream_link_select_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle stream link button selection."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "menu_back":
+        return await show_main_menu(update, context, edit_message=True)
+
+    if query.data == "stream_done":
+        # Return to main update menu
+        return await show_update_field_menu(update, context)
+
+    # Extract link index from callback data (stream_link_0, stream_link_1, etc.)
+    link_index = int(query.data.replace("stream_link_", ""))
+    context.user_data["editing_stream_index"] = link_index
+
+    stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
+    current_link = stream_links[link_index] if link_index < len(stream_links) else "#"
+
+    # Build keyboard with options
+    keyboard = [
+        [InlineKeyboardButton("🗑️ Clear this link", callback_data=f"stream_clear_{link_index}")],
+        [InlineKeyboardButton("« Back to Links", callback_data="stream_back")]
+    ]
+
+    if current_link and current_link != "#":
+        link_display = current_link if len(current_link) <= 50 else current_link[:50] + "..."
+        await query.edit_message_text(
+            f"🔗 **Edit Link {link_index + 1}**\n\n"
+            f"📍 **Current URL:**\n`{link_display}`\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📝 **To replace this link:**\n"
+            f"Simply paste the new URL below.\n\n"
+            f"_Your new link will replace the current one._",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    else:
+        await query.edit_message_text(
+            f"🔗 **Edit Link {link_index + 1}**\n\n"
+            f"📍 **Current status:** Empty\n\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📝 **To add a stream:**\n"
+            f"Paste the stream URL below.\n\n"
+            f"_Supports: m3u8, embed pages, direct video links_",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    return UPDATE_STREAM_INPUT
+
+
+async def stream_link_action_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle stream link clear/back actions."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "stream_back":
+        # Go back to stream links menu
+        context.user_data["update_field"] = "streams"
+        return await show_stream_links_menu(update, context)
+
+    if query.data.startswith("stream_clear_"):
+        # Clear the specified link
+        link_index = int(query.data.replace("stream_clear_", ""))
+        stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
+        if link_index < len(stream_links):
+            stream_links[link_index] = "#"
+            context.user_data["current_stream_links"] = stream_links
+
+        await query.answer(f"✅ Link {link_index + 1} cleared!")
+        # Return to stream links menu
+        return await show_stream_links_menu(update, context)
+
+    return UPDATE_STREAM_SELECT
+
+
+async def stream_link_input_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle new stream link URL input."""
+    text = update.message.text.strip()
+    link_index = context.user_data.get("editing_stream_index", 0)
+
+    # Validate URL (basic check)
+    if not text.startswith(("http://", "https://")):
+        await update.message.reply_text(
+            "❌ Invalid URL! Must start with http:// or https://\n\n"
+            "Please paste a valid stream URL:"
+        )
+        return UPDATE_STREAM_INPUT
+
+    # Update the stream link
+    stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
+    while len(stream_links) < 4:
+        stream_links.append("#")
+    stream_links[link_index] = text
+    context.user_data["current_stream_links"] = stream_links
+
+    # Detect player type for feedback
+    player_type = detect_player_type(text)
+    player_info = "📺 HLS Player" if player_type == "hls" else "🖼️ iFrame Player" if player_type == "iframe" else "🎬 Direct Player"
+
+    await update.message.reply_text(
+        f"✅ **Link {link_index + 1} Updated!**\n\n"
+        f"🔗 URL saved successfully\n"
+        f"{player_info} will be used\n\n"
+        f"_Returning to links menu..._",
+        parse_mode="Markdown"
+    )
+
+    # Return to stream links menu
+    return await show_stream_links_menu_after_input(update, context)
+
+
+async def show_stream_links_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Show the stream links menu (used after actions)."""
+    query = update.callback_query
+
+    stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
+
+    # Build buttons showing link status
+    keyboard = []
+    for i in range(4):
+        link = stream_links[i] if i < len(stream_links) else "#"
+        if link and link != "#":
+            display_url = link[:35] + "..." if len(link) > 35 else link
+            status = f"✅ Link {i+1}: {display_url}"
+        else:
+            status = f"⬜ Link {i+1}: (empty)"
+        keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
+
+    keyboard.append([InlineKeyboardButton("✅ Done - Back to Menu", callback_data="stream_done")])
+    keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
+
+    active_count = len([l for l in stream_links if l and l != "#"])
+
+    await query.edit_message_text(
+        f"🔗 **Update Streaming Links**\n\n"
+        f"📊 Active streams: {active_count}/4\n\n"
+        f"Select a link to view/edit:\n"
+        f"_(Click on any link below to update it)_",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return UPDATE_STREAM_SELECT
+
+
+async def show_stream_links_menu_after_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Show the stream links menu after text input (sends new message)."""
+    stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
+
+    # Build buttons showing link status
+    keyboard = []
+    for i in range(4):
+        link = stream_links[i] if i < len(stream_links) else "#"
+        if link and link != "#":
+            display_url = link[:35] + "..." if len(link) > 35 else link
+            status = f"✅ Link {i+1}: {display_url}"
+        else:
+            status = f"⬜ Link {i+1}: (empty)"
+        keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
+
+    keyboard.append([InlineKeyboardButton("✅ Done - Back to Menu", callback_data="stream_done")])
+    keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
+
+    active_count = len([l for l in stream_links if l and l != "#"])
+
+    await update.message.reply_text(
+        f"🔗 **Update Streaming Links**\n\n"
+        f"📊 Active streams: {active_count}/4\n\n"
+        f"Select a link to view/edit:\n"
+        f"_(Click on any link below to update it)_",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return UPDATE_STREAM_SELECT
+
+
+async def show_update_field_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Show the main update field selection menu."""
+    query = update.callback_query
+
+    keyboard = [
+        [InlineKeyboardButton("📝 Match Name", callback_data="update_field_title")],
+        [InlineKeyboardButton("📅 Date & Time", callback_data="update_field_datetime")],
+        [InlineKeyboardButton("🏆 League", callback_data="update_field_league")],
+        [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
+        [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
+        [InlineKeyboardButton("🔗 Streaming Links", callback_data="update_field_streams")],
+        [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
+        [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
+    ]
+
+    current_info = f"""
+✏️ **Update Match: {context.user_data.get('current_title', 'Unknown')}**
+
+**Current values:**
+• Match: {context.user_data.get('current_title', 'N/A')}
+• Date: {context.user_data.get('current_date', 'N/A')}
+• Time: {context.user_data.get('current_time', 'N/A')} GMT
+• League: {context.user_data.get('current_league', 'N/A')}
+• Stadium: {context.user_data.get('current_stadium', 'N/A')}
+
+Select a field to edit or save changes:
+"""
+
+    await query.edit_message_text(
+        current_info,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
     return UPDATE_FIELD_CHOICE
 
@@ -1255,27 +1511,9 @@ async def update_field_input_handler(update: Update, context: ContextTypes.DEFAU
             return UPDATE_FIELD_INPUT
         context.user_data["current_preview"] = text
 
-    elif field == "streams":
-        # Parse streaming links (newline or comma separated)
-        links = [link.strip() for link in text.replace(',', '\n').split('\n') if link.strip()]
-        # Ensure we have exactly 4 slots (fill empty ones with "#")
-        while len(links) < 4:
-            links.append("#")
-        context.user_data["current_stream_links"] = links[:4]  # Max 4 links
+    # Note: streams are now handled via button-based UI in UPDATE_STREAM_SELECT state
 
-        # Count valid links (non-empty and not "#")
-        valid_links = len([l for l in links[:4] if l and l != "#"])
-        await update.message.reply_text(
-            f"✅ Updated {valid_links} streaming link(s)!\n\n"
-            f"• Link 1: {'✓' if links[0] and links[0] != '#' else '✗'}\n"
-            f"• Link 2: {'✓' if links[1] and links[1] != '#' else '✗'}\n"
-            f"• Link 3: {'✓' if links[2] and links[2] != '#' else '✗'}\n"
-            f"• Link 4: {'✓' if links[3] and links[3] != '#' else '✗'}\n\n"
-            f"Continue editing or save changes."
-        )
-
-    if field != "streams":
-        await update.message.reply_text(f"✅ Updated! Continue editing or save changes.")
+    await update.message.reply_text(f"✅ Updated! Continue editing or save changes.")
 
     # Return to field choice menu
     keyboard = [
@@ -2793,6 +3031,18 @@ def main() -> None:
             ],
             UPDATE_FIELD_INPUT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, update_field_input_handler)
+            ],
+            UPDATE_STREAM_SELECT: [
+                CallbackQueryHandler(stream_link_select_handler, pattern="^stream_link_"),
+                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_done"),
+                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_back"),
+                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_clear_"),
+                CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
+            ],
+            UPDATE_STREAM_INPUT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, stream_link_input_handler),
+                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_back"),
+                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_clear_"),
             ],
             GENERATE_CARD_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, generate_card_input)],
         },
