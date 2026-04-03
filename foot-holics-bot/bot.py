@@ -9,8 +9,10 @@ import json
 import re
 import glob
 import base64
+import logging
 from datetime import datetime
 from typing import Dict, Any
+from urllib.parse import quote
 from dotenv import load_dotenv
 from io import BytesIO
 
@@ -27,6 +29,31 @@ from telegram.ext import (
 
 # Load environment variables
 load_dotenv()
+
+# Logging setup
+logging.basicConfig(
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    level=logging.INFO,
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("bot.log", encoding="utf-8"),
+    ],
+)
+logger = logging.getLogger(__name__)
+# Silence noisy PTB internals
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("telegram").setLevel(logging.WARNING)
+
+# ── Authorization ────────────────────────────────────────────────────────────
+# Comma-separated Telegram user IDs allowed to operate the bot.
+# Leave empty to allow everyone (not recommended in production).
+_raw_ids = os.getenv("ALLOWED_USER_IDS", "")
+ALLOWED_USER_IDS: set[int] = {int(uid.strip()) for uid in _raw_ids.split(",") if uid.strip()}
+
+
+def is_authorized(user_id: int) -> bool:
+    """Return True if the user is allowed to use the bot."""
+    return not ALLOWED_USER_IDS or user_id in ALLOWED_USER_IDS
 
 # Conversation states
 (
@@ -57,7 +84,7 @@ LEAGUES = {
     },
     "La Liga": {
         "emoji": "⚽",
-        "slug": "la-liga",
+        "slug": "laliga",
         "color": "#FF6B00",
     },
     "Serie A": {
@@ -241,15 +268,21 @@ def find_team_logo(team_name: str, league_slug: str = None) -> str:
 
     Args:
         team_name: Name of the team (e.g., "Real Madrid", "Man City")
-        league_slug: League slug to search first (optional)
+        league_slug: League slug (CSS class) to search first (optional)
 
     Returns:
-        Logo path relative to website root, or fallback placeholder
+        Logo path relative to website root, or empty string if not found
     """
     project_root = get_project_root()
     team_slug = slugify(team_name)
 
-    # Define search paths in priority order
+    # CSS slugs can differ from the actual folder names on disk.
+    # Map any mismatches here so the filesystem lookup always uses the real folder name.
+    CSS_SLUG_TO_FOLDER = {
+        "laliga": "la-liga",
+    }
+
+    # Actual disk folder names under assets/img/logos/teams/
     logo_folders = [
         "premier-league",
         "la-liga",
@@ -259,39 +292,43 @@ def find_team_logo(team_name: str, league_slug: str = None) -> str:
         "champions-league",
         "wc",
         "nationals",
-        "others"
+        "others",
     ]
 
-    # If league specified, search there first
-    if league_slug and league_slug in logo_folders:
-        logo_folders.remove(league_slug)
-        logo_folders.insert(0, league_slug)
+    # Translate CSS slug → disk folder name
+    disk_folder = CSS_SLUG_TO_FOLDER.get(league_slug, league_slug)
+
+    # Prioritise the league's own folder
+    if disk_folder and disk_folder in logo_folders:
+        logo_folders.remove(disk_folder)
+        logo_folders.insert(0, disk_folder)
 
     # Search for logo file
     for folder in logo_folders:
         logo_dir = os.path.join(project_root, "assets", "img", "logos", "teams", folder)
-        if os.path.exists(logo_dir):
-            # Try exact match
-            for ext in [".png", ".jpg", ".jpeg", ".svg", ".webp"]:
-                logo_path = os.path.join(logo_dir, f"{team_slug}{ext}")
-                if os.path.isfile(logo_path):
-                    return f"assets/img/logos/teams/{folder}/{team_slug}{ext}"
+        if not os.path.exists(logo_dir):
+            continue
 
-            # Try partial match (for variations like "man-city" vs "manchester-city")
-            # Make comparison case-insensitive for better matching
-            for file in os.listdir(logo_dir):
-                file_name = os.path.splitext(file)[0].lower()
-                team_slug_lower = team_slug.lower()
-                if team_slug_lower in file_name or file_name in team_slug_lower:
-                    return f"assets/img/logos/teams/{folder}/{file}"
+        # Try exact slug match first
+        for ext in [".png", ".jpg", ".jpeg", ".svg", ".webp"]:
+            logo_path = os.path.join(logo_dir, f"{team_slug}{ext}")
+            if os.path.isfile(logo_path):
+                return f"assets/img/logos/teams/{folder}/{team_slug}{ext}"
 
-    # Fallback: return placeholder path
-    return f"assets/img/logos/teams/{league_slug or 'others'}/placeholder.png"
+        # Try partial match (handles "man-city" vs "manchester-city" etc.)
+        for file in os.listdir(logo_dir):
+            file_stem = os.path.splitext(file)[0].lower()
+            if team_slug in file_stem or file_stem in team_slug:
+                return f"assets/img/logos/teams/{folder}/{file}"
+
+    # No logo found — return a path that reliably triggers the onerror fallback in the template
+    fallback_folder = CSS_SLUG_TO_FOLDER.get(league_slug, league_slug) or "others"
+    return f"assets/img/logos/teams/{fallback_folder}/missing.png"
 
 
 def generate_event_id() -> str:
-    """Generate unique event ID based on timestamp."""
-    return f"event-{int(datetime.now().timestamp())}"
+    """Generate unique event ID based on millisecond timestamp."""
+    return f"event-{int(datetime.now().timestamp() * 1000)}"
 
 
 def get_project_root() -> str:
@@ -337,7 +374,7 @@ def remove_match_from_index(filename: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error removing from index.html: {e}")
+        logger.error(f"Error removing from index.html: {e}", exc_info=True)
         return False
 
 
@@ -376,7 +413,7 @@ def remove_match_from_events_json(filename: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error removing from events.json: {e}")
+        logger.error(f"Error removing from events.json: {e}", exc_info=True)
         return False
 
 
@@ -391,7 +428,7 @@ def copy_html_to_root(filename: str, html_content: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error copying HTML to root: {e}")
+        logger.error(f"Error copying HTML to root: {e}", exc_info=True)
         return False
 
 
@@ -420,7 +457,7 @@ def add_to_events_json(json_entry: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error adding to events.json: {e}")
+        logger.error(f"Error adding to events.json: {e}", exc_info=True)
         return False
 
 
@@ -464,7 +501,7 @@ def add_card_to_index(card_html: str) -> bool:
                     count=1
                 )
             else:
-                print("Could not find matches grid in index.html")
+                logger.error("Could not find matches grid in index.html")
                 return False
 
         # Write back
@@ -473,7 +510,7 @@ def add_card_to_index(card_html: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error adding card to index.html: {e}")
+        logger.error(f"Error adding card to index.html: {e}", exc_info=True)
         return False
 
 
@@ -520,11 +557,11 @@ def add_to_sitemap(filename: str, date: str = None) -> bool:
 
             return True
         else:
-            print("Could not find Event Detail Pages section in sitemap.xml")
+            logger.error("Could not find Event Detail Pages section in sitemap.xml")
             return False
 
     except Exception as e:
-        print(f"Error adding to sitemap.xml: {e}")
+        logger.error(f"Error adding to sitemap.xml: {e}", exc_info=True)
         return False
 
 
@@ -557,12 +594,18 @@ def remove_from_sitemap(filename: str) -> bool:
         return True
 
     except Exception as e:
-        print(f"Error removing from sitemap.xml: {e}")
+        logger.error(f"Error removing from sitemap.xml: {e}", exc_info=True)
         return False
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the conversation and show main menu."""
+    user = update.effective_user
+    if not is_authorized(user.id):
+        logger.warning(f"Unauthorized access attempt by user {user.id} (@{user.username})")
+        await update.message.reply_text("⛔ You are not authorized to use this bot.")
+        return ConversationHandler.END
+    logger.info(f"User {user.id} (@{user.username}) started the bot")
     return await show_main_menu(update, context)
 
 
@@ -755,21 +798,22 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         matches = list_match_files()
         root_dir = get_project_root()
 
-        # Count leagues
+        # Count leagues from events.json (accurate) with fallback to filename heuristics
         league_counts = {}
-        for match_file in matches:
-            if "premier-league" in match_file or "liverpool" in match_file or "chelsea" in match_file:
-                league_counts["Premier League"] = league_counts.get("Premier League", 0) + 1
-            elif "la-liga" in match_file or "real" in match_file or "barcelona" in match_file or "atletico" in match_file or "betis" in match_file:
-                league_counts["La Liga"] = league_counts.get("La Liga", 0) + 1
-            elif "serie-a" in match_file or "milan" in match_file or "inter" in match_file:
-                league_counts["Serie A"] = league_counts.get("Serie A", 0) + 1
-            elif "bundesliga" in match_file or "bayern" in match_file or "dortmund" in match_file:
-                league_counts["Bundesliga"] = league_counts.get("Bundesliga", 0) + 1
-            else:
-                league_counts["Others"] = league_counts.get("Others", 0) + 1
+        events_path = os.path.join(root_dir, "data", "events.json")
+        if os.path.exists(events_path):
+            try:
+                with open(events_path, "r", encoding="utf-8") as f:
+                    events_data = json.load(f)
+                for event in events_data:
+                    league_name = event.get("league", "Others")
+                    league_counts[league_name] = league_counts.get(league_name, 0) + 1
+            except Exception:
+                league_counts = {"All": len(matches)}
+        else:
+            league_counts = {"All": len(matches)}
 
-        league_stats = "\n".join([f"• {league}: {count}" for league, count in league_counts.items()])
+        league_stats = "\n".join([f"• {league}: {count}" for league, count in sorted(league_counts.items())])
 
         stats_text = f"""
 📊 **Match Statistics**
@@ -1806,7 +1850,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                             {"name": "Stream 3", "url": wrap_m3u8_with_proxy(stream_links[2]) if len(stream_links) > 2 else "#"},
                             {"name": "Stream 4", "url": wrap_m3u8_with_proxy(stream_links[3]) if len(stream_links) > 3 else "#"},
                         ]
-                        event["streams"] = len([url for url in stream_links if url and url != "#"])
+                        event["streams"] = len([url for url in stream_links if url and url != "#" and not url.startswith("https://t.me/")])
                     break
 
             with open(events_path, "w", encoding="utf-8") as f:
@@ -1909,7 +1953,7 @@ def generate_updated_card(data: dict, filename: str, poster_path: str = "assets/
                                 <span>{data.get('current_stadium', 'Stadium TBD')}</span>
                             </div>
                         </div>
-                        <p class="match-excerpt">{data.get('current_preview', 'Match preview')[:120]}...</p>
+                        <p class="match-excerpt">{(lambda p: p[:150] + '...' if len(p) > 150 else p)(data.get('current_preview', 'Match preview'))}</p>
                         <a href="{filename}" class="match-link">
                             Read More & Watch Live
                             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -1996,6 +2040,10 @@ async def date_time(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         [
             InlineKeyboardButton("⚽ Ligue 1", callback_data="league_Ligue 1"),
             InlineKeyboardButton("🏆 Champions League", callback_data="league_Champions League"),
+        ],
+        [
+            InlineKeyboardButton("🏆 World Cup 2026", callback_data="league_World Cup 2026"),
+            InlineKeyboardButton("🌍 Nationals", callback_data="league_Nationals"),
         ],
         [
             InlineKeyboardButton("⚽ Others (ISL, etc.)", callback_data="league_Others"),
@@ -2163,18 +2211,22 @@ async def image_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         away_slug = slugify(context.user_data["away_team"])
         filename_base = f"{date_slug}-{home_slug}-vs-{away_slug}"
 
-        # Save to generated folder
-        os.makedirs("generated/html_files", exist_ok=True)
-        os.makedirs("generated/json_entries", exist_ok=True)
-        os.makedirs("generated/cards", exist_ok=True)
+        # Save to generated folder (always relative to bot directory, not cwd)
+        bot_dir = os.path.dirname(os.path.abspath(__file__))
+        gen_html = os.path.join(bot_dir, "generated", "html_files")
+        gen_json = os.path.join(bot_dir, "generated", "json_entries")
+        gen_cards = os.path.join(bot_dir, "generated", "cards")
+        os.makedirs(gen_html, exist_ok=True)
+        os.makedirs(gen_json, exist_ok=True)
+        os.makedirs(gen_cards, exist_ok=True)
 
-        with open(f"generated/html_files/{filename_base}.html", "w", encoding="utf-8") as f:
+        with open(os.path.join(gen_html, f"{filename_base}.html"), "w", encoding="utf-8") as f:
             f.write(html_code)
 
-        with open(f"generated/json_entries/{filename_base}.json", "w", encoding="utf-8") as f:
+        with open(os.path.join(gen_json, f"{filename_base}.json"), "w", encoding="utf-8") as f:
             f.write(json_code)
 
-        with open(f"generated/cards/{filename_base}-card.html", "w", encoding="utf-8") as f:
+        with open(os.path.join(gen_cards, f"{filename_base}-card.html"), "w", encoding="utf-8") as f:
             f.write(card_code)
 
         # AUTO-INTEGRATE: Copy files and update index/events
@@ -2231,7 +2283,6 @@ def generate_html(data: Dict[str, Any]) -> str:
     iso_date = date_obj.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # URL encode match name for social sharing
-    from urllib.parse import quote
     match_name_encoded = quote(data["match_name"])
 
     # Use template
@@ -2327,7 +2378,7 @@ def generate_json(data: Dict[str, Any]) -> str:
             {"name": "Stream 3", "url": wrap_m3u8_with_proxy(data["stream_urls"][2]) if len(data["stream_urls"]) > 2 else "#"},
             {"name": "Stream 4", "url": wrap_m3u8_with_proxy(data["stream_urls"][3]) if len(data["stream_urls"]) > 3 else "#"},
         ],
-        "streams": len([url for url in data["stream_urls"] if url and url != "#"])
+        "streams": len([url for url in data["stream_urls"] if url and url != "#" and not url.startswith("https://t.me/")])
     }
 
     return json.dumps(event_data, indent=2)
@@ -2343,7 +2394,7 @@ def generate_card(data: Dict[str, Any]) -> str:
     filename = f"{data['date']}-{home_slug}-vs-{away_slug}.html"
 
     # Create excerpt
-    excerpt = data["preview"][:120] + "..." if len(data["preview"]) > 120 else data["preview"]
+    excerpt = data["preview"][:150] + "..." if len(data["preview"]) > 150 else data["preview"]
 
     card = template.replace("{{MATCH_NAME}}", data["match_name"])
     card = card.replace("{{IMAGE_FILE}}", data["image_file"])
@@ -2989,14 +3040,27 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log errors and notify the user so conversations don't silently hang."""
+    logger.error("Unhandled exception", exc_info=context.error)
+
+    # Try to notify the user
+    if isinstance(update, Update) and update.effective_message:
+        try:
+            await update.effective_message.reply_text(
+                "⚠️ An unexpected error occurred. Please type /start to try again."
+            )
+        except Exception:
+            pass
+
+
 def main() -> None:
     """Start the bot."""
     # Get token from environment
     token = os.getenv("TELEGRAM_BOT_TOKEN")
 
     if not token:
-        print("❌ Error: TELEGRAM_BOT_TOKEN not found in environment variables!")
-        print("Please create a .env file with your bot token.")
+        logger.critical("TELEGRAM_BOT_TOKEN not set. Create a .env file with your bot token.")
         return
 
     # Create application
@@ -3050,12 +3114,17 @@ def main() -> None:
     )
 
     application.add_handler(conv_handler)
+    application.add_error_handler(error_handler)
 
-    # Start bot
-    print("🤖 Foot Holics Match Manager Bot is running!")
-    print("Press Ctrl+C to stop")
+    auth_info = f"{len(ALLOWED_USER_IDS)} authorized user(s)" if ALLOWED_USER_IDS else "ALL users (no restriction)"
+    logger.info("🤖 Foot Holics Match Manager Bot is starting...")
+    logger.info(f"   Authorized: {auth_info}")
+    logger.info("   Press Ctrl+C to stop")
 
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,  # ignore stale messages from when bot was offline
+    )
 
 
 if __name__ == "__main__":

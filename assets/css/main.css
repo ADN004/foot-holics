@@ -494,6 +494,18 @@ p {
   background: #00336a;
 }
 
+.league-badge.ligue-1 {
+  background: #002395;
+}
+
+.league-badge.wc {
+  background: #1a6b3c;
+}
+
+.league-badge.nationals {
+  background: #00A651;
+}
+
 .match-meta {
   display: flex;
   align-items: center;
