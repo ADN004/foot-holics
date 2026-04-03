@@ -1,5 +1,39 @@
 [
   {
+    "id": "event-1775194258897",
+    "date": "2026-04-03",
+    "time": "20:00",
+    "slug": "2026-04-03-chelsea-vs-manchester-united",
+    "title": "Chelsea vs Manchester United",
+    "homeTeam": "Chelsea",
+    "awayTeam": "Manchester United",
+    "league": "Premier League",
+    "leagueSlug": "premier-league",
+    "stadium": "Old Trafford",
+    "poster": "assets/img/chelsea-manchester-united-poster.jpg",
+    "excerpt": "✅ Stadium: Old Trafford\n\n📰 Step 5/7: Please send a match preview (1-2 paragraphs):\n\nThis will be displayed on the match page. Include key details abou...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://footholics.in/player.html?get=aHR0cHM6Ly9hdXRvLmNkbm9rOS5jb20vbGl2ZS9zZC02TXdkYVFmaUJqdVhuMVVKUEUvY2h1bmtsaXN0Lm0zdTg="
+      },
+      {
+        "name": "Stream 2",
+        "url": "#"
+      },
+      {
+        "name": "Stream 3",
+        "url": "#"
+      },
+      {
+        "name": "Stream 4",
+        "url": "#"
+      }
+    ],
+    "streams": 1
+  },
+  {
     "id": "event-1768153753",
     "date": "2026-01-11",
     "time": "19:00",
