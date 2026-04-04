@@ -370,8 +370,9 @@
         /* ══════════════════════════════════════════════════════════════════
            CONFIG
         ══════════════════════════════════════════════════════════════════ */
-        var DEFAULT_PROXY   = 'https://corsproxy.io/?url=';
+        var DEFAULT_PROXY   = '/api/proxy?url=';
         var PROXY_FALLBACKS = [
+            '/api/proxy?url=',
             'https://corsproxy.io/?url=',
             'https://api.allorigins.win/raw?url=',
             'https://thingproxy.freeboard.io/fetch/'
