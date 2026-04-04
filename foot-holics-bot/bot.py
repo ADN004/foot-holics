@@ -1836,12 +1836,10 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 else:
                     player_urls_upd.append("#")
 
-            # Single-pass positional replacement — replaces stream 1,2,3,4 in order
-            # without re-matching already-replaced hrefs (fixes the count=1 loop bug)
-            _href_pat = (
-                r'href="(?:universal-player\.html|player\.html'
-                r'|iframe-player\.html|p/\d-live\.html)[^"]*"'
-            )
+            # Single-pass positional replacement using the stream-link-card class
+            # as the anchor — matches ALL 4 stream hrefs including empty href="#" ones.
+            # Lookahead ensures we only touch stream link anchors, nothing else.
+            _href_pat = r'href="[^"]*"(?=\s[^>]*class="stream-link-card")'
             _pos = [0]
             def _repl(m):
                 i = _pos[0]; _pos[0] += 1
