@@ -8,7 +8,7 @@
     "homeTeam": "Barcelona",
     "awayTeam": "Atletico Madrid",
     "league": "La Liga",
-    "leagueSlug": "laliga",
+    "leagueSlug": "others",
     "stadium": "Riyadh Air Metropolitano, Madrid, Spain",
     "poster": "assets/img/barcelona-atletico-madrid-poster.jpg",
     "excerpt": "Tonight’s clash between FC Barcelona and Atlético Madrid is one of the most important fixtures in the La Liga title race. Scheduled for 4 April 2026 a...",
@@ -24,14 +24,14 @@
       },
       {
         "name": "Stream 3",
-        "url": "#"
+        "url": "https://footholics.in/universal-player.html?get=aHR0cHM6Ly9obHMuY2Rub2s5LmNvbS9saXZlL1FVQU5WVS9pbmRleC5tM3U4P2V4cGlyZT0xNzg4NDI3MjU2JnNpZ249MDU2ZDA5N2EwYmJiZDgxMDQ5M2ZkNjRjY2Y0ODMxYjc=&type=hls"
       },
       {
         "name": "Stream 4",
         "url": "#"
       }
     ],
-    "streams": 2
+    "streams": 3
   },
   {
     "id": "event-1775194258897",
