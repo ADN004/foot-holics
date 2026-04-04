@@ -650,15 +650,26 @@
         }
 
         /* ══════════════════════════════════════════════════════════════════
-           HLS PLAYER  (HLS.js + native Safari fallback)
+           HLS PLAYER  (HLS.js + native Safari/iOS fallback)
         ══════════════════════════════════════════════════════════════════ */
+
+        // True Safari/iOS detection — Chrome/Edge also report canPlayType HLS
+        // but their native implementation doesn't support CORS for segments.
+        // We must use HLS.js (with custom proxy loader) on all non-Safari browsers.
+        var isSafariOrIOS = (
+            (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) ||
+            (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream)
+        );
+
         function initHLS(url, retried) {
             showLoading();
             var video = createVideo();
             initPlyr(video);
 
-            // Safari / iOS: native HLS (no custom loader possible, use proxy URL directly)
-            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Use native HLS ONLY on Safari / iOS (where HLS.js has limited support).
+            // Chrome/Edge support canPlayType('application/vnd.apple.mpegurl') but
+            // their native HLS fetches segments directly — bypassing our proxy loader.
+            if (isSafariOrIOS && video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = finalUrl(url);
                 video.addEventListener('loadedmetadata', function () {
                     hideLoading(); showLive(); tryPlay(video);
