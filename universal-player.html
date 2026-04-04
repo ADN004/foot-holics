@@ -636,14 +636,37 @@
 
         /* ══════════════════════════════════════════════════════════════════
            PROXY LOADER — routes ALL HLS.js requests through the proxy.
-           This is critical: without it, HLS.js proxies only the manifest
-           but fetches every .ts segment directly, hitting CORS again.
+
+           Critical detail: we must NOT permanently change context.url to
+           the proxy URL, because HLS.js uses context.url as the base URL
+           when resolving relative segment paths inside the manifest.
+           If we leave it as "/api/proxy?url=..." the segments get resolved
+           against footholics.in instead of the real CDN domain → 404.
+
+           Fix: rewrite context.url for the actual HTTP request, but restore
+           the original CDN URL in the onSuccess callback so HLS.js sees the
+           correct base URL when it parses the response.
         ══════════════════════════════════════════════════════════════════ */
         function makeProxyLoader(proxyUrl) {
             return class extends Hls.DefaultConfig.loader {
                 load(context, config, callbacks) {
-                    if (context.url && context.url.indexOf(proxyUrl) !== 0) {
-                        context.url = proxyUrl + encodeURIComponent(context.url);
+                    var originalUrl = context.url;
+                    // Build the absolute proxy URL (resolve relative proxyUrl against origin)
+                    var absProxy = proxyUrl.startsWith('/')
+                        ? window.location.origin + proxyUrl
+                        : proxyUrl;
+
+                    if (originalUrl && originalUrl.indexOf(absProxy) !== 0) {
+                        // Point the request at the proxy
+                        context.url = absProxy + encodeURIComponent(originalUrl);
+
+                        // After fetch succeeds, restore the original CDN URL so
+                        // HLS.js resolves relative paths inside the manifest correctly.
+                        var origSuccess = callbacks.onSuccess;
+                        callbacks.onSuccess = function (response, stats, ctx) {
+                            ctx.url = originalUrl;
+                            origSuccess(response, stats, ctx);
+                        };
                     }
                     super.load(context, config, callbacks);
                 }
