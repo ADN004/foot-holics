@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="robots" content="noindex, nofollow">
+    <title>FootHolics Player</title>
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+
+    <!-- Plyr CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LQP123YCP6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-LQP123YCP6', {
+            page_title: 'FootHolics Universal Player',
+            page_path: '/universal-player.html'
+        });
+    </script>
+
+    <style>
+        /* ── RESET ───────────────────────────────────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #fff;
+        }
+
+        /* ── PLAYER CONTAINER ────────────────────────────────────────────── */
+        #player-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            overflow: hidden;
+        }
+
+        #player-container video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            background: #000;
+        }
+
+        #player-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* ── PLYR OVERRIDES ──────────────────────────────────────────────── */
+        #player-container > .plyr {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .plyr__video-wrapper { height: 100%; }
+
+        .plyr video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Plyr dark theme accent colour */
+        .plyr--full-ui input[type=range] { color: #e63946; }
+        .plyr__control--overlaid         { background: rgba(230,57,70,.8); }
+        .plyr__control--overlaid:hover    { background: #e63946; }
+        .plyr__menu__container .plyr__control[role=menuitemradio][aria-checked=true]::before { background: #e63946; }
+
+        /* ── WATERMARK ───────────────────────────────────────────────────── */
+        #watermark {
+            position: fixed;
+            top: 12px;
+            right: 14px;
+            z-index: 9999;
+            color: rgba(255,255,255,.42);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .5px;
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0 1px 4px rgba(0,0,0,.9);
+        }
+
+        /* ── STREAM TITLE ────────────────────────────────────────────────── */
+        #stream-title {
+            position: fixed;
+            top: 12px;
+            left: 14px;
+            z-index: 9999;
+            color: rgba(255,255,255,.85);
+            font-size: 13px;
+            font-weight: 500;
+            max-width: calc(100vw - 160px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0 1px 4px rgba(0,0,0,.9);
+        }
+
+        /* ── LIVE BADGE ──────────────────────────────────────────────────── */
+        #live-badge {
+            position: fixed;
+            top: 34px;
+            left: 14px;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0,0,0,.55);
+            border: 1px solid rgba(230,57,70,.5);
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            color: #e63946;
+            text-transform: uppercase;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        #live-badge .dot {
+            width: 6px;
+            height: 6px;
+            background: #e63946;
+            border-radius: 50%;
+            flex-shrink: 0;
+            animation: blink 1.3s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: .15; }
+        }
+
+        /* ── QUALITY SELECTOR ────────────────────────────────────────────── */
+        #quality-selector {
+            position: fixed;
+            bottom: 58px;
+            right: 12px;
+            z-index: 9998;
+            display: none;
+        }
+
+        #quality-select {
+            background: rgba(18,18,18,.92);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,.22);
+            border-radius: 5px;
+            padding: 5px 8px;
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            outline: none;
+            backdrop-filter: blur(4px);
+        }
+
+        #quality-select option { background: #1a1a1a; }
+
+        /* ── LOADING OVERLAY ─────────────────────────────────────────────── */
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.72);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            transition: opacity .25s;
+        }
+
+        #loading-overlay.fh-hidden { display: none; }
+
+        .spinner {
+            width: 52px;
+            height: 52px;
+            border: 4px solid rgba(255,255,255,.12);
+            border-top-color: #e63946;
+            border-radius: 50%;
+            animation: spin .85s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── ERROR OVERLAY ───────────────────────────────────────────────── */
+        #error-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.88);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 60;
+        }
+
+        .error-box { text-align: center; padding: 0 24px; max-width: 400px; }
+
+        .error-icon {
+            font-size: 44px;
+            margin-bottom: 14px;
+            line-height: 1;
+            color: #e63946;
+        }
+
+        .error-title {
+            color: #e63946;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        #error-msg {
+            color: rgba(255,255,255,.7);
+            font-size: 14px;
+            line-height: 1.65;
+            margin-bottom: 24px;
+        }
+
+        .retry-btn {
+            background: #e63946;
+            color: #fff;
+            border: none;
+            padding: 11px 26px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            letter-spacing: .3px;
+            transition: transform .18s, box-shadow .18s;
+        }
+
+        .retry-btn:hover  { transform: scale(1.04); box-shadow: 0 4px 18px rgba(230,57,70,.5); }
+        .retry-btn:active { transform: scale(.97); }
+
+        /* ── CLICK-TO-PLAY OVERLAY ───────────────────────────────────────── */
+        #click-to-play-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            cursor: pointer;
+            z-index: 40;
+        }
+
+        .play-btn-big {
+            width: 84px;
+            height: 84px;
+            background: rgba(255,255,255,.14);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,.38);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform .22s, background .22s;
+        }
+
+        #click-to-play-overlay:hover .play-btn-big {
+            transform: scale(1.08);
+            background: rgba(255,255,255,.22);
+        }
+
+        .play-btn-big::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 0;
+            border-left: 26px solid #fff;
+            border-top: 16px solid transparent;
+            border-bottom: 16px solid transparent;
+            margin-left: 7px;
+        }
+
+        .ctp-label {
+            color: rgba(255,255,255,.82);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: .3px;
+        }
+
+        /* ── NOTICE TOAST ────────────────────────────────────────────────── */
+        .fh-notice {
+            position: fixed;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,.65);
+            color: rgba(255,255,255,.55);
+            padding: 5px 14px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 9997;
+            white-space: nowrap;
+            transition: opacity .5s;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── PLAYER AREA (video / iframe rendered here) ───────────────────── -->
+    <div id="player-container"></div>
+
+    <!-- ── PERSISTENT HUD ───────────────────────────────────────────────── -->
+    <div id="watermark">FootHolics.in</div>
+    <div id="stream-title"></div>
+
+    <div id="live-badge">
+        <span class="dot"></span>
+        LIVE
+    </div>
+
+    <div id="quality-selector">
+        <select id="quality-select">
+            <option value="-1">Auto</option>
+        </select>
+    </div>
+
+    <!-- ── STATE OVERLAYS ───────────────────────────────────────────────── -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="error-overlay">
+        <div class="error-box">
+            <div class="error-icon">&#9888;</div>
+            <div class="error-title">Stream Unavailable</div>
+            <div id="error-msg">The stream is offline or unavailable.</div>
+            <button class="retry-btn" id="retry-btn">&#8635;&nbsp; Retry Stream</button>
+        </div>
+    </div>
+
+    <div id="click-to-play-overlay">
+        <div class="play-btn-big"></div>
+        <div class="ctp-label">Click to Play</div>
+    </div>
+
+    <!-- ── CDN LIBRARIES ────────────────────────────────────────────────── -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+
+    <script>
+    (function () {
+        'use strict';
+
+        /* ══════════════════════════════════════════════════════════════════
+           CONFIG
+        ══════════════════════════════════════════════════════════════════ */
+        var DEFAULT_PROXY   = 'https://corsproxy.io/?';
+        var ALLOWED_DOMAINS = ['footholics.in', 'localhost', '127.0.0.1'];
+        var IFRAME_DOMAINS  = [
+            'sportsonline', 'hesgoal', 'streameast', 'vipbox', 'strikeout',
+            'livesport', 'bosscast', 'crackstreams', 'sportsurge', 'daddylive',
+            'rojadirecta', 'buffstream', 'totalsportek', 'reddit.com',
+            'daznservices', 'thepatreon', 'soccerstreams', 'nflstreams'
+        ];
+
+        /* ══════════════════════════════════════════════════════════════════
+           DOM REFS
+        ══════════════════════════════════════════════════════════════════ */
+        var $container  = document.getElementById('player-container');
+        var $title      = document.getElementById('stream-title');
+        var $liveBadge  = document.getElementById('live-badge');
+        var $loading    = document.getElementById('loading-overlay');
+        var $error      = document.getElementById('error-overlay');
+        var $errorMsg   = document.getElementById('error-msg');
+        var $retryBtn   = document.getElementById('retry-btn');
+        var $ctp        = document.getElementById('click-to-play-overlay');
+        var $qualSel    = document.getElementById('quality-selector');
+        var $qualSelect = document.getElementById('quality-select');
+
+        /* ══════════════════════════════════════════════════════════════════
+           STATE
+        ══════════════════════════════════════════════════════════════════ */
+        var hlsInst      = null;
+        var dashInst     = null;
+        var plyrInst     = null;
+        var streamUrl    = '';
+        var streamType   = '';
+        var proxyEnabled = false;
+        var proxyBase    = DEFAULT_PROXY;
+        var fallbackStep = 0;
+        var fallbackTmr  = null;
+        var nativeReady  = false;
+
+        /* ══════════════════════════════════════════════════════════════════
+           SECURITY — right-click + devtools block
+        ══════════════════════════════════════════════════════════════════ */
+        document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+        document.addEventListener('keydown', function (e) {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && 'IJCijc'.indexOf(e.key) !== -1) ||
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U'))
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, true);
+
+        // Domain whitelist — block unauthorised iframe embeds
+        if (window.self !== window.top) {
+            var ref = document.referrer || '';
+            if (!ALLOWED_DOMAINS.some(function (d) { return ref.indexOf(d) !== -1; })) {
+                $container.innerHTML =
+                    '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;' +
+                    'color:#e63946;font-size:15px;text-align:center;padding:24px;">' +
+                    'Unauthorised embed &mdash; visit <span style="color:#fff;margin:0 4px;">FootHolics.in</span></div>';
+                return;
+            }
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           URL PARAMS
+        ══════════════════════════════════════════════════════════════════ */
+        var params     = new URLSearchParams(window.location.search);
+        var encoded    = params.get('get')      || '';
+        var typeHint   = params.get('type')     || '';
+        var key        = params.get('key')      || '';
+        var key2       = params.get('key2')     || '';
+        var titleStr   = params.get('title')    ? decodeURIComponent(params.get('title')) : 'Live Stream';
+        var proxyParam = params.get('proxy')    || '';
+        var proxyUrl   = params.get('proxyUrl') || '';
+
+        if (proxyParam === '1' || proxyParam === 'true') proxyEnabled = true;
+        if (proxyUrl) proxyBase = proxyUrl;
+
+        $title.textContent = titleStr;
+        document.title = titleStr + ' \u2014 FootHolics';
+
+        /* ══════════════════════════════════════════════════════════════════
+           ANALYTICS
+        ══════════════════════════════════════════════════════════════════ */
+        function track(name, extra) {
+            if (typeof gtag !== 'undefined') {
+                gtag('event', name, extra || {});
+            }
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           UI HELPERS
+        ══════════════════════════════════════════════════════════════════ */
+        function showLoading() {
+            $loading.classList.remove('fh-hidden');
+            $loading.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            $loading.style.display = 'none';
+        }
+
+        function showError(msg) {
+            hideLoading();
+            $errorMsg.textContent = msg || 'The stream is offline or unavailable.';
+            $error.style.display = 'flex';
+            track('stream_error', { error_type: (msg || '').substring(0, 120) });
+        }
+
+        function hideError() { $error.style.display = 'none'; }
+
+        function showCTP()   { hideLoading(); $ctp.style.display = 'flex'; }
+        function hideCTP()   { $ctp.style.display = 'none'; }
+
+        function showLive()  { $liveBadge.style.display = 'flex'; }
+        function hideLive()  { $liveBadge.style.display = 'none'; }
+
+        function showQuality(levels) {
+            $qualSelect.innerHTML = '<option value="-1">Auto</option>';
+            levels.forEach(function (lvl, i) {
+                var label = lvl.height ? lvl.height + 'p' : 'Level ' + (i + 1);
+                var opt   = document.createElement('option');
+                opt.value       = String(i);
+                opt.textContent = label;
+                $qualSelect.appendChild(opt);
+            });
+            $qualSel.style.display = 'block';
+        }
+
+        function toast(msg, duration) {
+            var el = document.createElement('div');
+            el.className    = 'fh-notice';
+            el.textContent  = msg;
+            document.body.appendChild(el);
+            setTimeout(function () {
+                el.style.opacity = '0';
+                setTimeout(function () {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 600);
+            }, duration || 6000);
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           PROXY
+        ══════════════════════════════════════════════════════════════════ */
+        function finalUrl(url) {
+            return proxyEnabled ? (proxyBase + encodeURIComponent(url)) : url;
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           CLEANUP / DESTROY ALL PLAYERS
+        ══════════════════════════════════════════════════════════════════ */
+        function destroyAll() {
+            if (fallbackTmr) { clearTimeout(fallbackTmr); fallbackTmr = null; }
+            if (hlsInst)  { try { hlsInst.destroy();  } catch (e) {} hlsInst  = null; }
+            if (dashInst) { try { dashInst.reset();   } catch (e) {} dashInst = null; }
+            if (plyrInst) { try { plyrInst.destroy(); } catch (e) {} plyrInst = null; }
+            $container.innerHTML = '';
+            $qualSel.style.display = 'none';
+            hideLive();
+            nativeReady = false;
+            // note: fallbackStep is managed by callers, not reset here
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           CREATE <video> ELEMENT
+        ══════════════════════════════════════════════════════════════════ */
+        function createVideo() {
+            var v = document.createElement('video');
+            v.id = 'main-video';
+            v.setAttribute('playsinline', '');
+            v.setAttribute('webkit-playsinline', '');
+            v.setAttribute('x5-playsinline', '');
+            v.preload = 'auto';
+            $container.appendChild(v);
+            return v;
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           PLYR INIT
+        ══════════════════════════════════════════════════════════════════ */
+        function initPlyr(video) {
+            if (typeof Plyr === 'undefined') {
+                video.controls = true;
+                return null;
+            }
+
+            var p = new Plyr(video, {
+                controls: [
+                    'play-large', 'play', 'progress',
+                    'current-time', 'mute', 'volume', 'fullscreen'
+                ],
+                autoplay: false,
+                muted: false,
+                keyboard: { focused: true, global: true },
+                tooltips: { controls: true, seek: true },
+                fullscreen: { enabled: true, fallback: true, iosNative: true },
+                invertTime: false,
+                resetOnEnd: false,
+                disableContextMenu: true,
+                hideControls: true,
+                clickToPlay: true,
+                ratio: undefined
+            });
+
+            p.on('playing', function () {
+                hideLoading();
+                hideCTP();
+                track('stream_play', { stream_type: streamType });
+            });
+
+            p.on('waiting', showLoading);
+            p.on('canplay', hideLoading);
+            plyrInst = p;
+            return p;
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           AUTOPLAY HELPER  (muted fallback → click-to-play)
+        ══════════════════════════════════════════════════════════════════ */
+        function tryPlay(video) {
+            var promise = video.play();
+            if (promise !== undefined) {
+                promise.catch(function () {
+                    video.muted = true;
+                    video.play().catch(function () { showCTP(); });
+                });
+            }
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           STREAM TYPE DETECTION
+        ══════════════════════════════════════════════════════════════════ */
+        function detectType(url, hint) {
+            if (hint === 'iframe') return 'iframe';
+            if (hint === 'hls')   return 'hls';
+            if (hint === 'video') return 'video';
+
+            var lo = url.toLowerCase();
+
+            if (lo.indexOf('youtube.com') !== -1 || lo.indexOf('youtu.be') !== -1) return 'youtube';
+            if (lo.indexOf('twitch.tv') !== -1) return 'twitch';
+            if (/\.mpd(\?|#|$)/.test(lo)) return 'dash';
+            if (lo.indexOf('.m3u8') !== -1 || lo.indexOf('m3u8') !== -1) return 'hls';
+            if (/\.(mp4|webm|mkv|ts|m4v)(\?|#|$)/.test(lo)) return 'video';
+            if (
+                lo.indexOf('.php') !== -1 ||
+                lo.indexOf('/embed/') !== -1 ||
+                lo.indexOf('/player/') !== -1 ||
+                IFRAME_DOMAINS.some(function (d) { return lo.indexOf(d) !== -1; })
+            ) return 'iframe';
+
+            return 'unknown';
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           HLS PLAYER  (HLS.js + native Safari fallback)
+        ══════════════════════════════════════════════════════════════════ */
+        function initHLS(url, retried) {
+            showLoading();
+            var video = createVideo();
+            initPlyr(video);
+
+            // Safari / iOS: native HLS
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = finalUrl(url);
+                video.addEventListener('loadedmetadata', function () {
+                    hideLoading(); showLive(); tryPlay(video);
+                });
+                video.addEventListener('error', function () {
+                    if (!proxyEnabled && !retried) {
+                        destroyAll();
+                        proxyEnabled = true;
+                        initHLS(url, true);
+                    } else {
+                        showError('Stream is offline or unavailable. Please try again later.');
+                    }
+                });
+                return;
+            }
+
+            if (typeof Hls === 'undefined' || !Hls.isSupported()) {
+                showError('HLS playback is not supported in your browser.');
+                return;
+            }
+
+            hlsInst = new Hls({
+                enableWorker: true,
+                lowLatencyMode: false,
+                liveSyncDurationCount: 3,
+                liveMaxLatencyDurationCount: 10,
+                liveDurationInfinity: true,
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60,
+                fragLoadingTimeOut: 20000,
+                fragLoadingMaxRetry: 6,
+                fragLoadingRetryDelay: 1000,
+                manifestLoadingTimeOut: 15000,
+                manifestLoadingMaxRetry: retried ? 3 : 1,
+                levelLoadingTimeOut: 15000,
+                startLevel: -1,
+                capLevelToPlayerSize: true,
+                debug: false,
+                xhrSetup: function (xhr) { xhr.withCredentials = false; }
+            });
+
+            hlsInst.loadSource(finalUrl(url));
+            hlsInst.attachMedia(video);
+
+            hlsInst.on(Hls.Events.MANIFEST_PARSED, function (e, data) {
+                hideLoading();
+                showLive();
+                if (data.levels.length > 1) showQuality(data.levels);
+                track('player_init', { stream_type: 'hls' });
+                tryPlay(video);
+            });
+
+            hlsInst.on(Hls.Events.ERROR, function (e, data) {
+                if (!data.fatal) return;
+
+                if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR && !retried) {
+                    // Auto-retry with CORS proxy
+                    hlsInst.destroy(); hlsInst = null;
+                    destroyAll();
+                    proxyEnabled = true;
+                    initHLS(url, true);
+                } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                    hlsInst.recoverMediaError();
+                } else {
+                    showError('Stream is offline or unavailable. Please try again later.');
+                    track('stream_error', { error_type: data.details });
+                }
+            });
+
+            $qualSelect.onchange = function () {
+                if (hlsInst) hlsInst.currentLevel = parseInt(this.value, 10);
+            };
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           NATIVE VIDEO (MP4 / WebM / MKV etc.)
+        ══════════════════════════════════════════════════════════════════ */
+        function initVideo(url) {
+            showLoading();
+            var video = createVideo();
+            initPlyr(video);
+            video.src = finalUrl(url);
+
+            video.addEventListener('canplay', function () {
+                hideLoading();
+                tryPlay(video);
+            });
+
+            video.addEventListener('error', function () {
+                showError('Stream is offline or unavailable.');
+            });
+
+            track('player_init', { stream_type: 'video' });
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           MPEG-DASH
+        ══════════════════════════════════════════════════════════════════ */
+        function initDASH(url) {
+            showLoading();
+            var video = createVideo();
+            initPlyr(video);
+
+            if (typeof dashjs !== 'undefined') {
+                dashInst = dashjs.MediaPlayer().create();
+                dashInst.initialize(video, finalUrl(url), false);
+
+                dashInst.on('streamInitialized', function () {
+                    hideLoading(); showLive(); tryPlay(video);
+                });
+
+                dashInst.on('error', function () {
+                    showError('Stream is offline or unavailable.');
+                });
+            } else {
+                // dashjs failed to load — fallback to native
+                video.src = finalUrl(url);
+                video.addEventListener('canplay',  function () { hideLoading(); tryPlay(video); });
+                video.addEventListener('error',    function () { showError('Stream is offline or unavailable.'); });
+            }
+
+            track('player_init', { stream_type: 'dash' });
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           IFRAME  (generic / sports sites)
+        ══════════════════════════════════════════════════════════════════ */
+        function initIframe(url, notice) {
+            showLoading();
+            var iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.setAttribute('allowfullscreen', '');
+            iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+            iframe.setAttribute('sandbox',
+                'allow-scripts allow-same-origin allow-forms allow-popups ' +
+                'allow-presentation allow-top-navigation-by-user-activation');
+            iframe.onload = hideLoading;
+            $container.appendChild(iframe);
+
+            if (notice) toast(notice, 7000);
+
+            track('player_init', { stream_type: 'iframe' });
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           YOUTUBE
+        ══════════════════════════════════════════════════════════════════ */
+        function initYouTube(url) {
+            var videoId = null;
+            var m;
+            if      ((m = url.match(/[?&]v=([^&]+)/)))           videoId = m[1];
+            else if ((m = url.match(/youtu\.be\/([^?&#/]+)/)))    videoId = m[1];
+            else if ((m = url.match(/\/live\/([^?&#/]+)/)))       videoId = m[1];
+            else if ((m = url.match(/\/embed\/([^?&#/]+)/)))      videoId = m[1];
+
+            if (!videoId) { showError('Could not extract a YouTube video ID.'); return; }
+
+            var embedUrl = 'https://www.youtube.com/embed/' + videoId +
+                '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+            initIframe(embedUrl);
+            hideLive();
+            track('player_init', { stream_type: 'youtube' });
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           TWITCH
+        ══════════════════════════════════════════════════════════════════ */
+        function initTwitch(url) {
+            var m = url.match(/twitch\.tv\/([^/?#]+)/);
+            if (!m) { showError('Could not extract Twitch channel name.'); return; }
+
+            var channel = m[1];
+            var parent  = window.location.hostname || 'footholics.in';
+            var embedUrl = 'https://player.twitch.tv/?channel=' + encodeURIComponent(channel) +
+                '&parent=' + encodeURIComponent(parent) + '&autoplay=true';
+
+            initIframe(embedUrl);
+            showLive();
+            track('player_init', { stream_type: 'twitch' });
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           UNKNOWN — FALLBACK CHAIN:  HLS.js  →  native video  →  iframe
+        ══════════════════════════════════════════════════════════════════ */
+        function initUnknown(url) {
+            fallbackStep = 0;
+            tryHLSFallback(url);
+        }
+
+        /* --- step 1: try HLS.js ----------------------------------------- */
+        function tryHLSFallback(url) {
+            fallbackStep = 0;
+            showLoading();
+
+            if (typeof Hls === 'undefined' || !Hls.isSupported()) {
+                fallbackStep = 1;
+                tryNativeFallback(url);
+                return;
+            }
+
+            var video = createVideo();
+            initPlyr(video);
+
+            hlsInst = new Hls({
+                manifestLoadingTimeOut: 8000,
+                manifestLoadingMaxRetry: 0,
+                startLevel: -1,
+                debug: false
+            });
+
+            hlsInst.loadSource(finalUrl(url));
+            hlsInst.attachMedia(video);
+
+            hlsInst.on(Hls.Events.MANIFEST_PARSED, function (e, data) {
+                if (fallbackStep !== 0) return;
+                clearTimeout(fallbackTmr); fallbackTmr = null;
+                hideLoading(); showLive();
+                if (data.levels.length > 1) showQuality(data.levels);
+                track('player_init', { stream_type: 'hls_auto' });
+                tryPlay(video);
+
+                $qualSelect.onchange = function () {
+                    if (hlsInst) hlsInst.currentLevel = parseInt(this.value, 10);
+                };
+            });
+
+            hlsInst.on(Hls.Events.ERROR, function (e, data) {
+                if (fallbackStep !== 0) return;
+                if (data.fatal && (
+                    data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                    data.details === Hls.ErrorDetails.MANIFEST_PARSE_ERROR ||
+                    data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT
+                )) {
+                    clearTimeout(fallbackTmr); fallbackTmr = null;
+                    fallbackStep = 1;
+                    destroyAll();
+                    tryNativeFallback(url);
+                }
+            });
+
+            fallbackTmr = setTimeout(function () {
+                if (fallbackStep === 0) {
+                    fallbackStep = 1;
+                    destroyAll();
+                    tryNativeFallback(url);
+                }
+            }, 8000);
+        }
+
+        /* --- step 2: try native <video> ---------------------------------- */
+        function tryNativeFallback(url) {
+            fallbackStep = 1;
+            nativeReady  = false;
+            showLoading();
+
+            var video = createVideo();
+            initPlyr(video);
+            video.src = finalUrl(url);
+
+            video.addEventListener('canplay', function () {
+                if (fallbackStep !== 1 || nativeReady) return;
+                nativeReady = true;
+                clearTimeout(fallbackTmr); fallbackTmr = null;
+                hideLoading();
+                track('player_init', { stream_type: 'video_auto' });
+                tryPlay(video);
+            });
+
+            video.addEventListener('error', function () {
+                if (fallbackStep !== 1 || nativeReady) return;
+                clearTimeout(fallbackTmr); fallbackTmr = null;
+                fallbackStep = 2;
+                destroyAll();
+                tryIframeFallback(url);
+            });
+
+            fallbackTmr = setTimeout(function () {
+                if (fallbackStep === 1 && !nativeReady) {
+                    fallbackStep = 2;
+                    destroyAll();
+                    tryIframeFallback(url);
+                }
+            }, 7000);
+        }
+
+        /* --- step 3: load as iframe -------------------------------------- */
+        function tryIframeFallback(url) {
+            fallbackStep = 2;
+            initIframe(url, 'If nothing plays, the stream may be offline');
+            track('player_init', { stream_type: 'iframe_fallback' });
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           MAIN ROUTER
+        ══════════════════════════════════════════════════════════════════ */
+        function startPlayer(url) {
+            streamUrl  = url;
+            streamType = detectType(url, typeHint);
+
+            console.log('[FH Player] type:', streamType, '| url:', url);
+
+            switch (streamType) {
+                case 'hls':     initHLS(url);     break;
+                case 'video':   initVideo(url);   break;
+                case 'dash':    initDASH(url);    break;
+                case 'youtube': initYouTube(url); break;
+                case 'twitch':  initTwitch(url);  break;
+                case 'iframe':  initIframe(url);  break;
+                case 'unknown': initUnknown(url); break;
+                default:        showError('Unsupported stream type.'); break;
+            }
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           RETRY
+        ══════════════════════════════════════════════════════════════════ */
+        function retry() {
+            hideError();
+            destroyAll();
+            fallbackStep = 0;
+            track('stream_retry', { stream_type: streamType });
+            startPlayer(streamUrl);
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
+           BOOT — decode ?get= and launch
+        ══════════════════════════════════════════════════════════════════ */
+        (function boot() {
+            if (!encoded) {
+                showError('No stream link provided. Add ?get=BASE64_URL to the address.');
+                return;
+            }
+
+            var rawUrl;
+            try {
+                rawUrl = atob(encoded.trim());
+            } catch (ex) {
+                showError('Invalid stream link. The URL encoding is incorrect.');
+                return;
+            }
+
+            if (!rawUrl || rawUrl.trim() === '') {
+                showError('Stream link decoded to an empty URL.');
+                return;
+            }
+
+            if (rawUrl.indexOf('http') !== 0) {
+                showError('Invalid stream URL. Must start with http:// or https://');
+                return;
+            }
+
+            // Append optional auth keys
+            if (key)  rawUrl += (rawUrl.indexOf('?') !== -1 ? '&' : '?') + 'key='  + encodeURIComponent(key);
+            if (key2) rawUrl += (rawUrl.indexOf('?') !== -1 ? '&' : '?') + 'key2=' + encodeURIComponent(key2);
+
+            startPlayer(rawUrl);
+        }());
+
+        /* ══════════════════════════════════════════════════════════════════
+           EVENT BINDINGS
+        ══════════════════════════════════════════════════════════════════ */
+        $retryBtn.addEventListener('click', retry);
+
+        // Click-to-play: unmute and resume
+        $ctp.addEventListener('click', function () {
+            hideCTP();
+            var video = document.getElementById('main-video');
+            if (video) {
+                video.muted = false;
+                video.play().catch(function () {
+                    video.muted = true;
+                    video.play().catch(function (e) {
+                        console.warn('[FH Player] play() failed:', e);
+                    });
+                });
+            }
+        });
+
+        /* ══════════════════════════════════════════════════════════════════
+           CLEANUP
+        ══════════════════════════════════════════════════════════════════ */
+        window.addEventListener('beforeunload', destroyAll);
+
+    }());
+    </script>
+</body>
+</html>

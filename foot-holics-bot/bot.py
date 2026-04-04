@@ -175,9 +175,10 @@ def detect_player_type(url: str) -> str:
     Detect which player to use based on URL type.
 
     Returns:
-        'hls' for m3u8/HLS streams -> uses player.html
-        'iframe' for external pages (php, embed, etc.) -> uses iframe-player.html
-        'direct' for other video files -> uses player.html
+        'hls' for m3u8/HLS streams
+        'iframe' for external pages (php, embed, etc.)
+        'direct' for other video files (mp4, webm …)
+        'unknown' otherwise — universal-player.html will auto-detect
     """
     if not url or url == "#":
         return "unknown"
@@ -204,14 +205,27 @@ def detect_player_type(url: str) -> str:
     return "hls"
 
 
-def get_player_url(url: str, base_url: str = "https://footholics.in") -> str:
+def get_type_param(url: str) -> str:
+    """Map detected player type to universal-player.html &type= hint."""
+    t = detect_player_type(url)
+    if t == "iframe":
+        return "iframe"
+    if t == "hls":
+        return "hls"
+    if t == "direct":
+        return "video"
+    return ""  # let the player auto-detect
+
+
+def get_player_url(url: str, base_url: str = "https://footholics.in", title: str = "") -> str:
     """
-    Generate the appropriate player URL based on stream type.
-    Routes to the correct player (HLS player or iframe player).
+    Generate a universal-player.html URL for any stream type.
+    Handles HLS, MP4, DASH, iframes, YouTube, Twitch and unknown streams.
 
     Args:
         url: Original stream URL
         base_url: Base URL of the website
+        title: Optional match title shown as overlay in the player
 
     Returns:
         Full player URL with encoded stream
@@ -219,22 +233,20 @@ def get_player_url(url: str, base_url: str = "https://footholics.in") -> str:
     if not url or url == "#" or url.startswith("https://t.me/"):
         return "#"
 
-    # Check if already a player URL
-    if "player.html" in url or "iframe-player.html" in url:
+    # Already a player URL — don't double-wrap
+    if "universal-player.html" in url or "player.html" in url or "iframe-player.html" in url:
         return url
 
-    # Encode the URL to base64
     encoded_url = base64.b64encode(url.encode()).decode()
+    type_hint = get_type_param(url)
 
-    # Detect player type and route accordingly
-    player_type = detect_player_type(url)
+    params = f"get={encoded_url}"
+    if type_hint:
+        params += f"&type={type_hint}"
+    if title:
+        params += f"&title={quote(title)}"
 
-    if player_type == "iframe":
-        # Use iframe player for external pages
-        return f"{base_url}/iframe-player.html?get={encoded_url}"
-    else:
-        # Use HLS player for streams (handles HLS, direct video, etc.)
-        return f"{base_url}/player.html?get={encoded_url}"
+    return f"{base_url}/universal-player.html?{params}"
 
 
 def wrap_m3u8_with_proxy(url: str) -> str:
@@ -252,7 +264,7 @@ def wrap_m3u8_with_proxy(url: str) -> str:
         return url
 
     # Check if it's already wrapped with a player or proxy
-    if "player.html" in url or "iframe-player.html" in url:
+    if "universal-player.html" in url or "player.html" in url or "iframe-player.html" in url:
         return url
     if "aeriswispx.github.io" in url or "mpdhls" in url:
         return url
@@ -357,18 +369,39 @@ def remove_match_from_index(filename: str) -> bool:
         with open(index_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Find and remove the match card article
-        # Pattern: <article class="glass-card match-card">...</article> containing the filename
-        pattern = rf'<article class="glass-card match-card">.*?href="{re.escape(filename)}".*?</article>'
-
-        # Check if match exists
-        if not re.search(pattern, content, re.DOTALL):
+        target_href = f'href="{filename}"'
+        href_pos = content.find(target_href)
+        if href_pos == -1:
             return False
 
-        # Remove the match card
-        new_content = re.sub(pattern, '', content, flags=re.DOTALL)
+        # Walk backwards from the href to find the opening <article tag.
+        # Using rfind(0, href_pos) guarantees we get the article that CONTAINS
+        # this href, never a preceding unrelated article.
+        article_start = content.rfind("<article", 0, href_pos)
+        if article_start == -1:
+            return False
 
-        # Write back
+        # Include the optional <!-- Match Card --> comment if it immediately
+        # precedes the article (only whitespace between them).
+        comment = "<!-- Match Card -->"
+        comment_pos = content.rfind(comment, 0, article_start)
+        if comment_pos != -1 and content[comment_pos + len(comment):article_start].strip() == "":
+            remove_start = comment_pos
+        else:
+            remove_start = article_start
+
+        # Walk forward from the href to find the closing tag.
+        article_end = content.find("</article>", href_pos)
+        if article_end == -1:
+            return False
+        article_end += len("</article>")
+
+        # Consume one trailing newline so we don't leave a blank line.
+        if article_end < len(content) and content[article_end] == "\n":
+            article_end += 1
+
+        new_content = content[:remove_start] + content[article_end:]
+
         with open(index_path, "w", encoding="utf-8") as f:
             f.write(new_content)
 
@@ -1131,8 +1164,8 @@ async def update_match_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
     # Extract existing stream links from HTML
     stream_links = ["#", "#", "#", "#"]
-    # Look for player.html or iframe-player.html URLs with encoded stream
-    stream_patterns = re.findall(r'href="(?:player\.html|iframe-player\.html)\?get=([^"]+)"', html_content)
+    # Look for any player URL with encoded stream (universal, legacy player.html, or iframe-player.html)
+    stream_patterns = re.findall(r'href="(?:universal-player\.html|player\.html|iframe-player\.html)\?get=([^"&]+)', html_content)
     for i, encoded_url in enumerate(stream_patterns[:4]):
         try:
             decoded_url = base64.b64decode(encoded_url).decode('utf-8')
@@ -1407,7 +1440,9 @@ async def stream_link_input_handler(update: Update, context: ContextTypes.DEFAUL
 
     # Detect player type for feedback
     player_type = detect_player_type(text)
-    player_info = "📺 HLS Player" if player_type == "hls" else "🖼️ iFrame Player" if player_type == "iframe" else "🎬 Direct Player"
+    type_labels = {"hls": "HLS", "iframe": "iFrame/Embed", "direct": "Direct Video"}
+    stream_kind = type_labels.get(player_type, "Auto-detect")
+    player_info = f"🎬 Universal Player ({stream_kind})"
 
     await update.message.reply_text(
         f"✅ **Link {link_index + 1} Updated!**\n\n"
@@ -1786,34 +1821,30 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 url = stream_links[i] if i < len(stream_links) else "#"
 
                 if url and url != "#" and not url.startswith("https://t.me/"):
-                    # Smart routing: detects stream type and uses correct player
-                    # - HLS (.m3u8) streams -> player.html
-                    # - External pages (.php, embed) -> iframe-player.html
                     encoded_url = base64.b64encode(url.encode()).decode()
-                    player_type = detect_player_type(url)
-
-                    if player_type == "iframe":
-                        player_url = f"iframe-player.html?get={encoded_url}"
-                    else:
-                        player_url = f"player.html?get={encoded_url}"
+                    type_hint = get_type_param(url)
+                    params = f"get={encoded_url}"
+                    if type_hint:
+                        params += f"&type={type_hint}"
+                    player_url = f"universal-player.html?{params}"
                 else:
                     player_url = "#"
 
                 # Replace the href attribute for this stream link
-                # Match both old format (p/X-live.html) and new format (player.html/iframe-player.html)
-                old_pattern = rf'href="p/{stream_num}-live\.html\?(?:url|get)=[^"]*"'
-                new_pattern_player = rf'href="player\.html\?get=[^"]*"'
-                new_pattern_iframe = rf'href="iframe-player\.html\?get=[^"]*"'
+                # Match old format (p/X-live.html), legacy formats, and current universal player
+                old_pattern       = rf'href="p/{stream_num}-live\.html\?(?:url|get)=[^"]*"'
+                new_pattern_univ  = rf'href="universal-player\.html\?get=[^"]*"'
+                new_pattern_hls   = rf'href="player\.html\?get=[^"]*"'
+                new_pattern_ifr   = rf'href="iframe-player\.html\?get=[^"]*"'
 
-                # Try to replace old format first
                 if re.search(old_pattern, html_content):
                     html_content = re.sub(old_pattern, f'href="{player_url}"', html_content, count=1)
-                # Try new player.html format
-                elif re.search(new_pattern_player, html_content):
-                    html_content = re.sub(new_pattern_player, f'href="{player_url}"', html_content, count=1)
-                # Try new iframe-player.html format
-                elif re.search(new_pattern_iframe, html_content):
-                    html_content = re.sub(new_pattern_iframe, f'href="{player_url}"', html_content, count=1)
+                elif re.search(new_pattern_univ, html_content):
+                    html_content = re.sub(new_pattern_univ, f'href="{player_url}"', html_content, count=1)
+                elif re.search(new_pattern_hls, html_content):
+                    html_content = re.sub(new_pattern_hls, f'href="{player_url}"', html_content, count=1)
+                elif re.search(new_pattern_ifr, html_content):
+                    html_content = re.sub(new_pattern_ifr, f'href="{player_url}"', html_content, count=1)
 
         # Write updated HTML
         with open(match_file, "w", encoding="utf-8") as f:
@@ -2296,22 +2327,20 @@ def generate_html(data: Dict[str, Any]) -> str:
     stream_urls = data.get("stream_urls", ["#", "#", "#", "#"])
     player_urls = []
 
-    # Create player URLs for each stream - routes to correct player automatically
+    # Build universal-player.html URLs for each stream with type hint + match title
+    encoded_title = quote(data.get("match_name", ""))
     for i in range(4):
         url = stream_urls[i] if i < len(stream_urls) else "#"
 
-        # Only generate player URL if stream is valid
         if url and url != "#" and not url.startswith("https://t.me/"):
-            # Smart routing: detects stream type and uses correct player
-            # - HLS (.m3u8) streams -> player.html
-            # - External pages (.php, embed) -> iframe-player.html
             encoded_url = base64.b64encode(url.encode()).decode()
-            player_type = detect_player_type(url)
-
-            if player_type == "iframe":
-                player_url = f"iframe-player.html?get={encoded_url}"
-            else:
-                player_url = f"player.html?get={encoded_url}"
+            type_hint = get_type_param(url)
+            params = f"get={encoded_url}"
+            if type_hint:
+                params += f"&type={type_hint}"
+            if encoded_title:
+                params += f"&title={encoded_title}"
+            player_url = f"universal-player.html?{params}"
         else:
             player_url = "#"
 
