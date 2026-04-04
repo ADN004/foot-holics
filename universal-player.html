@@ -629,6 +629,22 @@
         }
 
         /* ══════════════════════════════════════════════════════════════════
+           PROXY LOADER — routes ALL HLS.js requests through the proxy.
+           This is critical: without it, HLS.js proxies only the manifest
+           but fetches every .ts segment directly, hitting CORS again.
+        ══════════════════════════════════════════════════════════════════ */
+        function makeProxyLoader(proxyUrl) {
+            return class extends Hls.DefaultConfig.loader {
+                load(context, config, callbacks) {
+                    if (context.url && context.url.indexOf(proxyUrl) !== 0) {
+                        context.url = proxyUrl + encodeURIComponent(context.url);
+                    }
+                    super.load(context, config, callbacks);
+                }
+            };
+        }
+
+        /* ══════════════════════════════════════════════════════════════════
            HLS PLAYER  (HLS.js + native Safari fallback)
         ══════════════════════════════════════════════════════════════════ */
         function initHLS(url, retried) {
@@ -636,7 +652,7 @@
             var video = createVideo();
             initPlyr(video);
 
-            // Safari / iOS: native HLS
+            // Safari / iOS: native HLS (no custom loader possible, use proxy URL directly)
             if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = finalUrl(url);
                 video.addEventListener('loadedmetadata', function () {
@@ -659,7 +675,7 @@
                 return;
             }
 
-            hlsInst = new Hls({
+            var hlsCfg = {
                 enableWorker: true,
                 lowLatencyMode: false,
                 liveSyncDurationCount: 3,
@@ -677,9 +693,16 @@
                 capLevelToPlayerSize: true,
                 debug: false,
                 xhrSetup: function (xhr) { xhr.withCredentials = false; }
-            });
+            };
 
-            hlsInst.loadSource(finalUrl(url));
+            // Proxy mode: custom loader proxies manifest + every segment request.
+            // Pass the original URL to loadSource — the loader rewrites each request.
+            if (proxyEnabled) {
+                hlsCfg.loader = makeProxyLoader(proxyBase);
+            }
+
+            hlsInst = new Hls(hlsCfg);
+            hlsInst.loadSource(url);          // always original URL; loader proxies if needed
             hlsInst.attachMedia(video);
 
             hlsInst.on(Hls.Events.MANIFEST_PARSED, function (e, data) {
@@ -693,8 +716,13 @@
             hlsInst.on(Hls.Events.ERROR, function (e, data) {
                 if (!data.fatal) return;
 
-                if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR && !retried) {
-                    // Auto-retry with CORS proxy
+                // Trigger proxy retry on any load error (manifest or first fragment)
+                var isLoadError = (
+                    data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+                    data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR
+                );
+
+                if (isLoadError && !retried) {
                     hlsInst.destroy(); hlsInst = null;
                     destroyAll();
                     proxyEnabled = true;
@@ -841,14 +869,16 @@
             var video = createVideo();
             initPlyr(video);
 
-            hlsInst = new Hls({
+            var fbCfg = {
                 manifestLoadingTimeOut: 8000,
                 manifestLoadingMaxRetry: 0,
                 startLevel: -1,
                 debug: false
-            });
+            };
+            if (proxyEnabled) { fbCfg.loader = makeProxyLoader(proxyBase); }
 
-            hlsInst.loadSource(finalUrl(url));
+            hlsInst = new Hls(fbCfg);
+            hlsInst.loadSource(url);
             hlsInst.attachMedia(video);
 
             hlsInst.on(Hls.Events.MANIFEST_PARSED, function (e, data) {
