@@ -444,9 +444,17 @@
 
         /* ══════════════════════════════════════════════════════════════════
            URL PARAMS
+           NOTE: URLSearchParams.get() converts '+' → ' ' (form-encoding
+           behaviour), which silently corrupts base64 strings that contain
+           '+'. We extract the raw ?get= value manually to avoid this.
         ══════════════════════════════════════════════════════════════════ */
         var params     = new URLSearchParams(window.location.search);
-        var encoded    = params.get('get')      || '';
+
+        // Raw extraction: grab everything between 'get=' and the next '&' (or end)
+        // then percent-decode — this preserves '+' as-is inside the base64.
+        var _rawGetMatch = window.location.search.match(/[?&]get=([^&]*)/);
+        var encoded      = _rawGetMatch ? decodeURIComponent(_rawGetMatch[1]) : '';
+
         var typeHint   = params.get('type')     || '';
         var key        = params.get('key')      || '';
         var key2       = params.get('key2')     || '';
@@ -1051,6 +1059,7 @@
             try {
                 rawUrl = atob(encoded.trim());
             } catch (ex) {
+                console.error('[FH Player] atob failed. encoded value:', JSON.stringify(encoded));
                 showError('Invalid stream link. The URL encoding is incorrect.');
                 return;
             }
