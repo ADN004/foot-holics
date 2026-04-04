@@ -637,36 +637,21 @@
         /* ══════════════════════════════════════════════════════════════════
            PROXY LOADER — routes ALL HLS.js requests through the proxy.
 
-           Critical detail: we must NOT permanently change context.url to
-           the proxy URL, because HLS.js uses context.url as the base URL
-           when resolving relative segment paths inside the manifest.
-           If we leave it as "/api/proxy?url=..." the segments get resolved
-           against footholics.in instead of the real CDN domain → 404.
-
-           Fix: rewrite context.url for the actual HTTP request, but restore
-           the original CDN URL in the onSuccess callback so HLS.js sees the
-           correct base URL when it parses the response.
+           The proxy rewrites m3u8 manifests so all URIs are absolute CDN
+           URLs. This means HLS.js always sees absolute URLs regardless of
+           what base URL it uses for resolution — the loader just needs to
+           prefix every request with the proxy and nothing else.
         ══════════════════════════════════════════════════════════════════ */
         function makeProxyLoader(proxyUrl) {
+            // Resolve relative proxy paths (e.g. /api/proxy?url=) to absolute
+            var absProxy = proxyUrl.startsWith('/')
+                ? window.location.origin + proxyUrl
+                : proxyUrl;
+
             return class extends Hls.DefaultConfig.loader {
                 load(context, config, callbacks) {
-                    var originalUrl = context.url;
-                    // Build the absolute proxy URL (resolve relative proxyUrl against origin)
-                    var absProxy = proxyUrl.startsWith('/')
-                        ? window.location.origin + proxyUrl
-                        : proxyUrl;
-
-                    if (originalUrl && originalUrl.indexOf(absProxy) !== 0) {
-                        // Point the request at the proxy
-                        context.url = absProxy + encodeURIComponent(originalUrl);
-
-                        // After fetch succeeds, restore the original CDN URL so
-                        // HLS.js resolves relative paths inside the manifest correctly.
-                        var origSuccess = callbacks.onSuccess;
-                        callbacks.onSuccess = function (response, stats, ctx) {
-                            ctx.url = originalUrl;
-                            origSuccess(response, stats, ctx);
-                        };
+                    if (context.url && context.url.indexOf(absProxy) !== 0) {
+                        context.url = absProxy + encodeURIComponent(context.url);
                     }
                     super.load(context, config, callbacks);
                 }
