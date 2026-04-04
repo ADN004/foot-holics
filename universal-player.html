@@ -370,7 +370,12 @@
         /* ══════════════════════════════════════════════════════════════════
            CONFIG
         ══════════════════════════════════════════════════════════════════ */
-        var DEFAULT_PROXY   = 'https://corsproxy.io/?';
+        var DEFAULT_PROXY   = 'https://corsproxy.io/?url=';
+        var PROXY_FALLBACKS = [
+            'https://corsproxy.io/?url=',
+            'https://api.allorigins.win/raw?url=',
+            'https://thingproxy.freeboard.io/fetch/'
+        ];
         var ALLOWED_DOMAINS = ['footholics.in', 'localhost', '127.0.0.1'];
         var IFRAME_DOMAINS  = [
             'sportsonline', 'hesgoal', 'streameast', 'vipbox', 'strikeout',
@@ -716,6 +721,13 @@
             hlsInst.on(Hls.Events.ERROR, function (e, data) {
                 if (!data.fatal) return;
 
+                var httpStatus = data.response ? data.response.code : 'n/a';
+                console.error('[FH Player] HLS fatal error | type:', data.type,
+                    '| details:', data.details,
+                    '| HTTP:', httpStatus,
+                    '| proxy:', proxyEnabled ? proxyBase : 'none',
+                    '| retried:', retried);
+
                 // Trigger proxy retry on any load error (manifest or first fragment)
                 var isLoadError = (
                     data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
@@ -723,10 +735,24 @@
                 );
 
                 if (isLoadError && !retried) {
+                    console.log('[FH Player] Retrying with proxy:', proxyBase);
                     hlsInst.destroy(); hlsInst = null;
                     destroyAll();
                     proxyEnabled = true;
                     initHLS(url, true);
+                } else if (isLoadError && retried) {
+                    // Try next proxy fallback if available
+                    var nextProxyIdx = PROXY_FALLBACKS.indexOf(proxyBase) + 1;
+                    if (nextProxyIdx > 0 && nextProxyIdx < PROXY_FALLBACKS.length) {
+                        proxyBase = PROXY_FALLBACKS[nextProxyIdx];
+                        console.log('[FH Player] Trying fallback proxy:', proxyBase);
+                        hlsInst.destroy(); hlsInst = null;
+                        destroyAll();
+                        initHLS(url, true);
+                    } else {
+                        showError('Stream is offline or unavailable. Please try again later.');
+                        track('stream_error', { error_type: data.details });
+                    }
                 } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
                     hlsInst.recoverMediaError();
                 } else {
