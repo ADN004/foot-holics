@@ -1322,7 +1322,8 @@ async def update_field_choice_handler(update: Update, context: ContextTypes.DEFA
                 status = f"⬜ Link {i+1}: (empty)"
             keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
 
-        keyboard.append([InlineKeyboardButton("✅ Done - Back to Menu", callback_data="stream_done")])
+        keyboard.append([InlineKeyboardButton("💾 Save Changes", callback_data="update_save")])
+        keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="stream_done")])
         keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
 
         # Count active links
@@ -1332,7 +1333,7 @@ async def update_field_choice_handler(update: Update, context: ContextTypes.DEFA
             f"🔗 **Update Streaming Links**\n\n"
             f"📊 Active streams: {active_count}/4\n\n"
             f"Select a link to view/edit:\n"
-            f"_(Click on any link below to update it)_",
+            f"_(Click any link to update it, then Save)_",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -1397,6 +1398,10 @@ async def stream_link_action_handler(update: Update, context: ContextTypes.DEFAU
     """Handle stream link clear/back actions."""
     query = update.callback_query
     await query.answer()
+
+    if query.data == "stream_done":
+        # Return to the main update-field menu so user can hit Save Changes
+        return await show_update_field_menu(update, context)
 
     if query.data == "stream_back":
         # Go back to stream links menu
@@ -1473,7 +1478,8 @@ async def show_stream_links_menu(update: Update, context: ContextTypes.DEFAULT_T
             status = f"⬜ Link {i+1}: (empty)"
         keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
 
-    keyboard.append([InlineKeyboardButton("✅ Done - Back to Menu", callback_data="stream_done")])
+    keyboard.append([InlineKeyboardButton("💾 Save Changes", callback_data="update_save")])
+    keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="stream_done")])
     keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
 
     active_count = len([l for l in stream_links if l and l != "#"])
@@ -1482,7 +1488,7 @@ async def show_stream_links_menu(update: Update, context: ContextTypes.DEFAULT_T
         f"🔗 **Update Streaming Links**\n\n"
         f"📊 Active streams: {active_count}/4\n\n"
         f"Select a link to view/edit:\n"
-        f"_(Click on any link below to update it)_",
+        f"_(Click any link to update it, then Save)_",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -1504,7 +1510,8 @@ async def show_stream_links_menu_after_input(update: Update, context: ContextTyp
             status = f"⬜ Link {i+1}: (empty)"
         keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
 
-    keyboard.append([InlineKeyboardButton("✅ Done - Back to Menu", callback_data="stream_done")])
+    keyboard.append([InlineKeyboardButton("💾 Save Changes", callback_data="update_save")])
+    keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="stream_done")])
     keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
 
     active_count = len([l for l in stream_links if l and l != "#"])
@@ -1513,7 +1520,7 @@ async def show_stream_links_menu_after_input(update: Update, context: ContextTyp
         f"🔗 **Update Streaming Links**\n\n"
         f"📊 Active streams: {active_count}/4\n\n"
         f"Select a link to view/edit:\n"
-        f"_(Click on any link below to update it)_",
+        f"_(Click any link to update it, then Save)_",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -1812,39 +1819,34 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
 
         if "current_stream_links" in context.user_data:
-            # Update stream link URLs in HTML with smart player routing
             stream_links = context.user_data["current_stream_links"]
+            match_title  = context.user_data.get("current_title", "")
+            enc_title    = quote(match_title) if match_title else ""
 
-            # Generate new player URLs with smart routing (same as generate_html)
-            for i in range(4):
-                stream_num = i + 1
-                url = stream_links[i] if i < len(stream_links) else "#"
-
-                if url and url != "#" and not url.startswith("https://t.me/"):
-                    encoded_url = base64.b64encode(url.encode()).decode()
-                    type_hint = get_type_param(url)
-                    params = f"get={encoded_url}"
-                    if type_hint:
-                        params += f"&type={type_hint}"
-                    player_url = f"universal-player.html?{params}"
+            # Pre-build all 4 player URLs
+            player_urls_upd = []
+            for _url in (list(stream_links) + ["#"] * 4)[:4]:
+                if _url and _url != "#" and not _url.startswith("https://t.me/"):
+                    _enc  = base64.b64encode(_url.encode()).decode()
+                    _hint = get_type_param(_url)
+                    _p    = f"get={_enc}"
+                    if _hint:    _p += f"&type={_hint}"
+                    if enc_title: _p += f"&title={enc_title}"
+                    player_urls_upd.append(f"universal-player.html?{_p}")
                 else:
-                    player_url = "#"
+                    player_urls_upd.append("#")
 
-                # Replace the href attribute for this stream link
-                # Match old format (p/X-live.html), legacy formats, and current universal player
-                old_pattern       = rf'href="p/{stream_num}-live\.html\?(?:url|get)=[^"]*"'
-                new_pattern_univ  = rf'href="universal-player\.html\?get=[^"]*"'
-                new_pattern_hls   = rf'href="player\.html\?get=[^"]*"'
-                new_pattern_ifr   = rf'href="iframe-player\.html\?get=[^"]*"'
-
-                if re.search(old_pattern, html_content):
-                    html_content = re.sub(old_pattern, f'href="{player_url}"', html_content, count=1)
-                elif re.search(new_pattern_univ, html_content):
-                    html_content = re.sub(new_pattern_univ, f'href="{player_url}"', html_content, count=1)
-                elif re.search(new_pattern_hls, html_content):
-                    html_content = re.sub(new_pattern_hls, f'href="{player_url}"', html_content, count=1)
-                elif re.search(new_pattern_ifr, html_content):
-                    html_content = re.sub(new_pattern_ifr, f'href="{player_url}"', html_content, count=1)
+            # Single-pass positional replacement — replaces stream 1,2,3,4 in order
+            # without re-matching already-replaced hrefs (fixes the count=1 loop bug)
+            _href_pat = (
+                r'href="(?:universal-player\.html|player\.html'
+                r'|iframe-player\.html|p/\d-live\.html)[^"]*"'
+            )
+            _pos = [0]
+            def _repl(m):
+                i = _pos[0]; _pos[0] += 1
+                return f'href="{player_urls_upd[i]}"' if i < 4 else m.group(0)
+            html_content = re.sub(_href_pat, _repl, html_content)
 
         # Write updated HTML
         with open(match_file, "w", encoding="utf-8") as f:
@@ -3130,6 +3132,7 @@ def main() -> None:
                 CallbackQueryHandler(stream_link_action_handler, pattern="^stream_done"),
                 CallbackQueryHandler(stream_link_action_handler, pattern="^stream_back"),
                 CallbackQueryHandler(stream_link_action_handler, pattern="^stream_clear_"),
+                CallbackQueryHandler(update_field_choice_handler, pattern="^update_save"),
                 CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
             ],
             UPDATE_STREAM_INPUT: [
