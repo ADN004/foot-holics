@@ -2618,6 +2618,153 @@ main,
   resize: vertical;
 }
 
+/* === Live Score Widget === */
+.live-score-widget {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  backdrop-filter: blur(6px);
+  text-align: center;
+  transition: border-color 0.3s;
+}
+
+.live-score-widget.is-live {
+  border-color: rgba(220, 38, 38, 0.5);
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.1);
+}
+
+.live-score-widget.is-finished {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.ls-status-bar {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ls-status-bar.live-status { color: #ef4444; }
+.ls-status-bar.finished-status { color: #22c55e; }
+.ls-status-bar.upcoming-status { color: var(--accent); }
+
+.ls-scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.ls-team-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 80px;
+}
+
+.ls-team-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.ls-team-name {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+  max-width: 100px;
+  text-align: center;
+}
+
+.ls-score-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ls-score-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ls-score {
+  font-size: 2.75rem;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1;
+  min-width: 44px;
+  text-align: center;
+}
+
+.ls-score-sep {
+  font-size: 1.5rem;
+  color: var(--muted);
+  font-weight: 300;
+}
+
+.ls-minute {
+  font-size: 0.8rem;
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.ls-countdown {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin: 4px 0;
+}
+
+.ls-kickoff-time {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.ls-events {
+  margin-top: var(--space-2);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: left;
+}
+
+.ls-events-side {
+  flex: 1;
+}
+
+.ls-events-side.away { text-align: right; }
+
+.ls-goal-event {
+  display: block;
+  line-height: 1.6;
+}
+
+.ls-goal-event .scorer { font-weight: 600; color: var(--text); }
+.ls-goal-event .minute { color: var(--accent); }
+
+.ls-powered {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: var(--space-2);
+  opacity: 0.6;
+}
+
 /* === Responsive tweaks for new sections === */
 @media (max-width: 768px) {
   .tab-nav {

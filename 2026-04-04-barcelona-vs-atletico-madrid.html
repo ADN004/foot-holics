@@ -142,8 +142,10 @@
 
                 <nav class="primary-nav" id="primaryNav">
                     <a href="index.html">Home</a>
-                    <a href="/#leagues">Leagues</a>
-                    <a href="/#about">About</a>
+                    <a href="news.html">News</a>
+                    <a href="standings.html">Standings</a>
+                    <a href="fixtures.html">Fixtures</a>
+                    <a href="about.html">About</a>
                 </nav>
 
                 <div class="cta-group" id="ctaGroup">
@@ -223,6 +225,24 @@
                 <h2 class="team-name">Atletico Madrid</h2>
                 <p class="text-muted">Away</p>
             </div>
+        </div>
+
+        <!-- Live Score Widget -->
+        <div id="liveScoreWidget"
+             class="live-score-widget"
+             data-home="Barcelona"
+             data-away="Atletico Madrid"
+             data-league="laliga"
+             data-date="2026-04-04T19:00:00Z"
+             data-home-logo="assets/img/logos/teams/la-liga/barcelona.png"
+             data-away-logo="assets/img/logos/teams/la-liga/atletico-madrid.png">
+            <div class="ls-status-bar upcoming-status"><span>&#9200;</span> <span>Loading score...</span></div>
+            <div class="ls-scoreboard">
+                <div class="ls-team-col"><span class="ls-team-name">Barcelona</span></div>
+                <div class="ls-score-col"><div class="ls-countdown" id="lsCountdown">--:--:--</div></div>
+                <div class="ls-team-col"><span class="ls-team-name">Atletico Madrid</span></div>
+            </div>
+            <p class="ls-powered">Live data via ESPN</p>
         </div>
 
         <!-- Match Preview -->
@@ -488,5 +508,8 @@ The match is expected to be intense and tactical, with Barcelona likely focusing
 
     <!-- JavaScript -->
     <script src="assets/js/main.js" defer></script>
+
+    <!-- Live Score Widget -->
+    <script src="assets/js/livescore-widget.js" defer></script>
 </body>
 </html>

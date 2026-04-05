@@ -2790,8 +2790,10 @@ def get_inline_event_template() -> str:
 
                 <nav class="primary-nav" id="primaryNav">
                     <a href="index.html">Home</a>
-                    <a href="/#leagues">Leagues</a>
-                    <a href="/#about">About</a>
+                    <a href="news.html">News</a>
+                    <a href="standings.html">Standings</a>
+                    <a href="fixtures.html">Fixtures</a>
+                    <a href="about.html">About</a>
                 </nav>
 
                 <div class="cta-group" id="ctaGroup">
@@ -2871,6 +2873,32 @@ def get_inline_event_template() -> str:
                 <h2 class="team-name">{{AWAY_TEAM}}</h2>
                 <p class="text-muted">Away</p>
             </div>
+        </div>
+
+        <!-- Live Score Widget -->
+        <div id="liveScoreWidget"
+             class="live-score-widget"
+             data-home="{{HOME_TEAM}}"
+             data-away="{{AWAY_TEAM}}"
+             data-league="{{LEAGUE_SLUG}}"
+             data-date="{{DATE_ISO}}"
+             data-home-logo="{{HOME_TEAM_LOGO}}"
+             data-away-logo="{{AWAY_TEAM_LOGO}}">
+            <div class="ls-status-bar upcoming-status">
+                <span>&#9200;</span> <span>Loading score...</span>
+            </div>
+            <div class="ls-scoreboard">
+                <div class="ls-team-col">
+                    <span class="ls-team-name">{{HOME_TEAM}}</span>
+                </div>
+                <div class="ls-score-col">
+                    <div class="ls-countdown" id="lsCountdown">--:--:--</div>
+                </div>
+                <div class="ls-team-col">
+                    <span class="ls-team-name">{{AWAY_TEAM}}</span>
+                </div>
+            </div>
+            <p class="ls-powered">Live data via ESPN</p>
         </div>
 
         <!-- Match Preview -->
@@ -3050,8 +3078,10 @@ def get_inline_event_template() -> str:
                     <h4>Quick Links</h4>
                     <ul class="footer-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="#" onclick="document.getElementById('heroSearch').focus(); scrollTo(0, 0); return false;">Search Matches</a></li>
-                        <li><a href="/#leagues">Browse Leagues</a></li>
+                        <li><a href="news.html">Football News</a></li>
+                        <li><a href="standings.html">League Standings</a></li>
+                        <li><a href="fixtures.html">Upcoming Fixtures</a></li>
+                        <li><a href="about.html">About Us</a></li>
                         <li><a href="mailto:footholicsin@gmail.com">Contact</a></li>
                     </ul>
                 </div>
@@ -3134,6 +3164,196 @@ def get_inline_event_template() -> str:
 
     <!-- JavaScript -->
     <script src="assets/js/main.js" defer></script>
+    <script src="assets/js/livescore-widget.js" defer></script>
+
+    <!-- Live Score Widget Script (inline — handles all logic) -->
+    <script>
+    (function () {
+        'use strict';
+        // If the external livescore-widget.js already ran, skip.
+        if (window.__lsWidgetLoaded) return;
+        var widget = document.getElementById('liveScoreWidget');
+        if (!widget) return;
+
+        var homeTeam  = widget.dataset.home;
+        var awayTeam  = widget.dataset.away;
+        var leagueSlug = widget.dataset.league;
+        var matchDate = widget.dataset.date;   // ISO: "2026-04-04T19:00:00Z"
+        var homeLogo  = widget.dataset.homeLogo;
+        var awayLogo  = widget.dataset.awayLogo;
+
+        // Extract date part only (YYYY-MM-DD)
+        var dateOnly = matchDate ? matchDate.slice(0, 10) : '';
+
+        // Slug → ESPN code for the API
+        var SLUG_MAP = {
+            'premier-league':   'eng.1',
+            'laliga':           'esp.1',
+            'bundesliga':       'ger.1',
+            'serie-a':          'ita.1',
+            'ligue-1':          'fra.1',
+            'champions-league': 'UEFA.CHAMPIONS',
+        };
+        var espnLeague = SLUG_MAP[leagueSlug] || leagueSlug;
+
+        var apiUrl = '/api/livescore?home=' + encodeURIComponent(homeTeam)
+                   + '&away=' + encodeURIComponent(awayTeam)
+                   + (espnLeague ? '&league=' + encodeURIComponent(espnLeague) : '')
+                   + (dateOnly ? '&date=' + encodeURIComponent(dateOnly) : '');
+
+        var countdownInterval = null;
+        var pollInterval = null;
+        var kickoffTime = matchDate ? new Date(matchDate) : null;
+
+        function escHtml(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function logoImg(src, name) {
+            if (!src || src === '#' || src === '') return '';
+            return '<img src="' + escHtml(src) + '" alt="' + escHtml(name) + '" class="ls-team-logo" onerror="this.style.display=\'none\'">';
+        }
+
+        function formatCountdown(ms) {
+            if (ms <= 0) return '00:00:00';
+            var s = Math.floor(ms / 1000);
+            var h = Math.floor(s / 3600);
+            var m = Math.floor((s % 3600) / 60);
+            var sec = s % 60;
+            var pad = function(n){ return n < 10 ? '0' + n : String(n); };
+            return pad(h) + ':' + pad(m) + ':' + pad(sec);
+        }
+
+        function renderPrematch() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            var now = Date.now();
+            var diff = kickoffTime ? kickoffTime.getTime() - now : 0;
+            var timeStr = kickoffTime ? kickoffTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC' : '';
+
+            widget.classList.remove('is-live', 'is-finished');
+
+            function tick() {
+                var remaining = kickoffTime ? kickoffTime.getTime() - Date.now() : 0;
+                var cdEl = widget.querySelector('#lsCountdown');
+                if (cdEl) cdEl.textContent = remaining > 0 ? formatCountdown(remaining) : '00:00:00';
+            }
+            tick();
+            countdownInterval = setInterval(tick, 1000);
+
+            widget.innerHTML = '<div class="ls-status-bar upcoming-status"><span>&#9200;</span> <span>UPCOMING</span></div>'
+                + '<div class="ls-scoreboard">'
+                    + '<div class="ls-team-col">' + logoImg(homeLogo, homeTeam) + '<span class="ls-team-name">' + escHtml(homeTeam) + '</span></div>'
+                    + '<div class="ls-score-col"><div class="ls-countdown" id="lsCountdown">--:--:--</div>'
+                        + (timeStr ? '<div class="ls-kickoff-time">Kick off ' + escHtml(timeStr) + '</div>' : '') + '</div>'
+                    + '<div class="ls-team-col">' + logoImg(awayLogo, awayTeam) + '<span class="ls-team-name">' + escHtml(awayTeam) + '</span></div>'
+                + '</div>'
+                + '<p class="ls-powered">Live data via ESPN</p>';
+
+            // Restart countdown in the new DOM
+            var cdEl = widget.querySelector('#lsCountdown');
+            if (cdEl && kickoffTime) {
+                countdownInterval = setInterval(function() {
+                    var remaining = kickoffTime.getTime() - Date.now();
+                    cdEl.textContent = remaining > 0 ? formatCountdown(remaining) : '00:00:00';
+                }, 1000);
+            }
+        }
+
+        function renderLive(data) {
+            if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+            widget.classList.add('is-live');
+            widget.classList.remove('is-finished');
+
+            var homeGoals = data.goalEvents.filter(function(e){ return e.side === 'home'; });
+            var awayGoals = data.goalEvents.filter(function(e){ return e.side === 'away'; });
+
+            var homeGoalHtml = homeGoals.map(function(e){
+                return '<span class="ls-goal-event"><span class="scorer">&#9917; ' + escHtml(e.scorer) + '</span> <span class="minute">' + escHtml(e.minute) + '</span></span>';
+            }).join('');
+            var awayGoalHtml = awayGoals.map(function(e){
+                return '<span class="ls-goal-event"><span class="scorer">&#9917; ' + escHtml(e.scorer) + '</span> <span class="minute">' + escHtml(e.minute) + '</span></span>';
+            }).join('');
+
+            widget.innerHTML = '<div class="ls-status-bar live-status"><span class="live-dot" style="width:8px;height:8px;background:#ef4444;border-radius:50%;display:inline-block;animation:blink 1.5s infinite;"></span> <span>LIVE &bull; ' + escHtml(data.minute || data.detail) + '</span></div>'
+                + '<div class="ls-scoreboard">'
+                    + '<div class="ls-team-col">' + logoImg(homeLogo, homeTeam) + '<span class="ls-team-name">' + escHtml(data.homeTeam || homeTeam) + '</span></div>'
+                    + '<div class="ls-score-col"><div class="ls-score-display">'
+                        + '<span class="ls-score">' + (data.homeScore !== null ? escHtml(String(data.homeScore)) : '-') + '</span>'
+                        + '<span class="ls-score-sep">:</span>'
+                        + '<span class="ls-score">' + (data.awayScore !== null ? escHtml(String(data.awayScore)) : '-') + '</span>'
+                    + '</div></div>'
+                    + '<div class="ls-team-col">' + logoImg(awayLogo, awayTeam) + '<span class="ls-team-name">' + escHtml(data.awayTeam || awayTeam) + '</span></div>'
+                + '</div>'
+                + (homeGoalHtml || awayGoalHtml ? '<div class="ls-events"><div class="ls-events-side home">' + homeGoalHtml + '</div><div class="ls-events-side away">' + awayGoalHtml + '</div></div>' : '')
+                + '<p class="ls-powered">Live data via ESPN &bull; updates every 30s</p>';
+        }
+
+        function renderFinished(data) {
+            if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+            widget.classList.remove('is-live');
+            widget.classList.add('is-finished');
+
+            var homeGoals = data.goalEvents.filter(function(e){ return e.side === 'home'; });
+            var awayGoals = data.goalEvents.filter(function(e){ return e.side === 'away'; });
+            var homeGoalHtml = homeGoals.map(function(e){
+                return '<span class="ls-goal-event"><span class="scorer">&#9917; ' + escHtml(e.scorer) + '</span> <span class="minute">' + escHtml(e.minute) + '</span></span>';
+            }).join('');
+            var awayGoalHtml = awayGoals.map(function(e){
+                return '<span class="ls-goal-event"><span class="scorer">&#9917; ' + escHtml(e.scorer) + '</span> <span class="minute">' + escHtml(e.minute) + '</span></span>';
+            }).join('');
+
+            widget.innerHTML = '<div class="ls-status-bar finished-status"><span>&#10003;</span> <span>FULL TIME</span></div>'
+                + '<div class="ls-scoreboard">'
+                    + '<div class="ls-team-col">' + logoImg(homeLogo, homeTeam) + '<span class="ls-team-name">' + escHtml(data.homeTeam || homeTeam) + '</span></div>'
+                    + '<div class="ls-score-col"><div class="ls-score-display">'
+                        + '<span class="ls-score">' + (data.homeScore !== null ? escHtml(String(data.homeScore)) : '-') + '</span>'
+                        + '<span class="ls-score-sep">:</span>'
+                        + '<span class="ls-score">' + (data.awayScore !== null ? escHtml(String(data.awayScore)) : '-') + '</span>'
+                    + '</div></div>'
+                    + '<div class="ls-team-col">' + logoImg(awayLogo, awayTeam) + '<span class="ls-team-name">' + escHtml(data.awayTeam || awayTeam) + '</span></div>'
+                + '</div>'
+                + (homeGoalHtml || awayGoalHtml ? '<div class="ls-events"><div class="ls-events-side home">' + homeGoalHtml + '</div><div class="ls-events-side away">' + awayGoalHtml + '</div></div>' : '')
+                + '<p class="ls-powered">Final score via ESPN</p>';
+        }
+
+        async function fetchScore() {
+            try {
+                var res = await fetch(apiUrl);
+                if (!res.ok) throw new Error();
+                var data = await res.json();
+                if (!data.found) {
+                    renderPrematch();
+                    return;
+                }
+                if (data.isCompleted || data.state === 'post') {
+                    renderFinished(data);
+                } else if (data.isLive || data.state === 'in') {
+                    renderLive(data);
+                } else {
+                    renderPrematch();
+                }
+            } catch (e) {
+                renderPrematch();
+            }
+        }
+
+        // Initial fetch
+        fetchScore();
+
+        // Poll every 30s during potential match window
+        // (2h window around kickoff)
+        if (kickoffTime) {
+            var windowStart = kickoffTime.getTime() - 5 * 60 * 1000;
+            var windowEnd   = kickoffTime.getTime() + 130 * 60 * 1000;
+            var now = Date.now();
+            if (now >= windowStart && now <= windowEnd) {
+                pollInterval = setInterval(fetchScore, 30000);
+            }
+        }
+    })();
+    </script>
 </body>
 </html>"""
 
