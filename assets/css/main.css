@@ -2449,14 +2449,37 @@ main,
 }
 
 /* === Home News Widget === */
+.home-news-section {
+  background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.025) 50%, transparent 100%);
+  border-top: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+  padding: var(--space-5) 0;
+  margin: var(--space-4) 0;
+}
+
 .home-news-widget {
-  margin: var(--space-4) 0 var(--space-5);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-3);
 }
 
 .home-news-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
+}
+
+.home-news-grid .news-card-img,
+.home-news-grid .news-card-img-placeholder {
+  height: 165px;
+}
+
+@media (max-width: 900px) {
+  .home-news-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .home-news-grid { grid-template-columns: 1fr; }
 }
 
 /* === About Page === */
