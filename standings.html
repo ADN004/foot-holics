@@ -66,27 +66,27 @@
 
         <!-- League Tabs -->
         <div class="tab-nav" id="leagueTabs" role="tablist">
-            <button class="tab-btn active" data-league="eng.1" onclick="loadStandings('eng.1', this)">
+            <button class="tab-btn active" data-league="eng.1" onclick="window.loadStandings('eng.1')">
                 <img src="assets/img/logos/leagues/premier-league.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
                 Premier League
             </button>
-            <button class="tab-btn" data-league="esp.1" onclick="loadStandings('esp.1', this)">
+            <button class="tab-btn" data-league="esp.1" onclick="window.loadStandings('esp.1')">
                 <img src="assets/img/logos/leagues/laliga.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
                 La Liga
             </button>
-            <button class="tab-btn" data-league="ger.1" onclick="loadStandings('ger.1', this)">
+            <button class="tab-btn" data-league="ger.1" onclick="window.loadStandings('ger.1')">
                 <img src="assets/img/logos/leagues/bundesliga.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
                 Bundesliga
             </button>
-            <button class="tab-btn" data-league="ita.1" onclick="loadStandings('ita.1', this)">
+            <button class="tab-btn" data-league="ita.1" onclick="window.loadStandings('ita.1')">
                 <img src="assets/img/logos/leagues/serie-a.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
                 Serie A
             </button>
-            <button class="tab-btn" data-league="fra.1" onclick="loadStandings('fra.1', this)">
+            <button class="tab-btn" data-league="fra.1" onclick="window.loadStandings('fra.1')">
                 <img src="assets/img/logos/leagues/ligue-1.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
                 Ligue 1
             </button>
-            <button class="tab-btn" data-league="UEFA.CHAMPIONS" onclick="loadStandings('UEFA.CHAMPIONS', this)">
+            <button class="tab-btn" data-league="UEFA.CHAMPIONS" onclick="window.loadStandings('UEFA.CHAMPIONS')">
                 <img src="assets/img/logos/leagues/champions-league.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
                 Champions League
             </button>
@@ -280,6 +280,10 @@
         }
 
         async function loadStandings(league, btnEl) {
+            // btnEl may be a string (league code) when called from onclick — resolve to element
+            if (typeof btnEl === 'string' || !btnEl) {
+                btnEl = document.querySelector(`.tab-btn[data-league="${league}"]`) || null;
+            }
             // Update active tab
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             if (btnEl) btnEl.classList.add('active');
@@ -303,8 +307,11 @@
             }
         }
 
+        // Expose to global scope so onclick attributes can reach it
+        window.loadStandings = loadStandings;
+
         // Load Premier League on start
-        loadStandings('eng.1', document.querySelector('[data-league="eng.1"]'));
+        loadStandings('eng.1', null);
     })();
     </script>
 </body>

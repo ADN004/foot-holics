@@ -77,12 +77,12 @@
 
         <!-- Category filter tabs -->
         <div class="tab-nav" id="newsTabs" role="tablist">
-            <button class="tab-btn active" data-cat="all" onclick="filterNews('all')">All</button>
-            <button class="tab-btn" data-cat="premier league" onclick="filterNews('premier league')">Premier League</button>
-            <button class="tab-btn" data-cat="la liga" onclick="filterNews('la liga')">La Liga</button>
-            <button class="tab-btn" data-cat="champions league" onclick="filterNews('champions league')">Champions League</button>
-            <button class="tab-btn" data-cat="bundesliga" onclick="filterNews('bundesliga')">Bundesliga</button>
-            <button class="tab-btn" data-cat="serie a" onclick="filterNews('serie a')">Serie A</button>
+            <button class="tab-btn active" data-cat="all" onclick="window.filterNews('all')">All</button>
+            <button class="tab-btn" data-cat="premier league" onclick="window.filterNews('premier league')">Premier League</button>
+            <button class="tab-btn" data-cat="la liga" onclick="window.filterNews('la liga')">La Liga</button>
+            <button class="tab-btn" data-cat="champions league" onclick="window.filterNews('champions league')">Champions League</button>
+            <button class="tab-btn" data-cat="bundesliga" onclick="window.filterNews('bundesliga')">Bundesliga</button>
+            <button class="tab-btn" data-cat="serie a" onclick="window.filterNews('serie a')">Serie A</button>
         </div>
 
         <!-- Feature article -->
@@ -240,6 +240,8 @@
             renderFeature(filtered[0]);
             renderGrid(filtered.slice(1));
         }
+        // Expose to global scope so onclick attributes can reach it
+        window.filterNews = filterNews;
 
         async function loadNews() {
             const loading = document.getElementById('newsLoading');

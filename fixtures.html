@@ -69,28 +69,28 @@
             <section>
                 <!-- League filter tabs -->
                 <div class="tab-nav" id="fixtureTabs" role="tablist">
-                    <button class="tab-btn active" data-league="all" onclick="filterFixtures('all', this)">All Leagues</button>
-                    <button class="tab-btn" data-league="eng.1" onclick="filterFixtures('eng.1', this)">
+                    <button class="tab-btn active" data-league="all" onclick="window.filterFixtures('all')">All Leagues</button>
+                    <button class="tab-btn" data-league="eng.1" onclick="window.filterFixtures('eng.1')">
                         <img src="assets/img/logos/leagues/premier-league.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
                         Premier League
                     </button>
-                    <button class="tab-btn" data-league="esp.1" onclick="filterFixtures('esp.1', this)">
+                    <button class="tab-btn" data-league="esp.1" onclick="window.filterFixtures('esp.1')">
                         <img src="assets/img/logos/leagues/laliga.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
                         La Liga
                     </button>
-                    <button class="tab-btn" data-league="ger.1" onclick="filterFixtures('ger.1', this)">
+                    <button class="tab-btn" data-league="ger.1" onclick="window.filterFixtures('ger.1')">
                         <img src="assets/img/logos/leagues/bundesliga.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
                         Bundesliga
                     </button>
-                    <button class="tab-btn" data-league="ita.1" onclick="filterFixtures('ita.1', this)">
+                    <button class="tab-btn" data-league="ita.1" onclick="window.filterFixtures('ita.1')">
                         <img src="assets/img/logos/leagues/serie-a.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
                         Serie A
                     </button>
-                    <button class="tab-btn" data-league="fra.1" onclick="filterFixtures('fra.1', this)">
+                    <button class="tab-btn" data-league="fra.1" onclick="window.filterFixtures('fra.1')">
                         <img src="assets/img/logos/leagues/ligue-1.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
                         Ligue 1
                     </button>
-                    <button class="tab-btn" data-league="UEFA.CHAMPIONS" onclick="filterFixtures('UEFA.CHAMPIONS', this)">
+                    <button class="tab-btn" data-league="UEFA.CHAMPIONS" onclick="window.filterFixtures('UEFA.CHAMPIONS')">
                         <img src="assets/img/logos/leagues/champions-league.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
                         UCL
                     </button>
@@ -311,6 +311,10 @@
 
         function filterFixtures(league, btnEl) {
             activeLeague = league;
+            // btnEl may be undefined when called from onclick — resolve it
+            if (!btnEl) {
+                btnEl = document.querySelector(`.tab-btn[data-league="${league}"]`) || null;
+            }
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             if (btnEl) btnEl.classList.add('active');
 
@@ -320,6 +324,8 @@
 
             renderFixtures(filtered);
         }
+        // Expose to global scope so onclick attributes can reach it
+        window.filterFixtures = filterFixtures;
 
         async function loadFixtures() {
             const loading = document.getElementById('fixturesLoading');
