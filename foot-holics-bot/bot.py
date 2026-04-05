@@ -1196,6 +1196,7 @@ async def update_match_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
         [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
         [InlineKeyboardButton("🔗 Streaming Links", callback_data="update_field_streams")],
+        [InlineKeyboardButton("🖼️ Thumbnail", callback_data="update_field_thumbnail")],
         [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
         [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
     ]
@@ -1304,6 +1305,21 @@ async def update_field_choice_handler(update: Update, context: ContextTypes.DEFA
             f"📰 **Update Preview Text**\n\n"
             f"Current preview: (check your match page)\n\n"
             f"Enter new match preview (1-2 paragraphs):\n\n"
+            f"_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return UPDATE_FIELD_INPUT
+
+    elif field == "thumbnail":
+        current_thumb = context.user_data.get("current_thumbnail", "auto (team logo)")
+        await query.edit_message_text(
+            f"🖼️ **Update Thumbnail**\n\n"
+            f"Current: `{current_thumb}`\n\n"
+            f"Send an image URL to use as the player thumbnail.\n"
+            f"This shows before the stream starts loading.\n\n"
+            f"Examples:\n"
+            f"• `https://example.com/match-banner.jpg`\n"
+            f"• Any direct image link (jpg, png, webp)\n\n"
             f"_Type /cancel to go back_",
             parse_mode="Markdown"
         )
@@ -1541,6 +1557,7 @@ async def show_update_field_menu(update: Update, context: ContextTypes.DEFAULT_T
         [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
         [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
         [InlineKeyboardButton("🔗 Streaming Links", callback_data="update_field_streams")],
+        [InlineKeyboardButton("🖼️ Thumbnail", callback_data="update_field_thumbnail")],
         [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
         [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
     ]
@@ -1600,6 +1617,12 @@ async def update_field_input_handler(update: Update, context: ContextTypes.DEFAU
             return UPDATE_FIELD_INPUT
         context.user_data["current_preview"] = text
 
+    elif field == "thumbnail":
+        if not text.startswith("http"):
+            await update.message.reply_text("❌ Must be a valid image URL starting with http/https")
+            return UPDATE_FIELD_INPUT
+        context.user_data["current_thumbnail"] = text
+
     # Note: streams are now handled via button-based UI in UPDATE_STREAM_SELECT state
 
     await update.message.reply_text(f"✅ Updated! Continue editing or save changes.")
@@ -1612,6 +1635,7 @@ async def update_field_input_handler(update: Update, context: ContextTypes.DEFAU
         [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
         [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
         [InlineKeyboardButton("🔗 Streaming Links", callback_data="update_field_streams")],
+        [InlineKeyboardButton("🖼️ Thumbnail", callback_data="update_field_thumbnail")],
         [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
         [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
     ]
@@ -1657,6 +1681,7 @@ async def update_league_handler(update: Update, context: ContextTypes.DEFAULT_TY
         [InlineKeyboardButton("🏟️ Stadium", callback_data="update_field_stadium")],
         [InlineKeyboardButton("📰 Preview Text", callback_data="update_field_preview")],
         [InlineKeyboardButton("🔗 Streaming Links", callback_data="update_field_streams")],
+        [InlineKeyboardButton("🖼️ Thumbnail", callback_data="update_field_thumbnail")],
         [InlineKeyboardButton("✅ Save Changes", callback_data="update_save")],
         [InlineKeyboardButton("« Cancel", callback_data="menu_back")]
     ]
@@ -1821,10 +1846,32 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 flags=re.DOTALL
             )
 
+        # Thumbnail update: replace &thumb= in all 4 player hrefs
+        if "current_thumbnail" in context.user_data:
+            new_thumb = context.user_data["current_thumbnail"]
+            enc_new_thumb = quote(new_thumb)
+            # Remove existing &thumb=... then append new one to every player href
+            def _update_thumb(m):
+                href = m.group(0)
+                href = re.sub(r'&thumb=[^"&]*', '', href)   # strip old thumb
+                href = href.rstrip('"') + f'&thumb={enc_new_thumb}"'
+                return href
+            html_content = re.sub(
+                r'href="universal-player\.html\?[^"]*"(?=\s[^>]*class="stream-link-card")',
+                _update_thumb,
+                html_content
+            )
+
         if "current_stream_links" in context.user_data:
             stream_links = context.user_data["current_stream_links"]
             match_title  = context.user_data.get("current_title", "")
             enc_title    = quote(match_title) if match_title else ""
+
+            # Preserve existing thumbnail from HTML (or use updated one)
+            existing_thumb = context.user_data.get("current_thumbnail", "")
+            if not existing_thumb:
+                _t = re.search(r'[?&]thumb=([^"&]*)', html_content)
+                existing_thumb = _t.group(1) if _t else ""
 
             # Pre-build all 4 player URLs
             player_urls_upd = []
@@ -1833,8 +1880,9 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     _enc  = base64.b64encode(_url.encode()).decode()
                     _hint = get_type_param(_url)
                     _p    = f"get={_enc}"
-                    if _hint:    _p += f"&type={_hint}"
-                    if enc_title: _p += f"&title={enc_title}"
+                    if _hint:         _p += f"&type={_hint}"
+                    if enc_title:     _p += f"&title={enc_title}"
+                    if existing_thumb: _p += f"&thumb={existing_thumb}"
                     player_urls_upd.append(f"universal-player.html?{_p}")
                 else:
                     player_urls_upd.append("#")
