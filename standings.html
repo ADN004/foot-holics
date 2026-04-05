@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Live league standings and tables for Premier League, La Liga, Bundesliga, Serie A, Ligue 1 and Champions League - updated daily on Foot Holics.">
+    <meta name="keywords" content="football standings, premier league table, la liga standings, bundesliga table, serie a standings, ligue 1 table, champions league standings">
+
+    <meta property="og:title" content="Football League Standings - Foot Holics">
+    <meta property="og:description" content="Updated league tables for all major European football competitions.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Football League Standings - Foot Holics">
+
+    <title>League Standings & Tables - Foot Holics</title>
+
+    <link rel="canonical" href="https://footholics.in/standings.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+    <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
+</head>
+<body>
+    <!-- Header -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="logo">
+                    <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="logo-icon">
+                    <span>Foot Holics</span>
+                </a>
+                <nav class="primary-nav" id="primaryNav">
+                    <a href="index.html">Home</a>
+                    <a href="news.html">News</a>
+                    <a href="standings.html" class="active">Standings</a>
+                    <a href="fixtures.html">Fixtures</a>
+                    <a href="about.html">About</a>
+                </nav>
+                <div class="cta-group" id="ctaGroup">
+                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">WhatsApp</a>
+                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Telegram</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Hero -->
+    <section class="page-hero">
+        <div class="container">
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a>
+                <span class="breadcrumb-separator">/</span>
+                <span>Standings</span>
+            </nav>
+            <h1 class="page-hero-title">League Standings</h1>
+            <p class="page-hero-sub">Updated tables for all major European football competitions</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container" style="margin-top:2rem; margin-bottom:4rem;">
+
+        <!-- League Tabs -->
+        <div class="tab-nav" id="leagueTabs" role="tablist">
+            <button class="tab-btn active" data-league="eng.1" onclick="loadStandings('eng.1', this)">
+                <img src="assets/img/logos/leagues/premier-league.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
+                Premier League
+            </button>
+            <button class="tab-btn" data-league="esp.1" onclick="loadStandings('esp.1', this)">
+                <img src="assets/img/logos/leagues/laliga.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
+                La Liga
+            </button>
+            <button class="tab-btn" data-league="ger.1" onclick="loadStandings('ger.1', this)">
+                <img src="assets/img/logos/leagues/bundesliga.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
+                Bundesliga
+            </button>
+            <button class="tab-btn" data-league="ita.1" onclick="loadStandings('ita.1', this)">
+                <img src="assets/img/logos/leagues/serie-a.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
+                Serie A
+            </button>
+            <button class="tab-btn" data-league="fra.1" onclick="loadStandings('fra.1', this)">
+                <img src="assets/img/logos/leagues/ligue-1.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
+                Ligue 1
+            </button>
+            <button class="tab-btn" data-league="UEFA.CHAMPIONS" onclick="loadStandings('UEFA.CHAMPIONS', this)">
+                <img src="assets/img/logos/leagues/champions-league.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" onerror="this.remove();">
+                Champions League
+            </button>
+        </div>
+
+        <!-- Season label -->
+        <div id="standingsMeta" style="margin-bottom:var(--space-2);color:var(--muted);font-size:0.875rem;"></div>
+
+        <!-- Table -->
+        <div id="standingsContainer"></div>
+
+        <!-- Legend -->
+        <div id="standingsLegend" style="display:none;margin-top:var(--space-2);display:flex;gap:var(--space-3);flex-wrap:wrap;font-size:0.8rem;color:var(--muted);">
+            <span><span style="color:#22c55e;font-weight:700;">●</span> UEFA Champions League</span>
+            <span><span style="color:#f59e0b;font-weight:700;">●</span> UEFA Europa League</span>
+            <span><span style="color:#ef4444;font-weight:700;">●</span> Relegation</span>
+        </div>
+
+        <!-- Fixtures teaser -->
+        <div style="margin-top:var(--space-5);text-align:center;">
+            <p style="color:var(--muted);margin-bottom:var(--space-2);">Looking for upcoming matches?</p>
+            <a href="fixtures.html" class="btn btn-primary">View All Fixtures</a>
+            <a href="index.html" class="btn btn-secondary" style="margin-left:var(--space-2);">Watch Live Streams</a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Foot Holics</h4>
+                    <p>Your premium football destination for live match coverage, standings, fixtures and the latest news from world football.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="news.html">News</a></li>
+                        <li><a href="standings.html">Standings</a></li>
+                        <li><a href="fixtures.html">Fixtures</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms & Conditions</a></li>
+                        <li><a href="dmca.html">DMCA / Copyright</a></li>
+                        <li><a href="disclaimer.html">Disclaimer</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Connect</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">WhatsApp Channel</a></li>
+                        <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Foot Holics. All rights reserved.</p>
+                <p style="margin-top:0.5rem;font-size:0.8rem;">Data sourced from ESPN. All trademarks belong to their respective owners.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // Mobile menu
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const primaryNav = document.getElementById('primaryNav');
+        const ctaGroup = document.getElementById('ctaGroup');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                primaryNav.classList.toggle('mobile-open');
+                ctaGroup.classList.toggle('mobile-open');
+                mobileMenuBtn.innerHTML = primaryNav.classList.contains('mobile-open') ? '✕' : '☰';
+            });
+        }
+
+        const cache = {};
+
+        // Position colour helper (champions/europa/relegation zones)
+        const ZONE_COLORS = {
+            'eng.1':        { champions: [1,4], europa: [5,6], relegation: [18,20] },
+            'esp.1':        { champions: [1,4], europa: [5,6], relegation: [18,20] },
+            'ger.1':        { champions: [1,4], europa: [5,6], relegation: [16,18] },
+            'ita.1':        { champions: [1,4], europa: [5,6], relegation: [18,20] },
+            'fra.1':        { champions: [1,3], europa: [4,5], relegation: [16,18] },
+            'UEFA.CHAMPIONS': {},
+        };
+
+        function posClass(pos, league) {
+            const z = ZONE_COLORS[league] || {};
+            if (z.champions && pos >= z.champions[0] && pos <= z.champions[1]) return 'champions';
+            if (z.europa   && pos >= z.europa[0]   && pos <= z.europa[1])   return 'europa';
+            if (z.relegation && pos >= z.relegation[0] && pos <= z.relegation[1]) return 'relegation';
+            return '';
+        }
+
+        function gdClass(val) {
+            const n = parseFloat(val);
+            if (isNaN(n) || n === 0) return '';
+            return n > 0 ? 'positive' : 'negative';
+        }
+
+        function renderTable(data, league) {
+            const meta = document.getElementById('standingsMeta');
+            const container = document.getElementById('standingsContainer');
+            const legend = document.getElementById('standingsLegend');
+
+            meta.textContent = data.name + (data.season ? ' · ' + data.season : '');
+
+            if (!data.rows || !data.rows.length) {
+                container.innerHTML = `<div class="content-error"><p>Standings not available right now.</p></div>`;
+                return;
+            }
+
+            legend.style.display = 'flex';
+
+            container.innerHTML = `
+                <div class="standings-table-wrap">
+                    <table class="standings-table">
+                        <thead>
+                            <tr>
+                                <th title="Position">#</th>
+                                <th style="text-align:left;">Team</th>
+                                <th title="Games Played">GP</th>
+                                <th title="Wins">W</th>
+                                <th title="Draws">D</th>
+                                <th title="Losses">L</th>
+                                <th title="Goals For">GF</th>
+                                <th title="Goals Against">GA</th>
+                                <th title="Goal Difference">GD</th>
+                                <th title="Points">Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.rows.map(row => {
+                                const zc = posClass(row.position, league);
+                                const gdc = gdClass(row.gd);
+                                const gdDisp = row.gd && !row.gd.startsWith('-') && row.gd !== '-' && !row.gd.startsWith('+')
+                                    ? (parseFloat(row.gd) > 0 ? '+' + row.gd : row.gd)
+                                    : row.gd;
+                                return `
+                                <tr>
+                                    <td class="st-pos ${zc}">${row.position}</td>
+                                    <td>
+                                        <div class="st-team-cell">
+                                            ${row.logo
+                                                ? `<img src="${row.logo}" alt="${escHtml(row.team)}" class="st-team-logo" loading="lazy" onerror="this.style.display='none'">`
+                                                : ''
+                                            }
+                                            <span class="st-team-name">${escHtml(row.team)}</span>
+                                        </div>
+                                    </td>
+                                    <td>${row.gp}</td>
+                                    <td>${row.w}</td>
+                                    <td>${row.d}</td>
+                                    <td>${row.l}</td>
+                                    <td>${row.gf}</td>
+                                    <td>${row.ga}</td>
+                                    <td class="st-gd ${gdc}">${gdDisp}</td>
+                                    <td class="st-pts">${row.pts}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+        }
+
+        function showLoading() {
+            document.getElementById('standingsContainer').innerHTML =
+                `<div class="content-loading"><div class="spinner"></div><span>Loading standings...</span></div>`;
+            document.getElementById('standingsMeta').textContent = '';
+            document.getElementById('standingsLegend').style.display = 'none';
+        }
+
+        function showError() {
+            document.getElementById('standingsContainer').innerHTML =
+                `<div class="content-error"><p>Could not load standings. Please try again later.</p></div>`;
+        }
+
+        function escHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        async function loadStandings(league, btnEl) {
+            // Update active tab
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+
+            // Return cached data
+            if (cache[league]) {
+                renderTable(cache[league], league);
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const res = await fetch(`/api/standings?league=${encodeURIComponent(league)}`);
+                if (!res.ok) throw new Error('API error');
+                const data = await res.json();
+                cache[league] = data;
+                renderTable(data, league);
+            } catch {
+                showError();
+            }
+        }
+
+        // Load Premier League on start
+        loadStandings('eng.1', document.querySelector('[data-league="eng.1"]'));
+    })();
+    </script>
+</body>
+</html>

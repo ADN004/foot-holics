@@ -52,9 +52,10 @@
 
                 <nav class="primary-nav" id="primaryNav">
                     <a href="index.html" class="active">Home</a>
-                    <a href="#leagues">Leagues</a>
-                    <a href="#" onclick="document.getElementById('heroSearch').focus(); scrollTo(0, 0); return false;">Search</a>
-                    <a href="#about">About</a>
+                    <a href="news.html">News</a>
+                    <a href="standings.html">Standings</a>
+                    <a href="fixtures.html">Fixtures</a>
+                    <a href="about.html">About</a>
                 </nav>
 
                 <div class="cta-group" id="ctaGroup">
@@ -112,6 +113,20 @@
                         Join Telegram
                     </a>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Latest News Widget -->
+    <section class="container home-news-widget">
+        <div class="section-label">
+            <h2>Latest Football News</h2>
+            <a href="news.html" class="see-all">All News <i class="fa-solid fa-arrow-right" style="font-size:0.75rem;"></i></a>
+        </div>
+        <div class="home-news-grid" id="homeNewsGrid">
+            <div class="content-loading" style="grid-column:1/-1;">
+                <div class="spinner"></div>
+                <span>Loading news...</span>
             </div>
         </div>
     </section>
@@ -422,63 +437,56 @@ It’...</p>
                 <h3 class="sidebar-title">Browse by League</h3>
                 <ul class="sidebar-list">
                     <li><a href="#" class="active" onclick="filterLeague('premier-league'); return false;">
-                        <img src="assets/img/logos/leagues/premier-league.png" alt="Premier League" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">⚽</span> Premier League
+                        <img src="assets/img/logos/leagues/premier-league.png" alt="Premier League" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';"> Premier League
                     </a></li>
                     <li><a href="#" onclick="filterLeague('laliga'); return false;">
-                        <img src="assets/img/logos/leagues/laliga.png" alt="La Liga" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">⚽</span> La Liga
+                        <img src="assets/img/logos/leagues/laliga.png" alt="La Liga" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';"> La Liga
                     </a></li>
                     <li><a href="#" onclick="filterLeague('serie-a'); return false;">
-                        <img src="assets/img/logos/leagues/serie-a.png" alt="Serie A" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">⚽</span> Serie A
+                        <img src="assets/img/logos/leagues/serie-a.png" alt="Serie A" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';"> Serie A
                     </a></li>
                     <li><a href="#" onclick="filterLeague('bundesliga'); return false;">
-                        <img src="assets/img/logos/leagues/bundesliga.png" alt="Bundesliga" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">⚽</span> Bundesliga
+                        <img src="assets/img/logos/leagues/bundesliga.png" alt="Bundesliga" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';"> Bundesliga
                     </a></li>
                     <li><a href="#" onclick="filterLeague('ligue-1'); return false;">
-                        <img src="assets/img/logos/leagues/ligue-1.png" alt="Ligue 1" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">⚽</span> Ligue 1
+                        <img src="assets/img/logos/leagues/ligue-1.png" alt="Ligue 1" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';"> Ligue 1
                     </a></li>
                     <li><a href="#" onclick="filterLeague('champions-league'); return false;">
-                        <img src="assets/img/logos/leagues/champions-league.png" alt="Champions League" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">🏆</span> Champions League
+                        <img src="assets/img/logos/leagues/champions-league.png" alt="Champions League" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';"> Champions League
                     </a></li>
                     <li><a href="#" onclick="filterLeague('wc'); return false;">
-                        <img src="assets/img/logos/leagues/world-cup.png" alt="World Cup" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">🏆</span> World Cup 2026
-                    </a></li>
-                    <li><a href="#" onclick="filterLeague('nationals'); return false;">
-                        <img src="assets/img/logos/leagues/nationals.png" alt="Nationals" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">🌍</span> Nationals
-                    </a></li>
-                    <li><a href="#" onclick="filterLeague('others'); return false;">
-                        <span>⚽</span> Others (MLS, ISL, Saudi, etc.)
+                        <img src="assets/img/logos/leagues/world-cup.png" alt="World Cup" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none';"> World Cup 2026
                     </a></li>
                     <li><a href="#" onclick="filterLeague('all'); return false;">
-                        <span>🌍</span> All Leagues
+                        <span style="margin-right:8px;">🌍</span> All Leagues
                     </a></li>
                 </ul>
 
-                <h3 class="sidebar-title" style="margin-top: 2rem;">Quick Links</h3>
+                <!-- Live PL Standings Mini Widget -->
+                <h3 class="sidebar-title" style="margin-top: 2rem;">
+                    <img src="assets/img/logos/leagues/premier-league.png" alt="" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">
+                    PL Standings
+                    <a href="standings.html" style="float:right;font-size:0.75rem;font-weight:600;color:var(--accent);">Full Table</a>
+                </h3>
+                <div id="miniStandings" class="mini-standings">
+                    <div style="font-size:0.8rem;color:var(--muted);text-align:center;padding:8px;">Loading...</div>
+                </div>
+
+                <h3 class="sidebar-title" style="margin-top: 2rem;">Explore</h3>
+                <ul class="sidebar-list">
+                    <li><a href="news.html"><i class="fa-solid fa-newspaper" style="margin-right:8px;color:var(--accent);"></i>Football News</a></li>
+                    <li><a href="standings.html"><i class="fa-solid fa-list-ol" style="margin-right:8px;color:var(--accent);"></i>League Tables</a></li>
+                    <li><a href="fixtures.html"><i class="fa-regular fa-calendar" style="margin-right:8px;color:var(--accent);"></i>Fixtures</a></li>
+                    <li><a href="about.html"><i class="fa-solid fa-circle-info" style="margin-right:8px;color:var(--accent);"></i>About Us</a></li>
+                </ul>
+
+                <h3 class="sidebar-title" style="margin-top: 2rem;">Community</h3>
                 <ul class="sidebar-list">
                     <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">
-                        <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📱</span> WhatsApp Channel
+                        <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'"> WhatsApp Channel
                     </a></li>
                     <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">
-                        <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">✈️</span> Telegram Channel
-                    </a></li>
-                    <li><a href="https://discord.gg/example" target="_blank" rel="noopener noreferrer">
-                        <img src="assets/img/logos/site/discord.png" alt="Discord" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">💬</span> Discord Server
-                    </a></li>
-                </ul>
-
-                <h3 class="sidebar-title" style="margin-top: 2rem;">Filter Matches</h3>
-                <ul class="sidebar-list">
-                    <li><a href="#" onclick="scrollToTop(); return false;">
-                        <span class="live-badge" style="font-size: 0.6rem; padding: 2px 8px;">
-                            <span class="live-dot" style="width: 4px; height: 4px;"></span>
-                            LIVE
-                        </span> Live Now
-                    </a></li>
-                    <li><a href="#" onclick="scrollToTop(); return false;">
-                        <span>🕒</span> Upcoming
-                    </a></li>
-                    <li><a href="index.html">
-                        <span>🏠</span> All Matches
+                        <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;" onerror="this.style.display='none'"> Telegram Channel
                     </a></li>
                 </ul>
             </aside>
@@ -522,8 +530,10 @@ It’...</p>
                     <h4>Quick Links</h4>
                     <ul class="footer-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="#" onclick="document.getElementById('heroSearch').focus(); scrollTo(0, 0); return false;">Search Matches</a></li>
-                        <li><a href="#leagues">Browse Leagues</a></li>
+                        <li><a href="news.html">Football News</a></li>
+                        <li><a href="standings.html">League Standings</a></li>
+                        <li><a href="fixtures.html">Upcoming Fixtures</a></li>
+                        <li><a href="about.html">About Us</a></li>
                         <li><a href="mailto:footholicsin@gmail.com">Contact</a></li>
                     </ul>
                 </div>
@@ -602,6 +612,85 @@ It’...</p>
 
     <!-- JavaScript -->
     <script src="assets/js/main.js" defer></script>
+
+    <!-- Home Page Widgets: News + Mini Standings -->
+    <script>
+    (function () {
+        'use strict';
+
+        function escHtml(s) {
+            if (!s) return '';
+            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            } catch { return ''; }
+        }
+
+        // ── News Widget ──────────────────────────────────────────
+        async function loadHomeNews() {
+            const grid = document.getElementById('homeNewsGrid');
+            if (!grid) return;
+            try {
+                const res = await fetch('/api/news?limit=4');
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                const articles = (data.articles || []).slice(0, 3);
+
+                if (!articles.length) { grid.innerHTML = ''; return; }
+
+                grid.innerHTML = articles.map(a => `
+                    <a href="${escHtml(a.url)}" target="_blank" rel="noopener noreferrer" class="news-card" style="text-decoration:none;">
+                        ${a.image
+                            ? `<img src="${escHtml(a.image)}" alt="${escHtml(a.headline)}" class="news-card-img" loading="lazy" onerror="this.outerHTML='<div class=\\'news-card-img-placeholder\\'>⚽</div>'">`
+                            : `<div class="news-card-img-placeholder">⚽</div>`
+                        }
+                        <div class="news-card-body">
+                            <div class="news-card-meta">
+                                <span class="news-cat-badge">${escHtml(a.category)}</span>
+                                <span class="news-date">${formatDate(a.published)}</span>
+                            </div>
+                            <h3 class="news-card-title">${escHtml(a.headline)}</h3>
+                            <span class="news-card-link">Read more <i class="fa-solid fa-arrow-right" style="font-size:0.75rem;"></i></span>
+                        </div>
+                    </a>`).join('');
+            } catch {
+                grid.innerHTML = `<p style="color:var(--muted);font-size:0.875rem;">Could not load news. <a href="news.html">Visit news page</a></p>`;
+            }
+        }
+
+        // ── Mini Standings Widget ────────────────────────────────
+        async function loadMiniStandings() {
+            const container = document.getElementById('miniStandings');
+            if (!container) return;
+            try {
+                const res = await fetch('/api/standings?league=eng.1');
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                const top5 = (data.rows || []).slice(0, 5);
+
+                if (!top5.length) { container.innerHTML = '<p style="font-size:0.8rem;color:var(--muted);">No data</p>'; return; }
+
+                container.innerHTML = top5.map(row => `
+                    <div class="mini-standings-row">
+                        <span class="mini-pos">${row.position}</span>
+                        ${row.logo ? `<img src="${escHtml(row.logo)}" alt="${escHtml(row.team)}" class="mini-logo" loading="lazy" onerror="this.style.display='none'">` : ''}
+                        <span class="mini-team">${escHtml(row.team)}</span>
+                        <span class="mini-pts">${escHtml(row.pts)}</span>
+                    </div>`).join('');
+            } catch {
+                container.innerHTML = '<p style="font-size:0.8rem;color:var(--muted);">Could not load standings.</p>';
+            }
+        }
+
+        loadHomeNews();
+        loadMiniStandings();
+    })();
+    </script>
 
     <!-- Adsterra Scripts Section -->
     <!-- Popunder Ad Scripts REMOVED - These were causing automatic redirects -->

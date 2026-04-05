@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Upcoming football fixtures and match schedules for Premier League, La Liga, Bundesliga, Serie A, Ligue 1 and Champions League - Foot Holics.">
+    <meta name="keywords" content="football fixtures, upcoming matches, premier league schedule, la liga fixtures, champions league matches, football schedule 2026">
+
+    <meta property="og:title" content="Football Fixtures & Schedule - Foot Holics">
+    <meta property="og:description" content="Find upcoming fixtures for all major European football leagues updated daily.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Football Fixtures & Schedule - Foot Holics">
+
+    <title>Upcoming Football Fixtures - Foot Holics</title>
+
+    <link rel="canonical" href="https://footholics.in/fixtures.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+    <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
+</head>
+<body>
+    <!-- Header -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="logo">
+                    <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="logo-icon">
+                    <span>Foot Holics</span>
+                </a>
+                <nav class="primary-nav" id="primaryNav">
+                    <a href="index.html">Home</a>
+                    <a href="news.html">News</a>
+                    <a href="standings.html">Standings</a>
+                    <a href="fixtures.html" class="active">Fixtures</a>
+                    <a href="about.html">About</a>
+                </nav>
+                <div class="cta-group" id="ctaGroup">
+                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">WhatsApp</a>
+                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Telegram</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Hero -->
+    <section class="page-hero">
+        <div class="container">
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a>
+                <span class="breadcrumb-separator">/</span>
+                <span>Fixtures</span>
+            </nav>
+            <h1 class="page-hero-title">Upcoming Fixtures</h1>
+            <p class="page-hero-sub">Next 14 days of matches across all major European leagues</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container" style="margin-top:2rem;margin-bottom:4rem;">
+        <div style="display:grid;grid-template-columns:1fr 300px;gap:2rem;align-items:start;">
+
+            <!-- Fixtures Column -->
+            <section>
+                <!-- League filter tabs -->
+                <div class="tab-nav" id="fixtureTabs" role="tablist">
+                    <button class="tab-btn active" data-league="all" onclick="filterFixtures('all', this)">All Leagues</button>
+                    <button class="tab-btn" data-league="eng.1" onclick="filterFixtures('eng.1', this)">
+                        <img src="assets/img/logos/leagues/premier-league.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
+                        Premier League
+                    </button>
+                    <button class="tab-btn" data-league="esp.1" onclick="filterFixtures('esp.1', this)">
+                        <img src="assets/img/logos/leagues/laliga.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
+                        La Liga
+                    </button>
+                    <button class="tab-btn" data-league="ger.1" onclick="filterFixtures('ger.1', this)">
+                        <img src="assets/img/logos/leagues/bundesliga.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
+                        Bundesliga
+                    </button>
+                    <button class="tab-btn" data-league="ita.1" onclick="filterFixtures('ita.1', this)">
+                        <img src="assets/img/logos/leagues/serie-a.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
+                        Serie A
+                    </button>
+                    <button class="tab-btn" data-league="fra.1" onclick="filterFixtures('fra.1', this)">
+                        <img src="assets/img/logos/leagues/ligue-1.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
+                        Ligue 1
+                    </button>
+                    <button class="tab-btn" data-league="UEFA.CHAMPIONS" onclick="filterFixtures('UEFA.CHAMPIONS', this)">
+                        <img src="assets/img/logos/leagues/champions-league.png" alt="" style="width:14px;height:14px;vertical-align:middle;margin-right:3px;" onerror="this.remove();">
+                        UCL
+                    </button>
+                </div>
+
+                <!-- Fixture list -->
+                <div id="fixturesContainer"></div>
+
+                <div id="fixturesLoading" class="content-loading">
+                    <div class="spinner"></div>
+                    <span>Loading fixtures...</span>
+                </div>
+
+                <div id="fixturesError" class="content-error" style="display:none;">
+                    <p>Could not load fixtures right now. Please try again later.</p>
+                </div>
+            </section>
+
+            <!-- Sidebar -->
+            <aside class="sidebar" style="top:100px;">
+                <h3 class="sidebar-title">Quick Links</h3>
+                <ul class="sidebar-list">
+                    <li><a href="index.html"><i class="fa-solid fa-play" style="margin-right:6px;color:var(--accent);"></i>Live Streams</a></li>
+                    <li><a href="standings.html"><i class="fa-solid fa-list-ol" style="margin-right:6px;color:var(--accent);"></i>League Tables</a></li>
+                    <li><a href="news.html"><i class="fa-solid fa-newspaper" style="margin-right:6px;color:var(--accent);"></i>Football News</a></li>
+                    <li><a href="about.html"><i class="fa-solid fa-circle-info" style="margin-right:6px;color:var(--accent);"></i>About Us</a></li>
+                </ul>
+
+                <h3 class="sidebar-title" style="margin-top:2rem;">Join Community</h3>
+                <ul class="sidebar-list">
+                    <li>
+                        <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">
+                            <img src="assets/img/logos/site/whatsapp.png" alt="WhatsApp" style="width:18px;height:18px;" onerror="this.style.display='none'">
+                            WhatsApp Channel
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">
+                            <img src="assets/img/logos/site/telegram.png" alt="Telegram" style="width:18px;height:18px;" onerror="this.style.display='none'">
+                            Telegram Channel
+                        </a>
+                    </li>
+                </ul>
+
+                <h3 class="sidebar-title" style="margin-top:2rem;">
+                    <i class="fa-solid fa-circle" style="color:#ef4444;font-size:0.6rem;vertical-align:middle;margin-right:4px;"></i>
+                    Watch Live
+                </h3>
+                <p style="font-size:0.85rem;color:var(--muted);line-height:1.5;">
+                    Stream football matches live when they kick off. Multiple streams available.
+                </p>
+                <a href="index.html" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:var(--space-2);">Go to Live Streams</a>
+            </aside>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Foot Holics</h4>
+                    <p>Your premium football destination for live match coverage, standings, fixtures and the latest news from world football.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="news.html">News</a></li>
+                        <li><a href="standings.html">Standings</a></li>
+                        <li><a href="fixtures.html">Fixtures</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms & Conditions</a></li>
+                        <li><a href="dmca.html">DMCA / Copyright</a></li>
+                        <li><a href="disclaimer.html">Disclaimer</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Connect</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">WhatsApp Channel</a></li>
+                        <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Foot Holics. All rights reserved.</p>
+                <p style="margin-top:0.5rem;font-size:0.8rem;">Data sourced from ESPN. All trademarks belong to their respective owners.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // Mobile menu
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const primaryNav = document.getElementById('primaryNav');
+        const ctaGroup = document.getElementById('ctaGroup');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                primaryNav.classList.toggle('mobile-open');
+                ctaGroup.classList.toggle('mobile-open');
+                mobileMenuBtn.innerHTML = primaryNav.classList.contains('mobile-open') ? '✕' : '☰';
+            });
+        }
+
+        let allFixtures = [];
+        let activeLeague = 'all';
+
+        const LEAGUE_COLORS = {
+            'eng.1':          '#3d195b',
+            'esp.1':          '#ee8707',
+            'ger.1':          '#d20515',
+            'ita.1':          '#024494',
+            'fra.1':          '#002395',
+            'UEFA.CHAMPIONS': '#00336a',
+        };
+
+        function formatMatchDate(iso) {
+            if (!iso) return '';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            } catch { return ''; }
+        }
+
+        function groupByDate(fixtures) {
+            const groups = {};
+            fixtures.forEach(f => {
+                const day = f.date ? f.date.slice(0, 10) : 'TBD';
+                if (!groups[day]) groups[day] = [];
+                groups[day].push(f);
+            });
+            return groups;
+        }
+
+        function formatDayHeader(dateStr) {
+            if (dateStr === 'TBD') return 'TBD';
+            try {
+                const d = new Date(dateStr + 'T12:00:00Z');
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+
+                const dStr = d.toDateString();
+                if (dStr === today.toDateString()) return 'Today';
+                if (dStr === tomorrow.toDateString()) return 'Tomorrow';
+
+                return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+            } catch { return dateStr; }
+        }
+
+        function escHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function renderFixtures(fixtures) {
+            const container = document.getElementById('fixturesContainer');
+
+            if (!fixtures.length) {
+                container.innerHTML = `<div class="content-error">
+                    <p>No upcoming fixtures found for this selection.</p>
+                    <p style="margin-top:0.5rem;font-size:0.875rem;">Check back closer to match days, or select a different league.</p>
+                </div>`;
+                return;
+            }
+
+            const groups = groupByDate(fixtures);
+            const sortedDays = Object.keys(groups).sort();
+
+            container.innerHTML = sortedDays.map(day => {
+                const matches = groups[day];
+                return `
+                    <div class="fixtures-day">
+                        <div class="fixtures-day-header">
+                            <i class="fa-regular fa-calendar"></i>
+                            ${formatDayHeader(day)}
+                            <span style="margin-left:auto;font-size:0.75rem;font-weight:500;color:var(--muted);">${matches.length} match${matches.length !== 1 ? 'es' : ''}</span>
+                        </div>
+                        ${matches.map(m => {
+                            const color = LEAGUE_COLORS[m.leagueCode] || '#D4AF37';
+                            const isLive = m.statusState === 'in';
+                            const isCompleted = m.completed;
+                            const scoreHtml = isLive || isCompleted
+                                ? `<div class="fixture-score">${escHtml(m.homeScore)} - ${escHtml(m.awayScore)}</div>`
+                                : `<div class="fixture-time">${formatMatchDate(m.date)}</div>`;
+                            const statusClass = isLive ? 'live' : '';
+                            return `
+                                <div class="fixture-card">
+                                    <div class="fixture-league-dot" style="background:${color};"></div>
+                                    ${scoreHtml}
+                                    <div class="fixture-teams">
+                                        <div class="fixture-team-row">
+                                            ${m.homeLogo ? `<img src="${escHtml(m.homeLogo)}" alt="" class="fixture-team-logo" loading="lazy" onerror="this.style.display='none'">` : ''}
+                                            <span class="fixture-team-name">${escHtml(m.homeTeam)}</span>
+                                        </div>
+                                        <div class="fixture-team-row">
+                                            ${m.awayLogo ? `<img src="${escHtml(m.awayLogo)}" alt="" class="fixture-team-logo" loading="lazy" onerror="this.style.display='none'">` : ''}
+                                            <span class="fixture-team-name">${escHtml(m.awayTeam)}</span>
+                                        </div>
+                                    </div>
+                                    <div class="fixture-status ${statusClass}">${isLive ? 'LIVE' : escHtml(m.statusDesc)}</div>
+                                    <div class="fixture-league-tag">${escHtml(m.league)}</div>
+                                </div>`;
+                        }).join('')}
+                    </div>`;
+            }).join('');
+        }
+
+        function filterFixtures(league, btnEl) {
+            activeLeague = league;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+
+            const filtered = league === 'all'
+                ? allFixtures
+                : allFixtures.filter(f => f.leagueCode === league);
+
+            renderFixtures(filtered);
+        }
+
+        async function loadFixtures() {
+            const loading = document.getElementById('fixturesLoading');
+            const errorEl = document.getElementById('fixturesError');
+
+            try {
+                const res = await fetch('/api/fixtures');
+                if (!res.ok) throw new Error('API error');
+                const data = await res.json();
+                allFixtures = data.fixtures || [];
+
+                loading.style.display = 'none';
+
+                if (!allFixtures.length) {
+                    document.getElementById('fixturesContainer').innerHTML =
+                        `<div class="content-error"><p>No upcoming fixtures in the next 14 days.</p></div>`;
+                    return;
+                }
+
+                renderFixtures(allFixtures);
+            } catch {
+                loading.style.display = 'none';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        loadFixtures();
+    })();
+    </script>
+</body>
+</html>
