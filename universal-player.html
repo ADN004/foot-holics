@@ -459,6 +459,7 @@
         var key        = params.get('key')      || '';
         var key2       = params.get('key2')     || '';
         var titleStr   = params.get('title')    ? decodeURIComponent(params.get('title')) : 'Live Stream';
+        var thumbUrl   = params.get('thumb')    ? decodeURIComponent(params.get('thumb')) : 'assets/img/logos/site/logo.png';
         var proxyParam = params.get('proxy')    || '';
         var proxyUrl   = params.get('proxyUrl') || '';
 
@@ -561,6 +562,7 @@
             v.setAttribute('webkit-playsinline', '');
             v.setAttribute('x5-playsinline', '');
             v.preload = 'auto';
+            if (thumbUrl) v.poster = thumbUrl;
             $container.appendChild(v);
             return v;
         }

@@ -217,7 +217,7 @@ def get_type_param(url: str) -> str:
     return ""  # let the player auto-detect
 
 
-def get_player_url(url: str, base_url: str = "https://footholics.in", title: str = "") -> str:
+def get_player_url(url: str, base_url: str = "https://footholics.in", title: str = "", thumb: str = "") -> str:
     """
     Generate a universal-player.html URL for any stream type.
     Handles HLS, MP4, DASH, iframes, YouTube, Twitch and unknown streams.
@@ -226,6 +226,7 @@ def get_player_url(url: str, base_url: str = "https://footholics.in", title: str
         url: Original stream URL
         base_url: Base URL of the website
         title: Optional match title shown as overlay in the player
+        thumb: Optional thumbnail/poster image URL shown before stream loads
 
     Returns:
         Full player URL with encoded stream
@@ -245,6 +246,8 @@ def get_player_url(url: str, base_url: str = "https://footholics.in", title: str
         params += f"&type={type_hint}"
     if title:
         params += f"&title={quote(title)}"
+    if thumb:
+        params += f"&thumb={quote(thumb)}"
 
     return f"{base_url}/universal-player.html?{params}"
 
@@ -2327,8 +2330,12 @@ def generate_html(data: Dict[str, Any]) -> str:
     stream_urls = data.get("stream_urls", ["#", "#", "#", "#"])
     player_urls = []
 
-    # Build universal-player.html URLs for each stream with type hint + match title
+    # Build universal-player.html URLs for each stream with type hint + match title + thumbnail
     encoded_title = quote(data.get("match_name", ""))
+    # Thumbnail: use explicit thumb from data, else home team logo, else nothing
+    thumb_src = data.get("thumbnail", "") or home_logo or ""
+    encoded_thumb = quote(thumb_src) if thumb_src else ""
+
     for i in range(4):
         url = stream_urls[i] if i < len(stream_urls) else "#"
 
@@ -2340,6 +2347,8 @@ def generate_html(data: Dict[str, Any]) -> str:
                 params += f"&type={type_hint}"
             if encoded_title:
                 params += f"&title={encoded_title}"
+            if encoded_thumb:
+                params += f"&thumb={encoded_thumb}"
             player_url = f"universal-player.html?{params}"
         else:
             player_url = "#"
