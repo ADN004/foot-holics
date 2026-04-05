@@ -2380,9 +2380,9 @@ def generate_html(data: Dict[str, Any]) -> str:
 
     # Build universal-player.html URLs for each stream with type hint + match title + thumbnail
     encoded_title = quote(data.get("match_name", ""))
-    # Thumbnail: use explicit thumb from data, else home team logo, else nothing
-    thumb_src = data.get("thumbnail", "") or home_logo or ""
-    encoded_thumb = quote(thumb_src) if thumb_src else ""
+    # Thumbnail: use explicit thumb from data, else the site-wide default image
+    thumb_src = data.get("thumbnail", "") or "assets/img/default-player-thumb.jpg"
+    encoded_thumb = quote(thumb_src)
 
     for i in range(4):
         url = stream_urls[i] if i < len(stream_urls) else "#"
