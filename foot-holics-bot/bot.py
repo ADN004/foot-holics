@@ -10,7 +10,7 @@ import re
 import glob
 import base64
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 from urllib.parse import quote
 from dotenv import load_dotenv
@@ -55,6 +55,9 @@ def is_authorized(user_id: int) -> bool:
     """Return True if the user is allowed to use the bot."""
     return not ALLOWED_USER_IDS or user_id in ALLOWED_USER_IDS
 
+# India Standard Time (UTC+5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
+
 # Conversation states
 (
     MAIN_MENU,
@@ -64,7 +67,7 @@ def is_authorized(user_id: int) -> bool:
     STADIUM,
     PREVIEW,
     STREAM_URLS,
-    IMAGE_NAME,
+    POSTER_IMAGE,
     DELETE_SELECT,
     UPDATE_SELECT,
     UPDATE_FIELD_CHOICE,
@@ -1249,11 +1252,12 @@ async def update_field_choice_handler(update: Update, context: ContextTypes.DEFA
         return UPDATE_FIELD_INPUT
 
     elif field == "datetime":
+        now_ist = datetime.now(IST).strftime("%d-%m-%Y %H:%M")
         await query.edit_message_text(
             f"📅 **Update Date & Time**\n\n"
-            f"Current: `{context.user_data.get('current_date', 'N/A')} at {context.user_data.get('current_time', 'N/A')} GMT`\n\n"
-            f"Enter new date and time (format: YYYY-MM-DD HH:MM):\n"
-            f"Example: `2025-12-25 20:00`\n\n"
+            f"Current: `{context.user_data.get('current_date', 'N/A')} at {context.user_data.get('current_time', 'N/A')} IST`\n\n"
+            f"Enter new date and time in IST (format: DD-MM-YYYY HH:MM):\n"
+            f"Example: `{now_ist}`\n\n"
             f"_Type /cancel to go back_",
             parse_mode="Markdown"
         )
@@ -1600,12 +1604,18 @@ async def update_field_input_handler(update: Update, context: ContextTypes.DEFAU
 
     elif field == "datetime":
         try:
-            dt = datetime.strptime(text, "%Y-%m-%d %H:%M")
-            context.user_data["current_date"] = dt.strftime("%B %d, %Y")
-            context.user_data["current_time"] = dt.strftime("%H:%M")
-            context.user_data["current_datetime_obj"] = dt
+            ist_dt = datetime.strptime(text, "%d-%m-%Y %H:%M")
+            utc_dt = ist_dt - timedelta(hours=5, minutes=30)
+            context.user_data["current_date"] = ist_dt.strftime("%B %d, %Y")
+            context.user_data["current_time"] = ist_dt.strftime("%H:%M")
+            context.user_data["current_utc_time"] = utc_dt.strftime("%H:%M")
+            context.user_data["current_datetime_obj"] = utc_dt
         except ValueError:
-            await update.message.reply_text("❌ Invalid format! Use: YYYY-MM-DD HH:MM")
+            now_ist = datetime.now(IST).strftime("%d-%m-%Y %H:%M")
+            await update.message.reply_text(
+                f"❌ Invalid format! Use: `DD-MM-YYYY HH:MM` (IST)\n\nExample: `{now_ist}`",
+                parse_mode="Markdown"
+            )
             return UPDATE_FIELD_INPUT
 
     elif field == "stadium":
@@ -1777,9 +1787,10 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     )
 
         if "current_date" in context.user_data:
+            utc_t = context.user_data.get("current_utc_time", context.user_data["current_time"])
             html_content = re.sub(
-                r'<span>(.*?) at (.*?) GMT</span>',
-                f'<span>{context.user_data["current_date"]} at {context.user_data["current_time"]} GMT</span>',
+                r'<span>(.*?) at (.*?) (?:GMT|IST.*?)</span>',
+                f'<span>{context.user_data["current_date"]} at {context.user_data["current_time"]} IST ({utc_t} UTC)</span>',
                 html_content
             )
 
@@ -2073,41 +2084,47 @@ async def match_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["home_team"] = teams[0].strip()
     context.user_data["away_team"] = teams[1].strip()
 
+    now_ist = datetime.now(IST).strftime("%d-%m-%Y %H:%M")
     await update.message.reply_text(
         f"✅ Match: **{text}**\n\n"
-        f"📅 **Step 2/7:** Please send the date and time:\n"
-        f"`YYYY-MM-DD HH:MM`\n\n"
-        f"Example: `2025-11-05 20:00`",
+        f"📅 **Step 2/7:** Please send the date and time (IST):\n"
+        f"`DD-MM-YYYY HH:MM`\n\n"
+        f"Example: `{now_ist}`",
         parse_mode="Markdown"
     )
     return DATE_TIME
 
 
 async def date_time(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Store date/time and show league selection."""
+    """Store date/time (IST input) and show league selection."""
     text = update.message.text.strip()
 
-    # Validate format
+    # Validate format DD-MM-YYYY HH:MM
     try:
-        match_datetime = datetime.strptime(text, "%Y-%m-%d %H:%M")
-
-        # Check if date is in the past
-        if match_datetime < datetime.now():
-            await update.message.reply_text(
-                "⚠️ Warning: This date is in the past. Continue anyway?\n"
-                "Type the date again to confirm or send a new date."
-            )
+        ist_dt = datetime.strptime(text, "%d-%m-%Y %H:%M")
     except ValueError:
+        now_ist = datetime.now(IST).strftime("%d-%m-%Y %H:%M")
         await update.message.reply_text(
-            "❌ Invalid format! Use: `YYYY-MM-DD HH:MM`\n\n"
-            "Example: `2025-11-05 20:00`",
+            "❌ Invalid format! Use: `DD-MM-YYYY HH:MM` (IST)\n\n"
+            f"Example: `{now_ist}`",
             parse_mode="Markdown"
         )
         return DATE_TIME
 
-    context.user_data["date"] = match_datetime.strftime("%Y-%m-%d")
-    context.user_data["time"] = match_datetime.strftime("%H:%M")
-    context.user_data["datetime_obj"] = match_datetime
+    # Convert IST → UTC for ISO date / JSON-LD
+    utc_dt = ist_dt - timedelta(hours=5, minutes=30)
+
+    # Check if date is in the past (compare naive IST datetimes)
+    if ist_dt < datetime.now(IST).replace(tzinfo=None):
+        await update.message.reply_text(
+            "⚠️ Warning: This date is in the past. Continue anyway?\n"
+            "Send the same date again to confirm, or send a new date."
+        )
+
+    context.user_data["date"] = ist_dt.strftime("%Y-%m-%d")   # filename slug (YYYY-MM-DD)
+    context.user_data["time"] = ist_dt.strftime("%H:%M")        # IST display time
+    context.user_data["utc_time"] = utc_dt.strftime("%H:%M")   # UTC display time
+    context.user_data["datetime_obj"] = utc_dt                  # UTC for ISO date / JSON-LD
 
     # Create inline keyboard for league selection
     keyboard = [
@@ -2134,7 +2151,7 @@ async def date_time(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        f"✅ Date & Time: **{text}**\n\n"
+        f"✅ Date & Time: **{text} IST** ({context.user_data['utc_time']} UTC)\n\n"
         f"🏆 **Step 3/7:** Select the league:",
         parse_mode="Markdown",
         reply_markup=reply_markup
@@ -2245,39 +2262,84 @@ async def stream_urls(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
         context.user_data["stream_urls"] = urls
 
-    # Generate suggested image name
+    # Generate suggested image filename
     home_slug = slugify(context.user_data["home_team"])
     away_slug = slugify(context.user_data["away_team"])
-    suggested_name = f"{home_slug}-{away_slug}-poster.jpg"
+    date_slug = context.user_data["date"]
+    suggested_name = f"{date_slug}-{home_slug}-vs-{away_slug}-poster.jpg"
 
     context.user_data["suggested_image"] = suggested_name
 
     stream_count = len(context.user_data["stream_urls"])
 
+    date_slug = context.user_data["date"]
+    home_slug_preview = slugify(context.user_data["home_team"])
+    away_slug_preview = slugify(context.user_data["away_team"])
+    preview_name = f"{date_slug}-{home_slug_preview}-vs-{away_slug_preview}-poster"
+
     await update.message.reply_text(
         f"✅ {stream_count} stream URL(s) saved!\n\n"
-        f"🖼️ **Step 7/7:** Image file name:\n\n"
-        f"Suggested: `{suggested_name}`\n\n"
-        f"Press Enter to accept or type a custom name.\n"
-        f"(Just the filename, it will be saved in `assets/img/`)",
+        f"🖼️ **Step 7/7:** Match Poster Image\n\n"
+        f"Send me the poster image (JPG/PNG/WebP, 1920×1080px recommended).\n"
+        f"You can send it as a **photo** or as a **file** (file = original quality, no compression).\n\n"
+        f"Will be saved as: `assets/img/{preview_name}.<ext>`\n"
+        f"_(date is included so same teams playing again won't clash)_\n\n"
+        f"Or type `skip` to use the default thumbnail.",
         parse_mode="Markdown"
     )
-    return IMAGE_NAME
+    return POSTER_IMAGE
 
 
-async def image_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Store image name and generate all code."""
-    text = update.message.text.strip()
+async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Receive match poster image (photo or document) or skip, then generate all code."""
+    # Base filename without extension (date already included → no clashes for same teams)
+    image_base = os.path.splitext(context.user_data["suggested_image"])[0]
+    image_file = context.user_data["suggested_image"]  # fallback with .jpg
+    poster_saved = False
 
-    if not text or text.lower() in ["ok", "yes", "confirm"]:
-        image_file = context.user_data["suggested_image"]
+    # Determine whether a photo or document image was sent
+    file_id = None
+    if update.message.photo:
+        # Telegram compresses photos → always JPEG
+        file_id = update.message.photo[-1].file_id
+    elif update.message.document and (update.message.document.mime_type or "").startswith("image/"):
+        # Original-quality file (PNG, WebP, JPG, etc.)
+        file_id = update.message.document.file_id
+
+    if file_id:
+        try:
+            tg_file = await context.bot.get_file(file_id)
+
+            # Auto-detect extension from Telegram's file_path
+            _, ext = os.path.splitext(tg_file.file_path)
+            ext = ext.lower()
+            if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+                ext = '.jpg'  # safe fallback
+
+            image_file = image_base + ext
+
+            project_root = get_project_root()
+            img_dir = os.path.join(project_root, "assets", "img")
+            os.makedirs(img_dir, exist_ok=True)
+            save_path = os.path.join(img_dir, image_file)
+            await tg_file.download_to_drive(save_path)
+            poster_saved = True
+            await update.message.reply_text(
+                f"✅ Poster saved as `assets/img/{image_file}`",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            await update.message.reply_text(
+                f"⚠️ Could not save poster image: {e}\nUsing default thumbnail instead."
+            )
+            image_file = "default-player-thumb.jpg"
     else:
-        # Ensure it has an image extension
-        if not any(text.lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp"]):
-            text += ".jpg"
-        image_file = text
+        # Text message — "skip" or anything else
+        image_file = "default-player-thumb.jpg"
+        await update.message.reply_text("⏭️ Using default thumbnail.")
 
     context.user_data["image_file"] = image_file
+    context.user_data["poster_saved"] = poster_saved
 
     # Generate all code
     await update.message.reply_text("⏳ Generating code files... Please wait.")
@@ -2417,6 +2479,7 @@ def generate_html(data: Dict[str, Any]) -> str:
     html = html.replace("{{DATE_SHORT}}", date_obj.strftime("%b %d, %Y"))
     html = html.replace("{{ISO_DATE}}", iso_date)
     html = html.replace("{{TIME}}", data["time"])
+    html = html.replace("{{UTC_TIME}}", data.get("utc_time", date_obj.strftime("%H:%M")))
     html = html.replace("{{LEAGUE}}", data["league"])
     html = html.replace("{{LEAGUE_SLUG}}", data["league_slug"])
     html = html.replace("{{STADIUM}}", data["stadium"])
@@ -2547,7 +2610,16 @@ async def send_generated_files(
         caption="🏠 **Homepage Card** (Backup - Already added to index.html!)"
     )
 
-    # Send simplified instructions
+    # Build push instructions
+    poster_saved = context.user_data.get("poster_saved", False)
+    image_file = context.user_data.get("image_file", "default-player-thumb.jpg")
+    match_name = context.user_data.get("match_name", "match")
+
+    if poster_saved:
+        poster_note = f"• Poster image saved to `assets/img/{image_file}`"
+    else:
+        poster_note = f"• Using default thumbnail (`assets/img/default-player-thumb.jpg`)"
+
     instructions = f"""
 🎉 **MATCH CREATED & INTEGRATED!**
 
@@ -2555,23 +2627,18 @@ async def send_generated_files(
 • HTML file copied to project root
 • Entry added to `data/events.json`
 • Card added to `index.html`
+{poster_note}
 
 📋 **You Just Need To:**
 
-1️⃣ **Upload Image:**
-   Upload match poster to `assets/img/{context.user_data['image_file']}`
-   Recommended size: 1200x630px
-
-2️⃣ **Commit and push:**
+**Commit and push:**
 ```bash
 git add .
-git commit -m "Add {context.user_data['match_name']} match"
+git commit -m "Add {match_name} match"
 git push
 ```
 
 🚀 **That's it!** Your match will be live in 60 seconds!
-
-💡 **Tip:** The files sent above are backups in case you need them later.
 """
 
     await update.message.reply_text(instructions, parse_mode="Markdown")
@@ -2773,7 +2840,7 @@ def get_inline_event_template() -> str:
                             <line x1="8" y1="2" x2="8" y2="6"></line>
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
-                        <span>{{DATE}} at {{TIME}} GMT</span>
+                        <span>{{DATE}} at {{TIME}} IST ({{UTC_TIME}} UTC)</span>
                     </div>
                     <div class="match-meta-item">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
@@ -3095,7 +3162,7 @@ def get_inline_card_template() -> str:
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
-                                <span>{{TIME}} GMT</span>
+                                <span>{{TIME}} IST</span>
                             </div>
                             <div class="match-meta-item">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -3163,7 +3230,11 @@ def main() -> None:
             STADIUM: [MessageHandler(filters.TEXT & ~filters.COMMAND, stadium)],
             PREVIEW: [MessageHandler(filters.TEXT & ~filters.COMMAND, preview)],
             STREAM_URLS: [MessageHandler(filters.TEXT & ~filters.COMMAND, stream_urls)],
-            IMAGE_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, image_name)],
+            POSTER_IMAGE: [
+                MessageHandler(filters.PHOTO, poster_image),
+                MessageHandler(filters.Document.IMAGE, poster_image),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, poster_image),
+            ],
             DELETE_SELECT: [
                 CallbackQueryHandler(delete_match_handler, pattern="^delete_"),
                 CallbackQueryHandler(confirm_delete_handler, pattern="^confirm_delete_"),
