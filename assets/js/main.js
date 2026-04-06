@@ -488,60 +488,13 @@
     }, 500);
   }
 
-  // Trigger popup on scroll (after scrolling 400px)
-  function checkScrollForPopup() {
-    if (!popupTriggered && !popupShown) {
-      const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-
-      if (scrollPosition > 400) {
-        popupTriggered = true;
-        createTelegramPopup();
-
-        // Remove scroll listener after popup is shown
-        window.removeEventListener('scroll', checkScrollForPopup);
-      }
-    }
-  }
-
-  // Also show popup after 10 seconds if user hasn't scrolled
+  // Show popup once per session after 60 seconds — no scroll trigger
   setTimeout(() => {
     if (!popupTriggered && !popupShown) {
       popupTriggered = true;
       createTelegramPopup();
     }
-  }, 10000);
-
-  // Add scroll listener
-  window.addEventListener('scroll', checkScrollForPopup);
-
-  // ========================================
-  // SPLASH SCREEN
-  // ========================================
-
-  // Show splash only on first visit of session
-  const splashShown = sessionStorage.getItem('splashShown');
-
-  if (!splashShown) {
-    // Create splash screen
-    const splash = document.createElement('div');
-    splash.className = 'splash-screen';
-    splash.innerHTML = `
-      <div class="splash-logo">
-        <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="splash-logo-icon">
-        <div class="splash-logo-text">Foot Holics</div>
-        <div class="splash-logo-tagline">Live. Passion. Football.</div>
-      </div>
-    `;
-
-    document.body.appendChild(splash);
-
-    // Mark as shown and remove after animation
-    sessionStorage.setItem('splashShown', 'true');
-
-    setTimeout(() => {
-      splash.remove();
-    }, 2600);
-  }
+  }, 60000);
 
   // ========================================
   // DARK / LIGHT THEME TOGGLE
