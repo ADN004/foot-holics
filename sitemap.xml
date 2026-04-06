@@ -41,6 +41,13 @@
         <priority>0.7</priority>
     </url>
 
+    <url>
+        <loc>https://footholics.in/contact.html</loc>
+        <lastmod>2026-04-06</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
     <!-- Event Detail Pages -->
     <url>
         <loc>https://footholics.in/2026-04-04-barcelona-vs-atletico-madrid.html</loc>

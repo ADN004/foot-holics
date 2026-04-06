@@ -90,13 +90,14 @@
                     Your premium destination for football news, live standings, fixtures and in-depth match coverage from around the world.
                 </p>
 
-                <div class="search-box">
+                <div class="search-box" id="heroSearchBox">
                     <input
                         type="text"
                         class="search-input"
-                        placeholder="Search for teams, leagues, or matches..."
+                        placeholder="Search news, teams, leagues, fixtures..."
                         id="heroSearch"
-                        aria-label="Search matches"
+                        aria-label="Search"
+                        autocomplete="off"
                     >
                     <button class="search-btn" aria-label="Search">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -104,6 +105,7 @@
                             <path d="m21 21-4.35-4.35"></path>
                         </svg>
                     </button>
+                    <div class="search-results-dropdown" id="searchDropdown" role="listbox" aria-label="Search results"></div>
                 </div>
 
                 <div class="cta-group" style="justify-content: center; margin-top: 2rem;">

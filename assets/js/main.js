@@ -57,83 +57,189 @@
   });
 
   // ========================================
-  // Hero Search Functionality
+  // Hero Search — Live Dropdown
   // ========================================
+
+  (function initHeroSearch() {
   const heroSearch = document.getElementById('heroSearch');
+  const searchDropdown = document.getElementById('searchDropdown');
   const searchBtn = document.querySelector('.search-btn');
 
-  function performSearch(query) {
-    query = query.trim().toLowerCase();
+  if (!heroSearch || !searchDropdown) return; // only runs on pages with the search box
 
-    if (query.length === 0) {
-      // Show all matches if search is empty
-      document.querySelectorAll('.match-card').forEach(card => {
-        card.style.display = 'block';
-      });
+  // ── Static page shortcuts ───────────────────────────────────────────────
+  const STATIC_PAGES = [
+    { title: 'Football News', meta: 'Latest news from Premier League, La Liga, UCL & more', url: 'news.html', icon: '📰', badge: 'Page' },
+    { title: 'League Standings', meta: 'Tables for Premier League, La Liga, Bundesliga, Serie A', url: 'standings.html', icon: '📊', badge: 'Page' },
+    { title: 'Upcoming Fixtures', meta: 'Next 14 days of fixtures across all major leagues', url: 'fixtures.html', icon: '📅', badge: 'Page' },
+    { title: 'About Foot Holics', meta: 'Who we are and what we cover', url: 'about.html', icon: 'ℹ️', badge: 'Page' },
+    { title: 'Contact Us', meta: 'Get in touch with our editorial team', url: 'contact.html', icon: '✉️', badge: 'Page' },
+    { title: 'Privacy Policy', meta: 'How we handle your data and cookies', url: 'privacy.html', icon: '🔒', badge: 'Legal' },
+  ];
+
+  // League keyword shortcuts → redirect to standings/fixtures with right tab
+  const LEAGUE_SHORTCUTS = [
+    { keywords: ['premier league', 'epl', 'pl', 'england'], title: 'Premier League Standings', url: 'standings.html?league=eng.1', badge: 'Standings' },
+    { keywords: ['la liga', 'laliga', 'spain', 'spanish'], title: 'La Liga Standings', url: 'standings.html?league=esp.1', badge: 'Standings' },
+    { keywords: ['bundesliga', 'germany', 'german'], title: 'Bundesliga Standings', url: 'standings.html?league=ger.1', badge: 'Standings' },
+    { keywords: ['serie a', 'italy', 'italian'], title: 'Serie A Standings', url: 'standings.html?league=ita.1', badge: 'Standings' },
+    { keywords: ['ligue 1', 'france', 'french'], title: 'Ligue 1 Standings', url: 'standings.html?league=fra.1', badge: 'Standings' },
+    { keywords: ['champions league', 'ucl', 'cl', 'europa'], title: 'Champions League Standings', url: 'standings.html?league=UEFA.CHAMPIONS', badge: 'Standings' },
+    { keywords: ['fixture', 'schedule', 'upcoming', 'next match'], title: 'Upcoming Fixtures', url: 'fixtures.html', badge: 'Fixtures' },
+  ];
+
+  // ── Match cards index (built once from DOM) ─────────────────────────────
+  const MATCH_INDEX = Array.from(document.querySelectorAll('.match-card')).map(card => ({
+    title: card.querySelector('.match-title')?.textContent?.trim() || '',
+    league: card.querySelector('.league-badge')?.textContent?.trim() || '',
+    date: card.querySelector('.match-meta')?.textContent?.trim() || '',
+    url: card.querySelector('.match-link')?.getAttribute('href') || '#',
+    icon: '⚽',
+    badge: 'Match',
+  }));
+
+  // ── News cache ──────────────────────────────────────────────────────────
+  let _newsCache = null;
+  let _newsFetchPromise = null;
+
+  async function getNews() {
+    if (_newsCache) return _newsCache;
+    if (_newsFetchPromise) return _newsFetchPromise;
+    _newsFetchPromise = fetch('/api/news?limit=50')
+      .then(r => r.ok ? r.json() : { articles: [] })
+      .then(data => { _newsCache = data.articles || []; return _newsCache; })
+      .catch(() => []);
+    return _newsFetchPromise;
+  }
+
+  // Prefetch news silently so search feels instant
+  setTimeout(getNews, 2000);
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function matches(text, q) {
+    return text.toLowerCase().includes(q);
+  }
+
+  function thumbHtml(img, icon) {
+    if (img) return `<img class="search-result-thumb" src="${esc(img)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'search-result-thumb-placeholder\\'>${icon}</div>'">`;
+    return `<div class="search-result-thumb-placeholder">${icon}</div>`;
+  }
+
+  function resultItem(url, thumbImg, icon, title, meta, badge, external) {
+    const target = external ? ' target="_blank" rel="noopener noreferrer"' : '';
+    return `<a href="${esc(url)}" class="search-result-item"${target} role="option">
+      ${thumbHtml(thumbImg, icon)}
+      <div class="search-result-info">
+        <div class="search-result-title">${esc(title)}</div>
+        <div class="search-result-meta">${esc(meta)}</div>
+      </div>
+      <span class="search-result-badge">${esc(badge)}</span>
+    </a>`;
+  }
+
+  // ── Main search function ─────────────────────────────────────────────────
+  async function runSearch(rawQuery) {
+    const q = rawQuery.trim().toLowerCase();
+
+    if (q.length < 2) {
+      closeDropdown();
       return;
     }
 
-    const matchCards = document.querySelectorAll('.match-card');
-    let foundCount = 0;
+    searchDropdown.innerHTML = `<div class="search-loading">Searching...</div>`;
+    searchDropdown.classList.add('open');
 
-    matchCards.forEach(card => {
-      const title = card.querySelector('.match-title')?.textContent.toLowerCase() || '';
-      const excerpt = card.querySelector('.match-excerpt')?.textContent.toLowerCase() || '';
-      const league = card.querySelector('.league-badge')?.textContent.toLowerCase() || '';
-      const stadium = card.querySelector('.match-meta')?.textContent.toLowerCase() || '';
+    let html = '';
 
-      const searchText = `${title} ${excerpt} ${league} ${stadium}`;
-
-      if (searchText.includes(query)) {
-        card.style.display = 'block';
-        card.classList.add('animate-fade-in');
-        foundCount++;
-      } else {
-        card.style.display = 'none';
-      }
-    });
-
-    // Show notification with results
-    if (foundCount === 0) {
-      showNotification(`No matches found for "${query}". Try different keywords.`, 3000);
-    } else {
-      showNotification(`Found ${foundCount} match${foundCount !== 1 ? 'es' : ''} for "${query}"`, 2000);
+    // 1. League shortcuts
+    const leagueHits = LEAGUE_SHORTCUTS.filter(l => l.keywords.some(k => matches(k, q) || matches(q, k)));
+    if (leagueHits.length) {
+      html += `<div class="search-result-group-label">Leagues</div>`;
+      html += leagueHits.map(l => resultItem(l.url, null, '🏆', l.title, 'View table & standings', l.badge, false)).join('');
     }
 
-    // Scroll to matches grid
-    const matchesGrid = document.getElementById('matchesGrid');
-    if (matchesGrid) {
-      matchesGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 2. Static pages
+    const pageHits = STATIC_PAGES.filter(p =>
+      matches(p.title, q) || matches(p.meta, q)
+    );
+    if (pageHits.length) {
+      html += `<div class="search-result-group-label">Pages</div>`;
+      html += pageHits.map(p => resultItem(p.url, null, p.icon, p.title, p.meta, p.badge, false)).join('');
     }
-  }
 
-  if (heroSearch) {
-    heroSearch.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        performSearch(this.value);
+    // 3. Match cards
+    const matchHits = MATCH_INDEX.filter(m =>
+      matches(m.title, q) || matches(m.league, q) || matches(m.date, q)
+    ).slice(0, 4);
+    if (matchHits.length) {
+      html += `<div class="search-result-group-label">Matches</div>`;
+      html += matchHits.map(m => resultItem(m.url, null, '⚽', m.title, m.league, 'Match', false)).join('');
+    }
+
+    // 4. News articles (async)
+    try {
+      const articles = await getNews();
+      const newsHits = articles.filter(a =>
+        matches(a.headline || '', q) || matches(a.category || '', q)
+      ).slice(0, 5);
+      if (newsHits.length) {
+        html += `<div class="search-result-group-label">News</div>`;
+        html += newsHits.map(a => resultItem(
+          a.url, a.image, '📰',
+          a.headline,
+          a.category || 'Football News',
+          'News',
+          true
+        )).join('');
       }
-    });
+    } catch (_) {}
 
-    // Real-time search as user types (debounced)
-    let searchTimeout;
-    heroSearch.addEventListener('input', function() {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        if (this.value.length >= 3 || this.value.length === 0) {
-          performSearch(this.value);
-        }
-      }, 500);
-    });
+    if (!html) {
+      html = `<div class="search-empty">No results for "<strong>${esc(rawQuery)}</strong>".<br>
+        Try <a href="news.html" style="color:var(--accent)">browsing all news</a> or
+        <a href="fixtures.html" style="color:var(--accent)">upcoming fixtures</a>.</div>`;
+    }
+
+    searchDropdown.innerHTML = html;
+    searchDropdown.classList.add('open');
   }
+
+  function closeDropdown() {
+    searchDropdown.classList.remove('open');
+  }
+
+  // ── Event listeners ──────────────────────────────────────────────────────
+  let _searchDebounce;
+  heroSearch.addEventListener('input', function () {
+    clearTimeout(_searchDebounce);
+    const val = this.value;
+    if (!val.trim()) { closeDropdown(); return; }
+    _searchDebounce = setTimeout(() => runSearch(val), 300);
+  });
+
+  heroSearch.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closeDropdown(); this.blur(); }
+    if (e.key === 'Enter') { e.preventDefault(); runSearch(this.value); }
+  });
 
   if (searchBtn) {
-    searchBtn.addEventListener('click', function() {
-      if (heroSearch) {
-        performSearch(heroSearch.value);
-      }
-    });
+    searchBtn.addEventListener('click', () => runSearch(heroSearch.value));
   }
+
+  // Close when clicking outside
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('#heroSearchBox')) closeDropdown();
+  });
+
+  heroSearch.addEventListener('focus', function () {
+    if (this.value.trim().length >= 2) runSearch(this.value);
+  });
+
+  })(); // end initHeroSearch
 
   // ========================================
   // Smooth Scroll for Anchor Links
@@ -781,28 +887,44 @@
   }
 
   // ========================================
-  // GLOBAL AD CLICK HANDLER
+  // COOKIE CONSENT BANNER
   // ========================================
 
-  /**
-   * Global handler for onclick ads on links
-   * First click shows ad, second click allows navigation
-   */
-  window.handleAdClick = function(linkElement) {
-    const href = linkElement.getAttribute('href');
-    const clickKey = 'ad_click_' + href.replace(/[^a-z0-9]/gi, '_');
-    const clicked = sessionStorage.getItem(clickKey);
+  (function initCookieConsent() {
+    if (localStorage.getItem('cookieConsent')) return; // already decided
 
-    if (!clicked) {
-      // First click - show ad and prevent navigation
-      sessionStorage.setItem(clickKey, 'true');
-      showNotification('Please click again to continue...', 2000);
-      return false; // Prevent navigation
-    } else {
-      // Second click - allow navigation
-      showNotification('Redirecting...', 1000);
-      return true; // Allow navigation
+    const banner = document.createElement('div');
+    banner.className = 'cookie-banner';
+    banner.setAttribute('role', 'dialog');
+    banner.setAttribute('aria-label', 'Cookie consent');
+    banner.innerHTML = `
+      <div class="cookie-banner-text">
+        <strong>We use cookies.</strong>
+        We and our partners use cookies and similar technologies to analyse traffic,
+        personalise content and serve targeted advertisements (including via Google AdSense).
+        By clicking <strong>Accept</strong> you consent to our use of cookies as described in our
+        <a href="privacy.html">Privacy Policy</a>.
+      </div>
+      <div class="cookie-banner-actions">
+        <button class="cookie-btn-decline" id="cookieDecline">Decline</button>
+        <button class="cookie-btn-accept" id="cookieAccept">Accept All</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+
+    // Animate in after a short delay so it doesn't fight with page load
+    requestAnimationFrame(() => {
+      setTimeout(() => banner.classList.add('visible'), 600);
+    });
+
+    function dismiss(choice) {
+      localStorage.setItem('cookieConsent', choice);
+      banner.classList.remove('visible');
+      setTimeout(() => banner.remove(), 400);
     }
-  };
+
+    document.getElementById('cookieAccept').addEventListener('click', () => dismiss('accepted'));
+    document.getElementById('cookieDecline').addEventListener('click', () => dismiss('declined'));
+  })();
 
 })();
