@@ -2902,13 +2902,13 @@ async def send_generated_files(
         parse_mode="Markdown"
     )
 
-    # Send HTML file (as backup)
+    # Send HTML file (live subdomain backup)
     html_bytes = BytesIO(html_code.encode('utf-8'))
     html_bytes.name = f"{filename_base}.html"
     await update.message.reply_document(
         document=html_bytes,
         filename=f"{filename_base}.html",
-        caption="📄 **HTML File** (Backup - Already copied to root!)"
+        caption="📄 **Live Page HTML** (Backup - Already written to foot-holics-live/)"
     )
 
     # Send JSON entry (as backup)
@@ -2920,45 +2920,37 @@ async def send_generated_files(
         caption="📊 **JSON Entry** (Backup - Already added to events.json!)"
     )
 
-    # Send card HTML (as backup)
-    card_bytes = BytesIO(card_code.encode('utf-8'))
-    card_bytes.name = f"{filename_base}-card.html"
-    await update.message.reply_document(
-        document=card_bytes,
-        filename=f"{filename_base}-card.html",
-        caption="🏠 **Homepage Card** (Backup - Already added to index.html!)"
-    )
-
     # Build push instructions
     poster_saved = context.user_data.get("poster_saved", False)
     image_file = context.user_data.get("image_file", "default-player-thumb.jpg")
     match_name = context.user_data.get("match_name", "match")
+    home_slug = slugify(context.user_data.get("home_team", "home"))
+    away_slug = slugify(context.user_data.get("away_team", "away"))
+    date_slug = context.user_data.get("date", "")
+    live_url = f"https://live.footholics.in/{date_slug}-{home_slug}-vs-{away_slug}"
 
     if poster_saved:
-        poster_note = f"• Poster image saved to `assets/img/{image_file}`"
+        poster_note = f"• Poster saved to `assets/img/{image_file}`"
     else:
-        poster_note = f"• Using default thumbnail (`assets/img/default-player-thumb.jpg`)"
+        poster_note = f"• Using default thumbnail"
 
-    instructions = f"""
-🎉 **MATCH CREATED & INTEGRATED!**
-
-✅ **Automatically Done:**
-• HTML file copied to project root
-• Entry added to `data/events.json`
-• Card added to `index.html`
-{poster_note}
-
-📋 **You Just Need To:**
-
-**Commit and push:**
-```bash
-git add .
-git commit -m "Add {match_name} match"
-git push
-```
-
-🚀 **That's it!** Your match will be live in 60 seconds!
-"""
+    instructions = (
+        f"🎉 *MATCH CREATED!*\n\n"
+        f"✅ *Done automatically:*\n"
+        f"• Live stream page → `foot-holics-live/`\n"
+        f"• Entry added to `data/events.json`\n"
+        f"{poster_note}\n\n"
+        f"🔗 *Share this link with users:*\n"
+        f"`{live_url}`\n\n"
+        f"📋 *Push both repos to go live:*\n"
+        f"```\n"
+        f"cd ~/foot-holics\n"
+        f"git add . && git commit -m \"Add {match_name}\" && git push\n\n"
+        f"cd ~/foot-holics-live\n"
+        f"git add . && git commit -m \"Add {match_name}\" && git push\n"
+        f"```\n\n"
+        f"🚀 Live in ~60 seconds after push!"
+    )
 
     await update.message.reply_text(instructions, parse_mode="Markdown")
 
