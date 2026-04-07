@@ -10,8 +10,10 @@ services:
     env_file: .env
 
     volumes:
-      # Mount the entire project so the bot can read/write index.html, events.json, etc.
+      # Mount foot-holics/ as /app (main site + bot)
       - ..:/app
+      # Mount foot-holics-live/ at /foot-holics-live so bot can find it as sibling of /app
+      - ../../foot-holics-live:/foot-holics-live
 
     working_dir: /app
 

@@ -364,13 +364,16 @@ def get_project_root() -> str:
 
 def get_live_project_root() -> str:
     """Return path to foot-holics-live/ project folder, or empty string if not found."""
+    # 1. Docker container mount point: /foot-holics-live
+    if os.path.isdir("/foot-holics-live"):
+        return "/foot-holics-live"
     bot_dir = os.path.dirname(os.path.abspath(__file__))
-    # foot-holics-bot/ → foot-holics/ → parent → foot-holics-live/
+    # 2. foot-holics-bot/ → foot-holics/ → parent → foot-holics-live/
     parent = os.path.dirname(os.path.dirname(bot_dir))
     live_root = os.path.join(parent, "foot-holics-live")
     if os.path.isdir(live_root):
         return live_root
-    # Fallback: sibling of foot-holics/
+    # 3. Fallback: sibling of foot-holics/
     foot_holics_root = os.path.dirname(bot_dir)
     sibling = os.path.join(os.path.dirname(foot_holics_root), "foot-holics-live")
     if os.path.isdir(sibling):
