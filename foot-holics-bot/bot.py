@@ -15,6 +15,7 @@ from typing import Dict, Any
 from urllib.parse import quote
 from dotenv import load_dotenv
 from io import BytesIO
+import html as _html
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -76,7 +77,12 @@ IST = timezone(timedelta(hours=5, minutes=30))
     GENERATE_CARD_INPUT,
     UPDATE_STREAM_SELECT,  # New state for button-based stream link selection
     UPDATE_STREAM_INPUT,   # New state for individual stream link input
-) = range(16)
+    ARTICLE_TITLE,
+    ARTICLE_CATEGORY,
+    ARTICLE_EXCERPT,
+    ARTICLE_CONTENT,
+    ARTICLE_CONFIRM,
+) = range(21)
 
 # League data with emojis and colors
 LEAGUES = {
@@ -220,7 +226,7 @@ def get_type_param(url: str) -> str:
     return ""  # let the player auto-detect
 
 
-def get_player_url(url: str, base_url: str = "https://footholics.in", title: str = "", thumb: str = "") -> str:
+def get_player_url(url: str, base_url: str = "https://live.footholics.in", title: str = "", thumb: str = "") -> str:
     """
     Generate a universal-player.html URL for any stream type.
     Handles HLS, MP4, DASH, iframes, YouTube, Twitch and unknown streams.
@@ -252,7 +258,7 @@ def get_player_url(url: str, base_url: str = "https://footholics.in", title: str
     if thumb:
         params += f"&thumb={quote(thumb)}"
 
-    return f"{base_url}/universal-player.html?{params}"
+    return f"{base_url}/player.html?{params}"
 
 
 def wrap_m3u8_with_proxy(url: str) -> str:
@@ -276,7 +282,7 @@ def wrap_m3u8_with_proxy(url: str) -> str:
         return url
 
     # Use the new smart player routing
-    return get_player_url(url, "https://footholics.in")
+    return get_player_url(url, "https://live.footholics.in")
 
 
 def find_team_logo(team_name: str, league_slug: str = None) -> str:
@@ -355,12 +361,284 @@ def get_project_root() -> str:
     return os.path.dirname(bot_dir)
 
 
+
+def get_live_project_root() -> str:
+    """Return path to foot-holics-live/ project folder, or empty string if not found."""
+    bot_dir = os.path.dirname(os.path.abspath(__file__))
+    # foot-holics-bot/ → foot-holics/ → parent → foot-holics-live/
+    parent = os.path.dirname(os.path.dirname(bot_dir))
+    live_root = os.path.join(parent, "foot-holics-live")
+    if os.path.isdir(live_root):
+        return live_root
+    # Fallback: sibling of foot-holics/
+    foot_holics_root = os.path.dirname(bot_dir)
+    sibling = os.path.join(os.path.dirname(foot_holics_root), "foot-holics-live")
+    if os.path.isdir(sibling):
+        return sibling
+    return ""
+
+
+def copy_html_to_live(filename: str, html_code: str) -> bool:
+    """Copy generated HTML to foot-holics-live/ folder."""
+    live_root = get_live_project_root()
+    if not live_root:
+        logger.warning("foot-holics-live/ folder not found — live page not written")
+        return False
+    try:
+        dest = os.path.join(live_root, filename)
+        with open(dest, "w", encoding="utf-8") as f:
+            f.write(html_code)
+        return True
+    except Exception as e:
+        logger.error(f"Error writing live page: {e}", exc_info=True)
+        return False
+
+
+BROADCASTER_MAP = {
+    "premier-league":    {"uk": "Sky Sports", "us": "NBC Sports / Peacock", "in": "Star Sports / Hotstar"},
+    "laliga":            {"uk": "DAZN",        "us": "ESPN+",               "in": "Star Sports"},
+    "bundesliga":        {"uk": "Sky Sports",  "us": "ESPN+",               "in": "Sony Sports"},
+    "serie-a":           {"uk": "TNT Sports",  "us": "Paramount+",          "in": "Sony Sports"},
+    "ligue-1":           {"uk": "beIN Sports", "us": "beIN Sports",         "in": "beIN Sports"},
+    "champions-league":  {"uk": "TNT Sports",  "us": "CBS / Paramount+",    "in": "Sony Sports"},
+}
+
+
+def get_broadcaster_table(league_slug: str) -> str:
+    """Return HTML rows for broadcast table based on league."""
+    bc = BROADCASTER_MAP.get(league_slug, {"uk": "Check local listings", "us": "Check local listings", "in": "Check local listings"})
+    return f"""<tr>
+                        <td>🇬🇧 United Kingdom</td>
+                        <td>{bc['uk']}</td>
+                        <td>HD, subscription required</td>
+                    </tr>
+                    <tr>
+                        <td>🇺🇸 United States</td>
+                        <td>{bc['us']}</td>
+                        <td>Streaming available</td>
+                    </tr>
+                    <tr>
+                        <td>🇮🇳 India</td>
+                        <td>{bc['in']}</td>
+                        <td>Hindi &amp; English commentary</td>
+                    </tr>
+                    <tr>
+                        <td>🌍 International</td>
+                        <td>Various (check local listings)</td>
+                        <td>Contact your provider</td>
+                    </tr>"""
+
+
+def generate_live_html(data: dict) -> str:
+    """Generate the live subdomain stream-links page."""
+    from urllib.parse import quote
+    import base64
+
+    date_obj = data["datetime_obj"]
+    home_slug = slugify(data["home_team"])
+    away_slug = slugify(data["away_team"])
+    filename = f"{data['date']}-{home_slug}-vs-{away_slug}.html"
+    match_slug = filename.replace(".html", "")
+
+    home_logo = find_team_logo(data["home_team"], data["league_slug"])
+    away_logo = find_team_logo(data["away_team"], data["league_slug"])
+
+    # Resolve absolute logo URLs for the live subdomain
+    if home_logo and not home_logo.startswith("http"):
+        home_logo = f"https://footholics.in/{home_logo.lstrip('/')}"
+    if away_logo and not away_logo.startswith("http"):
+        away_logo = f"https://footholics.in/{away_logo.lstrip('/')}"
+
+    stream_urls = data.get("stream_urls", [])
+    encoded_title = quote(data.get("match_name", ""))
+    thumb_src = data.get("thumbnail", "") or ""
+    encoded_thumb = quote(thumb_src) if thumb_src else ""
+
+    # Build player URLs pointing to live.footholics.in/player.html
+    player_urls = []
+    for url in stream_urls[:4]:
+        if url and url != "#" and not url.startswith("https://t.me/"):
+            encoded_url = base64.b64encode(url.encode()).decode()
+            type_hint = get_type_param(url)
+            params = f"get={encoded_url}"
+            if type_hint:
+                params += f"&type={type_hint}"
+            if encoded_title:
+                params += f"&title={encoded_title}"
+            if encoded_thumb:
+                params += f"&thumb={encoded_thumb}"
+            player_urls.append(f"player.html?{params}")
+        else:
+            player_urls.append(None)
+
+    # Build stream link buttons HTML
+    labels = ["Link 1 — HD | English | Desktop/Mobile", "Link 2 — HD | Multi-language", "Link 3 — SD | Mobile Optimized", "Link 4 — HD | Backup"]
+    qualities = ["HD", "HD", "SD", "HD"]
+    stream_buttons_html = ""
+    for i, (pu, label, qual) in enumerate(zip(player_urls, labels, qualities)):
+        if pu:
+            stream_buttons_html += f"""
+            <a href="{pu}" class="stream-link-btn">
+                <div class="stream-play-icon">
+                    <i class="fa-solid fa-play"></i>
+                </div>
+                <div class="stream-link-info">
+                    <span class="stream-link-label">Link {i+1}</span>
+                    <span class="stream-link-sub">{label.split(' — ')[1] if ' — ' in label else label}</span>
+                </div>
+                <span class="stream-quality-badge">{qual}</span>
+            </a>"""
+
+    # 24-hour time for the live badge script
+    time_24h = date_obj.strftime("%H:%M")
+    poster_url = data.get("thumbnail", "") or f"https://footholics.in/assets/img/{data.get('image_file', 'og-image.jpg')}"
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Watch {data['home_team']} vs {data['away_team']} live — {data['league']} on {date_obj.strftime('%B %d, %Y')}. Multiple stream links available.">
+    <meta property="og:title" content="{data['match_name']} — Watch Live Stream">
+    <meta property="og:description" content="Watch {data['match_name']} live online. {data['league']} — {date_obj.strftime('%B %d, %Y')}.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="{poster_url}">
+    <meta name="twitter:card" content="summary_large_image">
+    <title>{data['match_name']} Live Stream — {data['league']} | Foot Holics</title>
+    <link rel="canonical" href="https://live.footholics.in/{match_slug}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="assets/css/live.css">
+    <link rel="icon" type="image/png" href="https://footholics.in/assets/img/logos/site/logo.png">
+</head>
+<body>
+    <header class="live-header">
+        <div class="container">
+            <div class="live-header-inner">
+                <a href="https://footholics.in" class="live-logo">
+                    <img src="https://footholics.in/assets/img/logos/site/logo.png" alt="Foot Holics" onerror="this.style.display=\'none\'">
+                    Foot Holics
+                </a>
+                <a href="https://footholics.in/{filename}" class="back-link">
+                    <i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i>
+                    Match Preview
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="match-hero">
+            <div style="display: flex; justify-content: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                <span class="live-badge-pill" id="liveBadge" style="display:none;">
+                    <span class="live-dot"></span>
+                    LIVE NOW
+                </span>
+                <span class="league-tag">{data['league']}</span>
+            </div>
+            <div class="teams-row">
+                <div class="team-block">
+                    <img src="{home_logo}" alt="{data['home_team']}" onerror="this.outerHTML=\'<div class=&quot;team-logo-placeholder&quot;>⚽</div>\'">
+                    <span class="team-name-text">{data['home_team']}</span>
+                </div>
+                <div class="vs-text">vs</div>
+                <div class="team-block">
+                    <img src="{away_logo}" alt="{data['away_team']}" onerror="this.outerHTML=\'<div class=&quot;team-logo-placeholder&quot;>⚽</div>\'">
+                    <span class="team-name-text">{data['away_team']}</span>
+                </div>
+            </div>
+            <div class="match-meta-row">
+                <span><i class="fa-regular fa-calendar" style="color:var(--accent);"></i> {date_obj.strftime('%B %d, %Y')}</span>
+                <span><i class="fa-regular fa-clock" style="color:var(--accent);"></i> {data['time']} IST</span>
+                <span><i class="fa-solid fa-location-dot" style="color:var(--accent);"></i> {data['stadium']}</span>
+            </div>
+        </div>
+
+        <p class="stream-section-title">Watch {data['home_team']} vs {data['away_team']} Live</p>
+
+        <div class="stream-links-list">
+{stream_buttons_html}
+        </div>
+
+        <p class="stream-note">
+            <i class="fa-solid fa-circle-info" style="color:var(--accent);"></i>
+            If one stream is down, try the next link. Streams go live ~15 minutes before kickoff.
+        </p>
+
+        <div class="community-row" style="margin-top: 1.5rem;">
+            <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="community-btn btn-telegram">
+                <i class="fa-brands fa-telegram"></i> Join Telegram for Updates
+            </a>
+            <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="community-btn btn-whatsapp">
+                <i class="fa-brands fa-whatsapp"></i> WhatsApp Channel
+            </a>
+        </div>
+
+        <div class="live-disclaimer">
+            <strong>Disclaimer:</strong> Foot Holics does not host any streaming content. All links point to third-party sources found publicly on the internet. We have no control over the availability or content of these streams. For takedown requests contact <a href="mailto:footholicsin@gmail.com" style="color:var(--accent);">footholicsin@gmail.com</a>.
+        </div>
+    </div>
+
+    <footer class="live-footer">
+        <div class="container">
+            <nav class="footer-nav">
+                <a href="https://footholics.in">Home</a>
+                <a href="https://footholics.in/news.html">News</a>
+                <a href="https://footholics.in/fixtures.html">Fixtures</a>
+                <a href="https://footholics.in/standings.html">Standings</a>
+                <a href="https://footholics.in/contact.html">Contact</a>
+            </nav>
+            <p>&copy; 2026 Foot Holics. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="cookieBar" class="cookie-bar" style="display:none;">
+        <span>This site uses cookies. <a href="https://footholics.in/privacy.html" style="color:var(--accent);">Privacy Policy</a></span>
+        <button onclick="document.getElementById(\'cookieBar\').style.display=\'none\';localStorage.setItem(\'lhCookieOk\',\'1\');">OK</button>
+    </div>
+
+    <script>
+    (function () {{
+        var kickoffIST = new Date('{data['date']}T{time_24h}:00+05:30');
+        function checkLive() {{
+            var now = new Date();
+            var diff = (now - kickoffIST) / 60000;
+            var badge = document.getElementById('liveBadge');
+            if (!badge) return;
+            if (diff >= -15 && diff <= 120) badge.style.display = 'inline-flex';
+            else badge.style.display = 'none';
+        }}
+        checkLive();
+        setInterval(checkLive, 60000);
+        if (!localStorage.getItem('lhCookieOk')) {{
+            document.getElementById('cookieBar').style.display = 'flex';
+        }}
+    }})();
+    </script>
+</body>
+</html>"""
+
+
+
 def list_match_files() -> list:
-    """List all match HTML files in the project."""
+    """List all matches from events.json (matches live on live subdomain only)."""
     root_dir = get_project_root()
-    pattern = os.path.join(root_dir, "20*.html")
-    files = glob.glob(pattern)
-    return [os.path.basename(f) for f in sorted(files, reverse=True)]
+    events_path = os.path.join(root_dir, "data", "events.json")
+    if not os.path.exists(events_path):
+        return []
+    try:
+        with open(events_path, "r", encoding="utf-8") as f:
+            events = json.load(f)
+        return [
+            f"{e['slug']}.html"
+            for e in sorted(events, key=lambda x: x.get("date", ""), reverse=True)
+            if "slug" in e
+        ]
+    except Exception:
+        return []
 
 
 def remove_match_from_index(filename: str) -> bool:
@@ -668,6 +946,9 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
             InlineKeyboardButton("📊 Match Stats", callback_data="menu_stats"),
         ],
         [
+            InlineKeyboardButton("✍️ Publish Article", callback_data="menu_article"),
+        ],
+        [
             InlineKeyboardButton("❌ Exit", callback_data="menu_exit"),
         ],
     ]
@@ -684,6 +965,7 @@ Welcome! Choose an operation:
 🗑️ **Delete Match** - Remove a match (auto cleanup!)
 🎨 **Generate Card** - Create match card HTML
 📊 **Match Stats** - View statistics
+✍️ **Publish Article** - Write and publish an editorial
 ❌ **Exit** - Close the bot
 
 What would you like to do?
@@ -873,6 +1155,17 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await show_main_menu(update, context, edit_message=False)
         return MAIN_MENU
 
+    elif action == "article":
+        await query.edit_message_text(
+            "✍️ *Publish Article*\n\n"
+            "Let's write a new editorial article.\n\n"
+            "Step 1 of 4: Send me the *article title*.\n\n"
+            "Example: `Top Premier League Signings of the Summer`\n\n"
+            "_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return ARTICLE_TITLE
+
     elif action == "exit":
         await query.edit_message_text(
             "👋 **Goodbye!**\n\n"
@@ -1043,22 +1336,25 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
     deleted_files = []
     failed_operations = []
 
-    # Delete main HTML file
+    # Delete main HTML file if it exists (matches now live on live.footholics.in only)
     main_file = os.path.join(root_dir, filename)
     if os.path.exists(main_file):
         try:
             os.remove(main_file)
-            deleted_files.append(f"✓ {filename}")
+            deleted_files.append(f"✓ {filename} (main site)")
         except Exception as e:
             failed_operations.append(f"✗ Main file: {str(e)}")
-    else:
-        failed_operations.append(f"✗ Main file not found")
 
-    # Remove from index.html
-    if remove_match_from_index(filename):
-        deleted_files.append("✓ Removed from index.html")
-    else:
-        failed_operations.append("✗ Could not remove from index.html (may not exist)")
+    # Remove from live subdomain
+    live_root = get_live_project_root()
+    if live_root:
+        live_file = os.path.join(live_root, filename)
+        if os.path.exists(live_file):
+            try:
+                os.remove(live_file)
+                deleted_files.append("✓ Removed from live.footholics.in")
+            except Exception as e:
+                failed_operations.append(f"✗ Live file: {str(e)}")
 
     # Remove from events.json
     if remove_match_from_events_json(filename):
@@ -1104,17 +1400,17 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
     deleted_list = "\n".join(deleted_files) if deleted_files else "Nothing deleted"
     failed_list = "\n\n**Issues:**\n" + "\n".join(failed_operations) if failed_operations else ""
 
+    _slug = filename.replace('.html', '')
     await query.edit_message_text(
         f"✅ **Match Deletion Complete!**\n\n"
         f"**Deleted:**\n{deleted_list}{failed_list}\n\n"
-        f"**Next steps:**\n"
-        f"1. Commit changes:\n"
+        f"**Push both repos:**\n"
         f"```bash\n"
-        f"git add .\n"
-        f"git commit -m \"Remove {filename.replace('.html', '')} match\"\n"
-        f"git push\n"
-        f"```\n"
-        f"2. Your site will update automatically!",
+        f"cd foot-holics\n"
+        f"git add . && git commit -m \"Remove {_slug}\" && git push\n\n"
+        f"cd ../foot-holics-live\n"
+        f"git add . && git commit -m \"Remove {_slug}\" && git push\n"
+        f"```",
         parse_mode="Markdown"
     )
 
@@ -1133,62 +1429,51 @@ async def update_match_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     filename = query.data.replace("update_", "")
     context.user_data["update_filename"] = filename
 
-    # Read current match data from HTML file
+    # Read current match data from events.json
     root_dir = get_project_root()
-    match_file = os.path.join(root_dir, filename)
+    events_path = os.path.join(root_dir, "data", "events.json")
+    event = None
+    if os.path.exists(events_path):
+        with open(events_path, "r", encoding="utf-8") as f:
+            events_data = json.load(f)
+        fn_no_ext = filename.replace(".html", "")
+        for e in events_data:
+            if fn_no_ext in e.get("slug", ""):
+                event = e
+                break
 
-    if not os.path.exists(match_file):
+    if not event:
         await query.edit_message_text(
-            f"❌ Match file not found: `{filename}`",
+            f"❌ Match not found in events.json: `{filename}`",
             parse_mode="Markdown"
         )
         await show_main_menu(update, context, edit_message=False)
         return MAIN_MENU
 
-    # Extract current match details
-    with open(match_file, "r", encoding="utf-8") as f:
-        html_content = f.read()
+    # Load current values from event dict
+    context.user_data["current_title"] = event.get("title", "")
+    context.user_data["current_league"] = event.get("league", "Football")
+    context.user_data["current_league_slug"] = event.get("leagueSlug", "others")
+    context.user_data["current_date"] = event.get("date", "")
+    context.user_data["current_time"] = event.get("time", "")
+    context.user_data["current_stadium"] = event.get("stadium", "")
+    context.user_data["current_preview"] = event.get("excerpt", "")
 
-    # Parse current values
-    match_title = re.search(r'<h1 class="event-title">(.*?)</h1>', html_content)
-    league = re.search(r'<span class="league-badge .*?">(.*?)</span>', html_content)
-    date_match = re.search(r'<span>(.*?) at (.*?) GMT</span>', html_content)
-    stadium = re.search(r'<path d="M21 10.*?</svg>\s*<span>(.*?)</span>', html_content, re.DOTALL)
-    preview_match = re.search(r'<h2[^>]*>Match Preview</h2>\s*<p>(.*?)</p>', html_content, re.DOTALL)
-
-    if match_title:
-        context.user_data["current_title"] = match_title.group(1)
-    if league:
-        context.user_data["current_league"] = league.group(1)
-    if date_match:
-        context.user_data["current_date"] = date_match.group(1)
-        context.user_data["current_time"] = date_match.group(2)
-    if stadium:
-        context.user_data["current_stadium"] = stadium.group(1)
-    if preview_match:
-        context.user_data["current_preview"] = preview_match.group(1).strip()
-
-    # Extract existing stream links from HTML
+    # Decode raw stream URLs from broadcast entries
     stream_links = ["#", "#", "#", "#"]
-    # Look for any player URL with encoded stream (universal, legacy player.html, or iframe-player.html)
-    stream_patterns = re.findall(r'href="(?:universal-player\.html|player\.html|iframe-player\.html)\?get=([^"&]+)', html_content)
-    for i, encoded_url in enumerate(stream_patterns[:4]):
-        try:
-            decoded_url = base64.b64decode(encoded_url).decode('utf-8')
-            stream_links[i] = decoded_url
-        except:
-            stream_links[i] = "#"
-    # Also try old format (p/X-live.html)
-    if all(link == "#" for link in stream_links):
-        old_patterns = re.findall(r'href="p/(\d)-live\.html\?(?:url|get)=([^"]+)"', html_content)
-        for num, encoded_url in old_patterns:
-            idx = int(num) - 1
-            if 0 <= idx < 4:
+    from urllib.parse import urlparse as _up, parse_qs as _pq
+    for i, bc in enumerate(event.get("broadcast", [])[:4]):
+        bc_url = bc.get("url", "#")
+        if "player.html?get=" in bc_url:
+            _qs = _pq(_up(bc_url).query)
+            _enc = _qs.get("get", [""])[0]
+            if _enc:
                 try:
-                    decoded_url = base64.b64decode(encoded_url).decode('utf-8')
-                    stream_links[idx] = decoded_url
-                except:
+                    stream_links[i] = base64.b64decode(_enc).decode("utf-8")
+                except Exception:
                     pass
+        elif bc_url and bc_url != "#":
+            stream_links[i] = bc_url
     context.user_data["current_stream_links"] = stream_links
 
     # Show update options
@@ -1733,12 +2018,15 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
     match_file = os.path.join(root_dir, filename)
 
     try:
-        # Read current HTML
-        with open(match_file, "r", encoding="utf-8") as f:
-            html_content = f.read()
+        # Update main-site HTML if it exists (legacy; new matches only live on live subdomain)
+        if os.path.exists(match_file):
+            with open(match_file, "r", encoding="utf-8") as f:
+                html_content = f.read()
+        else:
+            html_content = None
 
-        # Update HTML content
-        if "current_title" in context.user_data:
+        # Update HTML content (only if main-site file exists)
+        if html_content is not None and "current_title" in context.user_data:
             html_content = re.sub(
                 r'<h1 class="event-title">.*?</h1>',
                 f'<h1 class="event-title">{context.user_data["current_title"]}</h1>',
@@ -1786,7 +2074,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                         html_content
                     )
 
-        if "current_date" in context.user_data:
+        if html_content is not None and "current_date" in context.user_data:
             utc_t = context.user_data.get("current_utc_time", context.user_data["current_time"])
             html_content = re.sub(
                 r'<span>(.*?) at (.*?) (?:GMT|IST.*?)</span>',
@@ -1794,7 +2082,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 html_content
             )
 
-        if "current_league" in context.user_data:
+        if html_content is not None and "current_league" in context.user_data:
             # Update league badge
             old_league_pattern = r'<span class="league-badge .*?">(.*?)</span>'
             html_content = re.sub(
@@ -1841,7 +2129,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                             html_content
                         )
 
-        if "current_stadium" in context.user_data:
+        if html_content is not None and "current_stadium" in context.user_data:
             html_content = re.sub(
                 r'(<path d="M21 10.*?</svg>\s*<span>).*?(</span>)',
                 f'\\1{context.user_data["current_stadium"]}\\2',
@@ -1849,7 +2137,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 flags=re.DOTALL
             )
 
-        if "current_preview" in context.user_data:
+        if html_content is not None and "current_preview" in context.user_data:
             html_content = re.sub(
                 r'(<h2[^>]*>Match Preview</h2>\s*<p>).*?(</p>)',
                 f'\\1{context.user_data["current_preview"]}\\2',
@@ -1858,7 +2146,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
 
         # Thumbnail update: replace &thumb= in all 4 player hrefs
-        if "current_thumbnail" in context.user_data:
+        if html_content is not None and "current_thumbnail" in context.user_data:
             new_thumb = context.user_data["current_thumbnail"]
             enc_new_thumb = quote(new_thumb)
             # Remove existing &thumb=... then append new one to every player href
@@ -1873,7 +2161,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 html_content
             )
 
-        if "current_stream_links" in context.user_data:
+        if html_content is not None and "current_stream_links" in context.user_data:
             stream_links = context.user_data["current_stream_links"]
             match_title  = context.user_data.get("current_title", "")
             enc_title    = quote(match_title) if match_title else ""
@@ -1908,15 +2196,14 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 return f'href="{player_urls_upd[i]}"' if i < 4 else m.group(0)
             html_content = re.sub(_href_pat, _repl, html_content)
 
-        # Write updated HTML
-        with open(match_file, "w", encoding="utf-8") as f:
-            f.write(html_content)
-
-        # Also update the generated backup file if it exists
-        gen_file = os.path.join(root_dir, "foot-holics-bot", "generated", "html_files", filename)
-        if os.path.exists(gen_file):
-            with open(gen_file, "w", encoding="utf-8") as f:
+        # Write updated HTML (only if main-site file existed)
+        if html_content is not None:
+            with open(match_file, "w", encoding="utf-8") as f:
                 f.write(html_content)
+            gen_file = os.path.join(root_dir, "foot-holics-bot", "generated", "html_files", filename)
+            if os.path.exists(gen_file):
+                with open(gen_file, "w", encoding="utf-8") as f:
+                    f.write(html_content)
 
         # Update events.json
         events_path = os.path.join(root_dir, "data", "events.json")
@@ -1960,40 +2247,79 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                             json.dump(event, f, indent=2, ensure_ascii=False)
                         break
 
-        # Update index.html card (remove old, add new)
-        remove_match_from_index(filename)
+        # Regenerate live subdomain page with updated data
+        _live_updated = False
+        try:
+            import datetime as _dt
+            import base64 as _b64
+            from urllib.parse import urlparse as _urlparse, parse_qs as _parse_qs
+            _fn_no_ext = filename.replace(".html", "")
+            _updated_ev = None
+            for _ev in events:
+                if _fn_no_ext in _ev.get("slug", ""):
+                    _updated_ev = _ev
+                    break
+            if _updated_ev:
+                # Decode raw stream URLs from broadcast entries
+                _raw_streams = []
+                for _bc in _updated_ev.get("broadcast", []):
+                    _bc_url = _bc.get("url", "#")
+                    if not _bc_url or _bc_url == "#":
+                        _raw_streams.append("#")
+                    elif "player.html?get=" in _bc_url:
+                        _qs = _parse_qs(_urlparse(_bc_url).query)
+                        _enc = _qs.get("get", [""])[0]
+                        try:
+                            _raw_streams.append(_b64.b64decode(_enc).decode("utf-8"))
+                        except Exception:
+                            _raw_streams.append("#")
+                    else:
+                        _raw_streams.append(_bc_url)
+                # If stream links were explicitly updated this session, prefer those
+                if "current_stream_links" in context.user_data:
+                    _raw_streams = list(context.user_data["current_stream_links"])
+                _date_str = _updated_ev.get("date", "")
+                _time_str = _updated_ev.get("time", "00:00")
+                try:
+                    _dt_obj = _dt.datetime.strptime(f"{_date_str} {_time_str}", "%Y-%m-%d %H:%M")
+                except Exception:
+                    _dt_obj = _dt.datetime.now()
+                _home = _updated_ev.get("homeTeam", "")
+                _away = _updated_ev.get("awayTeam", "")
+                _live_data = {
+                    "datetime_obj": _dt_obj,
+                    "home_team": _home,
+                    "away_team": _away,
+                    "league": _updated_ev.get("league", "Football"),
+                    "league_slug": _updated_ev.get("leagueSlug", "others"),
+                    "date": _date_str,
+                    "time": _time_str,
+                    "stadium": _updated_ev.get("stadium", ""),
+                    "match_name": _updated_ev.get("title", f"{_home} vs {_away}"),
+                    "thumbnail": _updated_ev.get("poster", ""),
+                    "stream_urls": _raw_streams,
+                    "image_file": "og-image.jpg",
+                }
+                _live_html = generate_live_html(_live_data)
+                _live_updated = copy_html_to_live(filename, _live_html)
+        except Exception as _le:
+            logger.warning(f"Could not regenerate live page: {_le}")
 
-        # Get poster from events.json for the updated card
-        poster_path = "assets/img/match-poster.jpg"  # fallback
-        filename_without_ext = filename.replace(".html", "")
-        for event in events:
-            if filename_without_ext in event.get("slug", ""):
-                poster_path = event.get("poster", poster_path)
-                break
-
-        # Generate new card with updated info
-        card_html = generate_updated_card(context.user_data, filename, poster_path)
-        add_card_to_index(card_html)
-
-        success_msg = f"""
-✅ **Match Updated Successfully!**
-
-Updated: `{filename}`
-
-**Changes saved to:**
-• Match HTML file
-• data/events.json
-• index.html card
-
-**Next steps:**
-```bash
-git add .
-git commit -m "Update {context.user_data.get('current_title', 'match')}"
-git push
-```
-
-Your changes will be live in 60 seconds!
-"""
+        _live_line = "\n• live.footholics.in stream page" if _live_updated else ""
+        success_msg = (
+            f"✅ *Match Updated Successfully!*\n\n"
+            f"Updated: `{filename}`\n\n"
+            f"*Changes saved to:*\n"
+            f"• Match HTML file\n"
+            f"• data/events.json{_live_line}\n\n"
+            f"*Next steps:*\n"
+            f"```\n"
+            f"git add .\n"
+            f"git commit -m \"Update {context.user_data.get('current_title', 'match')}\"\n"
+            f"git push\n"
+            f"```\n\n"
+            f"Your changes will be live in 60 seconds!"
+        )
 
         if query:
             await query.edit_message_text(success_msg, parse_mode="Markdown")
@@ -2378,30 +2704,20 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
         integration_results = []
 
-        # 1. Copy HTML to project root
         html_filename = f"{filename_base}.html"
-        if copy_html_to_root(html_filename, html_code):
-            integration_results.append("✅ HTML copied to project root")
-        else:
-            integration_results.append("⚠️ Could not copy HTML to root")
 
-        # 2. Add entry to events.json
+        # 1. Add entry to events.json (bot's match registry)
         if add_to_events_json(json_code):
             integration_results.append("✅ Added to data/events.json")
         else:
             integration_results.append("⚠️ Could not add to events.json")
 
-        # 3. Add card to index.html
-        if add_card_to_index(card_code):
-            integration_results.append("✅ Added card to index.html")
+        # 2. Generate and copy live subdomain page (matches live on live.footholics.in only)
+        live_html_code = generate_live_html(data)
+        if copy_html_to_live(html_filename, live_html_code):
+            integration_results.append("✅ Live page copied to foot-holics-live/")
         else:
-            integration_results.append("⚠️ Could not add card to index.html")
-
-        # 4. Add to sitemap.xml
-        if add_to_sitemap(html_filename, context.user_data["date"]):
-            integration_results.append("✅ Added to sitemap.xml")
-        else:
-            integration_results.append("⚠️ Could not add to sitemap.xml")
+            integration_results.append("⚠️ Could not copy live page (foot-holics-live/ not found)")
 
         # Send results as files
         await send_generated_files(update, context, html_code, json_code, card_code, filename_base, integration_results)
@@ -2459,7 +2775,7 @@ def generate_html(data: Dict[str, Any]) -> str:
                 params += f"&title={encoded_title}"
             if encoded_thumb:
                 params += f"&thumb={encoded_thumb}"
-            player_url = f"universal-player.html?{params}"
+            player_url = f"https://live.footholics.in/player.html?{params}"
         else:
             player_url = "#"
 
@@ -2651,7 +2967,7 @@ def get_inline_event_template() -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Watch {{MATCH_NAME}} live stream free - {{LEAGUE}} clash on {{DATE}} at {{STADIUM}}. Find HD streaming links, match preview, and live football coverage on Foot Holics.">
+    <meta name="description" content="{{MATCH_NAME}} \u2014 {{LEAGUE}} match preview, broadcast channels, live score and kickoff time on {{DATE}} at {{STADIUM}}.">
     <meta name="keywords" content="{{MATCH_NAME}}, {{HOME_TEAM}} vs {{AWAY_TEAM}}, {{LEAGUE}} live stream, watch football online, football live streaming, free football stream, {{STADIUM}}, {{HOME_TEAM}} live, {{AWAY_TEAM}} live, football match today, live soccer stream, watch {{LEAGUE}} online">
 
     <!-- Open Graph -->
@@ -2665,7 +2981,7 @@ def get_inline_event_template() -> str:
     <meta name="twitter:title" content="{{MATCH_NAME}} - {{LEAGUE}} Live Stream">
     <meta name="twitter:description" content="Watch the {{LEAGUE}} match live with multiple streaming options.">
 
-    <title>{{MATCH_NAME}} - {{LEAGUE}} Live Stream | Foot Holics</title>
+    <title>{{MATCH_NAME}} \u2014 {{LEAGUE}} Match Preview | Foot Holics</title>
 
     <!-- Canonical -->
     <link rel="canonical" href="https://footholics.in/{{FILE_NAME}}">
@@ -2791,9 +3107,11 @@ def get_inline_event_template() -> str:
                 <nav class="primary-nav" id="primaryNav">
                     <a href="index.html">Home</a>
                     <a href="news.html">News</a>
+                    <a href="articles/index.html">Articles</a>
                     <a href="standings.html">Standings</a>
                     <a href="fixtures.html">Fixtures</a>
                     <a href="about.html">About</a>
+                    <a href="contact.html">Contact</a>
                 </nav>
 
                 <div class="cta-group" id="ctaGroup">
@@ -2948,72 +3266,18 @@ def get_inline_event_template() -> str:
             </table>
         </section>
 
-        <!-- Watch Live Section -->
-        <section class="glass-card mb-4">
-            <h2 style="color: var(--accent); margin-bottom: 1rem;">📺 Watch Live - Streaming Links</h2>
-            <p class="text-muted mb-3" style="font-size: 0.9rem;">
-                If one stream doesn't work, try another link. Click any link to open the live player.
-                <strong>Note:</strong> These links are from third-party sources. Quality and availability may vary.
+        <!-- Watch Live CTA -->
+        <section class="glass-card mb-4" style="text-align: center;">
+            <h2 style="color: var(--accent); margin-bottom: 1rem;">Watch This Match Live</h2>
+            <p class="text-muted" style="margin-bottom: 1.5rem; font-size: 0.95rem;">
+                Multiple live stream links are available for this match. Click below to access them.
             </p>
-
-            <div class="stream-links">
-                <a href="{{STREAM_URL_1}}" class="stream-link-card">
-                    <span class="live-badge">
-                        <span class="live-dot"></span>
-                        LIVE
-                    </span>
-                    <span class="stream-link-label">LINK 1</span>
-                    <div class="stream-badges">
-                        <span class="quality-badge hd">HD</span>
-                        <span class="lang-badge">EN</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Desktop / Mobile</p>
-                </a>
-
-                <a href="{{STREAM_URL_2}}" class="stream-link-card">
-                    <span class="live-badge">
-                        <span class="live-dot"></span>
-                        LIVE
-                    </span>
-                    <span class="stream-link-label">LINK 2</span>
-                    <div class="stream-badges">
-                        <span class="quality-badge hd">HD</span>
-                        <span class="lang-badge">EN</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Desktop / Mobile</p>
-                </a>
-
-                <a href="{{STREAM_URL_3}}" class="stream-link-card">
-                    <span class="live-badge">
-                        <span class="live-dot"></span>
-                        LIVE
-                    </span>
-                    <span class="stream-link-label">LINK 3</span>
-                    <div class="stream-badges">
-                        <span class="quality-badge sd">SD</span>
-                        <span class="lang-badge">EN</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Mobile Optimized</p>
-                </a>
-
-                <a href="{{STREAM_URL_4}}" class="stream-link-card">
-                    <span class="live-badge">
-                        <span class="live-dot"></span>
-                        LIVE
-                    </span>
-                    <span class="stream-link-label">LINK 4</span>
-                    <div class="stream-badges">
-                        <span class="quality-badge hd">HD</span>
-                        <span class="lang-badge">Multi</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Multi-language</p>
-                </a>
-            </div>
-
-            <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.85rem;">
-                💡 <strong>Tip:</strong> If a player fails to load, wait 20 seconds or try opening in a new tab.
-                Video quality depends on the third-party source.
-            </p>
+            <a href="https://live.footholics.in/{{FILE_NAME}}"
+               class="btn btn-primary"
+               style="font-size: 1.1rem; padding: 0.9rem 2.5rem; display: inline-block;"
+               target="_blank" rel="noopener noreferrer">
+                Watch Live &rarr;
+            </a>
         </section>
 
         <!-- Social Share -->
@@ -3067,11 +3331,7 @@ def get_inline_event_template() -> str:
             <div class="footer-content">
                 <div class="footer-section">
                     <h4>About Foot Holics</h4>
-                    <p>
-                        Foot Holics is your premium sports streaming aggregator, providing links to
-                        live football matches from around the world. We curate the best streaming
-                        sources so you never miss a game.
-                    </p>
+                    <p>Your premium football destination for news, standings, fixtures and in-depth match coverage from all the leagues you love.</p>
                 </div>
 
                 <div class="footer-section">
@@ -3079,10 +3339,10 @@ def get_inline_event_template() -> str:
                     <ul class="footer-links">
                         <li><a href="index.html">Home</a></li>
                         <li><a href="news.html">Football News</a></li>
-                        <li><a href="standings.html">League Standings</a></li>
-                        <li><a href="fixtures.html">Upcoming Fixtures</a></li>
-                        <li><a href="about.html">About Us</a></li>
-                        <li><a href="mailto:footholicsin@gmail.com">Contact</a></li>
+                        <li><a href="articles/index.html">Articles</a></li>
+                        <li><a href="standings.html">Standings</a></li>
+                        <li><a href="fixtures.html">Fixtures</a></li>
+                        <li><a href="contact.html">Contact</a></li>
                     </ul>
                 </div>
 
@@ -3387,6 +3647,431 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
             pass
 
 
+# ── Article Publishing ────────────────────────────────────────────────────────
+
+def generate_article_html(title: str, slug: str, category: str, excerpt: str, content: str, date: str) -> str:
+    """Generate a full editorial article HTML page."""
+    try:
+        date_display = datetime.strptime(date, "%Y-%m-%d").strftime("%B %d, %Y")
+    except Exception:
+        date_display = date
+
+    # Convert Markdown-like content to HTML paragraphs / headings
+    html_parts = []
+    current_para_lines = []
+
+    def flush_para():
+        if current_para_lines:
+            html_parts.append(f"                <p>{' '.join(current_para_lines)}</p>")
+            current_para_lines.clear()
+
+    for line in content.split("\n"):
+        line = line.rstrip()
+        if line.startswith("## "):
+            flush_para()
+            html_parts.append(f"\n                <h2>{_html.escape(line[3:])}</h2>")
+        elif line.startswith("### "):
+            flush_para()
+            html_parts.append(f"\n                <h3>{_html.escape(line[4:])}</h3>")
+        elif line == "":
+            flush_para()
+        else:
+            current_para_lines.append(_html.escape(line))
+    flush_para()
+
+    html_body = "\n".join(html_parts)
+
+    # Partial slug for the related-articles filter (strip date prefix)
+    slug_parts = slug.split("-")
+    slug_filter = "-".join(slug_parts[3:]) if len(slug_parts) > 3 else slug
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="index, follow">
+    <meta name="description" content="{_html.escape(excerpt)}">
+    <meta property="og:title" content="{_html.escape(title)} - Foot Holics">
+    <meta property="og:description" content="{_html.escape(excerpt[:160])}">
+    <meta property="og:type" content="article">
+    <meta property="og:image" content="https://footholics.in/assets/img/og-image.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <title>{_html.escape(title)} | Foot Holics</title>
+    <link rel="canonical" href="https://footholics.in/articles/{slug}.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="icon" type="image/png" href="../assets/img/logos/site/logo.png">
+    <script type="application/ld+json">
+    {{
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "{_html.escape(title)}",
+      "datePublished": "{date}",
+      "dateModified": "{date}",
+      "author": {{ "@type": "Organization", "name": "Foot Holics Editorial" }},
+      "publisher": {{
+        "@type": "Organization",
+        "name": "Foot Holics",
+        "logo": {{ "@type": "ImageObject", "url": "https://footholics.in/assets/img/logos/site/logo.png" }}
+      }},
+      "image": "https://footholics.in/assets/img/og-image.jpg",
+      "url": "https://footholics.in/articles/{slug}.html"
+    }}
+    </script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="../index.html" class="logo">
+                    <img src="../assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="logo-icon">
+                    <span>Foot Holics</span>
+                </a>
+                <nav class="primary-nav" id="primaryNav">
+                    <a href="../index.html">Home</a>
+                    <a href="../news.html">News</a>
+                    <a href="index.html" class="active">Articles</a>
+                    <a href="../standings.html">Standings</a>
+                    <a href="../fixtures.html">Fixtures</a>
+                    <a href="../about.html">About</a>
+                    <a href="../contact.html">Contact</a>
+                </nav>
+                <div class="cta-group" id="ctaGroup">
+                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">WhatsApp</a>
+                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Telegram</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container" style="margin-top: 2rem;">
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
+            <a href="../index.html">Home</a>
+            <span class="breadcrumb-separator">&rsaquo;</span>
+            <a href="index.html">Articles</a>
+            <span class="breadcrumb-separator">&rsaquo;</span>
+            <span>{_html.escape(title[:60])}</span>
+        </nav>
+    </div>
+
+    <main class="container" style="margin-top: 2rem; max-width: 860px;">
+        <article>
+            <header style="margin-bottom: 2rem;">
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+                    <span class="news-cat-badge">{_html.escape(category)}</span>
+                    <span style="color: var(--muted); font-size: 0.85rem;">{date_display}</span>
+                    <span style="color: var(--muted); font-size: 0.85rem;">By Foot Holics Editorial</span>
+                </div>
+                <h1 style="font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); line-height: 1.25; margin-bottom: 1.25rem;">{_html.escape(title)}</h1>
+                <p style="font-size: 1.1rem; color: var(--muted); line-height: 1.7;">{_html.escape(excerpt)}</p>
+            </header>
+
+            <div class="article-body" style="font-size: 1rem; line-height: 1.8; color: var(--text);">
+
+{html_body}
+
+                <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
+
+                <p style="color: var(--muted); font-size: 0.9rem;">Stay up to date with our <a href="../fixtures.html" style="color: var(--accent);">Fixtures page</a> and live <a href="../standings.html" style="color: var(--accent);">Standings</a>.</p>
+            </div>
+        </article>
+
+        <section style="margin-top: 4rem;">
+            <h2 style="margin-bottom: 1.5rem;">More Articles</h2>
+            <div class="home-news-grid" id="relatedArticles">
+                <div class="content-loading" style="grid-column:1/-1;">
+                    <div class="spinner"></div>
+                    <span>Loading...</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer" style="margin-top: 4rem;">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Foot Holics</h4>
+                    <p>Your premium football destination for news, standings, fixtures and in-depth match coverage from all the leagues you love.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="../index.html">Home</a></li>
+                        <li><a href="../news.html">Football News</a></li>
+                        <li><a href="index.html">Articles</a></li>
+                        <li><a href="../standings.html">Standings</a></li>
+                        <li><a href="../fixtures.html">Fixtures</a></li>
+                        <li><a href="../contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="../privacy.html">Privacy Policy</a></li>
+                        <li><a href="../terms.html">Terms &amp; Conditions</a></li>
+                        <li><a href="../dmca.html">DMCA / Copyright</a></li>
+                        <li><a href="../disclaimer.html">Disclaimer</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Connect With Us</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-whatsapp" style="margin-right:8px;"></i>WhatsApp Channel</a></li>
+                        <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram" style="margin-right:8px;"></i>Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Foot Holics. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../assets/js/main.js" defer></script>
+    <script>
+    (function () {{
+        async function loadRelated() {{
+            const grid = document.getElementById('relatedArticles');
+            if (!grid) return;
+            try {{
+                const res = await fetch('/api/articles');
+                if (!res.ok) throw new Error();
+                const all = await res.json();
+                const others = all.filter(a => !a.url.includes('{slug_filter}')).slice(0, 3);
+                if (!others.length) {{ grid.innerHTML = ''; return; }}
+                function esc(s) {{ return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }}
+                grid.innerHTML = others.map(a => `<a href="${{esc(a.url)}}" class="news-card">
+                    <div class="news-card-content">
+                        <span class="news-cat-badge" style="font-size:0.7rem;">${{esc(a.category || 'Football')}}</span>
+                        <h3 class="news-card-title">${{esc(a.title)}}</h3>
+                        <p class="news-card-excerpt">${{esc(a.excerpt)}}</p>
+                        <span style="font-size:0.8rem; color:var(--muted);">${{esc(a.date)}}</span>
+                    </div>
+                </a>`).join('');
+            }} catch (e) {{ grid.innerHTML = ''; }}
+        }}
+        loadRelated();
+    }})();
+    </script>
+
+</body>
+</html>"""
+
+
+async def article_title_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 1 — collect article title."""
+    title = update.message.text.strip()
+    if len(title) < 5:
+        await update.message.reply_text(
+            "❌ Title is too short. Please send a proper article title.",
+            parse_mode="Markdown"
+        )
+        return ARTICLE_TITLE
+
+    context.user_data["art_title"] = title
+
+    keyboard = [
+        [InlineKeyboardButton("Premier League", callback_data="art_cat_Premier League"),
+         InlineKeyboardButton("Champions League", callback_data="art_cat_Champions League")],
+        [InlineKeyboardButton("La Liga", callback_data="art_cat_La Liga"),
+         InlineKeyboardButton("Bundesliga", callback_data="art_cat_Bundesliga")],
+        [InlineKeyboardButton("Serie A", callback_data="art_cat_Serie A"),
+         InlineKeyboardButton("Ligue 1", callback_data="art_cat_Ligue 1")],
+        [InlineKeyboardButton("World Football", callback_data="art_cat_World Football"),
+         InlineKeyboardButton("Guide", callback_data="art_cat_Guide")],
+    ]
+    await update.message.reply_text(
+        f"✅ Title saved: *{_html.escape(title)}*\n\n"
+        "Step 2 of 4: Choose a *category*:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return ARTICLE_CATEGORY
+
+
+async def article_category_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 2 — collect category via inline button."""
+    query = update.callback_query
+    await query.answer()
+    category = query.data.replace("art_cat_", "")
+    context.user_data["art_category"] = category
+
+    await query.edit_message_text(
+        f"✅ Category: *{category}*\n\n"
+        "Step 3 of 4: Send the *excerpt* (1-2 sentences shown in article cards).\n\n"
+        "_Type /cancel to abort_",
+        parse_mode="Markdown"
+    )
+    return ARTICLE_EXCERPT
+
+
+async def article_excerpt_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 3 — collect excerpt."""
+    excerpt = update.message.text.strip()
+    if len(excerpt) < 10:
+        await update.message.reply_text(
+            "❌ Excerpt is too short. Write 1-2 sentences summarising the article."
+        )
+        return ARTICLE_EXCERPT
+
+    context.user_data["art_excerpt"] = excerpt
+
+    await update.message.reply_text(
+        "✅ Excerpt saved.\n\n"
+        "Step 4 of 4: Send the *article body*.\n\n"
+        "Formatting rules:\n"
+        "• `## Heading` — becomes an H2 heading\n"
+        "• `### Heading` — becomes an H3 heading\n"
+        "• Blank line — starts a new paragraph\n"
+        "• Everything else — regular paragraph text\n\n"
+        "Send all content in *one message* (up to 4000 characters).\n\n"
+        "_Type /cancel to abort_",
+        parse_mode="Markdown"
+    )
+    return ARTICLE_CONTENT
+
+
+async def article_content_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 4 — collect article body, then show confirm screen."""
+    content = update.message.text.strip()
+    if len(content) < 50:
+        await update.message.reply_text(
+            "❌ Article body is too short (minimum 50 characters). Please write a proper article."
+        )
+        return ARTICLE_CONTENT
+
+    context.user_data["art_content"] = content
+
+    title    = context.user_data["art_title"]
+    category = context.user_data["art_category"]
+    excerpt  = context.user_data["art_excerpt"]
+
+    preview = content[:300] + ("…" if len(content) > 300 else "")
+
+    keyboard = [
+        [InlineKeyboardButton("✅ Publish", callback_data="art_confirm"),
+         InlineKeyboardButton("❌ Cancel", callback_data="art_cancel")],
+    ]
+
+    await update.message.reply_text(
+        f"📋 *Preview — confirm before publishing:*\n\n"
+        f"*Title:* {_html.escape(title)}\n"
+        f"*Category:* {category}\n"
+        f"*Excerpt:* {_html.escape(excerpt[:120])}\n\n"
+        f"*Body preview:*\n_{_html.escape(preview)}_\n\n"
+        f"*Word count:* ~{len(content.split())} words",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return ARTICLE_CONFIRM
+
+
+async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 5 — publish or cancel."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "art_cancel":
+        context.user_data.clear()
+        await query.edit_message_text("❌ Article cancelled.")
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    # Publish
+    title    = context.user_data["art_title"]
+    category = context.user_data["art_category"]
+    excerpt  = context.user_data["art_excerpt"]
+    content  = context.user_data["art_content"]
+
+    await query.edit_message_text("⏳ Publishing article…")
+
+    try:
+        root_dir = get_project_root()
+        date_str = datetime.now(IST).strftime("%Y-%m-%d")
+        slug = f"{date_str}-{slugify(title)}"
+
+        # Generate HTML
+        html_content = generate_article_html(title, slug, category, excerpt, content, date_str)
+
+        # Write HTML file
+        articles_dir = os.path.join(root_dir, "articles")
+        os.makedirs(articles_dir, exist_ok=True)
+        html_path = os.path.join(articles_dir, f"{slug}.html")
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        # Update articles/index.json
+        index_path = os.path.join(articles_dir, "index.json")
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as f:
+                articles = json.load(f)
+        else:
+            articles = []
+
+        new_entry = {
+            "slug": slug,
+            "title": title,
+            "excerpt": excerpt,
+            "image": "https://footholics.in/assets/img/og-image.jpg",
+            "date": date_str,
+            "author": "Foot Holics Editorial",
+            "category": category,
+            "url": f"/articles/{slug}.html",
+        }
+        # Prepend so newest is first
+        articles.insert(0, new_entry)
+        with open(index_path, "w", encoding="utf-8") as f:
+            json.dump(articles, f, indent=2, ensure_ascii=False)
+
+        # Update sitemap.xml
+        sitemap_path = os.path.join(root_dir, "sitemap.xml")
+        if os.path.exists(sitemap_path):
+            with open(sitemap_path, "r", encoding="utf-8") as f:
+                sitemap = f.read()
+            new_url_entry = (
+                f"\n    <url>\n"
+                f"        <loc>https://footholics.in/articles/{slug}.html</loc>\n"
+                f"        <lastmod>{date_str}</lastmod>\n"
+                f"        <changefreq>weekly</changefreq>\n"
+                f"        <priority>0.8</priority>\n"
+                f"    </url>"
+            )
+            sitemap = sitemap.replace("</urlset>", new_url_entry + "\n\n</urlset>")
+            with open(sitemap_path, "w", encoding="utf-8") as f:
+                f.write(sitemap)
+
+        success_msg = (
+            f"✅ *Article Published!*\n\n"
+            f"*File:* `articles/{slug}.html`\n"
+            f"*URL:* `https://footholics.in/articles/{slug}.html`\n\n"
+            f"*Saved to:*\n"
+            f"• articles/{slug}.html\n"
+            f"• articles/index.json\n"
+            f"• sitemap.xml\n\n"
+            f"*Deploy:*\n"
+            f"```\n"
+            f"git add .\n"
+            f"git commit -m \"Add article: {title[:50]}\"\n"
+            f"git push\n"
+            f"```"
+        )
+        await query.edit_message_text(success_msg, parse_mode="Markdown")
+
+    except Exception as e:
+        logger.error(f"Error publishing article: {e}", exc_info=True)
+        await query.edit_message_text(f"❌ Error publishing article: {e}")
+
+    context.user_data.clear()
+    await show_main_menu(update, context, edit_message=False)
+    return MAIN_MENU
+
+
 def main() -> None:
     """Start the bot."""
     # Get token from environment
@@ -3447,6 +4132,14 @@ def main() -> None:
                 CallbackQueryHandler(stream_link_action_handler, pattern="^stream_clear_"),
             ],
             GENERATE_CARD_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, generate_card_input)],
+            ARTICLE_TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, article_title_handler)],
+            ARTICLE_CATEGORY: [CallbackQueryHandler(article_category_handler, pattern="^art_cat_")],
+            ARTICLE_EXCERPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, article_excerpt_handler)],
+            ARTICLE_CONTENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, article_content_handler)],
+            ARTICLE_CONFIRM: [
+                CallbackQueryHandler(article_confirm_handler, pattern="^art_confirm"),
+                CallbackQueryHandler(article_confirm_handler, pattern="^art_cancel"),
+            ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )

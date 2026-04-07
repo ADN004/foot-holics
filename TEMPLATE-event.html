@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- ⚠️ REPLACE: Match title and description -->
-    <meta name="description" content="Watch [HOME TEAM] vs [AWAY TEAM] live - [LEAGUE NAME] on [DATE]. Find multiple streaming links and match preview.">
-    <meta name="keywords" content="[HOME TEAM] vs [AWAY TEAM], [LEAGUE NAME] live stream, watch football online">
+    <meta name="description" content="[HOME TEAM] vs [AWAY TEAM] — [LEAGUE NAME] match preview, kickoff time, broadcast channels and live score on [DATE].">
+    <meta name="keywords" content="[HOME TEAM] vs [AWAY TEAM], [LEAGUE NAME] preview, football match, kickoff time, broadcast">
 
     <!-- Open Graph -->
-    <meta property="og:title" content="[HOME TEAM] vs [AWAY TEAM] - [LEAGUE NAME] Live Stream">
-    <meta property="og:description" content="Watch the [LEAGUE NAME] match between [HOME TEAM] and [AWAY TEAM] live on [DATE].">
-    <meta property="og:type" content="website">
+    <meta property="og:title" content="[HOME TEAM] vs [AWAY TEAM] - [LEAGUE NAME] Match Preview">
+    <meta property="og:description" content="Match preview, broadcast channels and live score for [HOME TEAM] vs [AWAY TEAM] in [LEAGUE NAME] on [DATE].">
+    <meta property="og:type" content="article">
     <meta property="og:image" content="assets/img/[match-poster].jpg">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="[HOME TEAM] vs [AWAY TEAM] - [LEAGUE NAME] Live Stream">
-    <meta name="twitter:description" content="Watch the [LEAGUE NAME] match live with multiple streaming options.">
+    <meta name="twitter:title" content="[HOME TEAM] vs [AWAY TEAM] - [LEAGUE NAME] Match Preview">
+    <meta name="twitter:description" content="Match preview, broadcast channels and live score for [HOME TEAM] vs [AWAY TEAM].">
 
     <!-- ⚠️ REPLACE: Page title -->
-    <title>[HOME TEAM] vs [AWAY TEAM] - [LEAGUE NAME] Live Stream | Foot Holics</title>
+    <title>[HOME TEAM] vs [AWAY TEAM] - [LEAGUE NAME] Match Preview | Foot Holics</title>
 
     <!-- Canonical -->
     <link rel="canonical" href="https://footholics.in/[YYYY-MM-DD-team1-vs-team2].html">
@@ -81,9 +81,11 @@
                 <nav class="primary-nav" id="primaryNav">
                     <a href="index.html">Home</a>
                     <a href="news.html">News</a>
+                    <a href="articles/index.html">Articles</a>
                     <a href="standings.html">Standings</a>
                     <a href="fixtures.html">Fixtures</a>
                     <a href="about.html">About</a>
+                    <a href="contact.html">Contact</a>
                 </nav>
 
                 <div class="cta-group" id="ctaGroup">
@@ -231,70 +233,19 @@
             </table>
         </section>
 
-        <!-- Watch Live Section -->
-        <!-- ⚠️ REPLACE: Update stream link URLs with your match slug -->
-        <section class="glass-card mb-4">
-            <h2 style="color: var(--accent); margin-bottom: 1rem;">📺 Watch Live - Streaming Links</h2>
-            <p class="text-muted mb-3" style="font-size: 0.9rem;">
-                If one stream doesn't work, try another link. Click any link to open the live player.
-                <strong>Note:</strong> These links are from third-party sources. Quality and availability may vary.
+        <!-- Watch Live CTA -->
+        <!-- ⚠️ REPLACE: [MATCH_SLUG] with the actual match slug e.g. 2026-04-05-arsenal-vs-chelsea -->
+        <section class="glass-card mb-4" style="text-align: center;">
+            <h2 style="color: var(--accent); margin-bottom: 1rem;">Watch This Match Live</h2>
+            <p class="text-muted" style="margin-bottom: 1.5rem; font-size: 0.95rem;">
+                Multiple live stream links are available for this match. Click below to access them.
             </p>
-
-            <div class="stream-links">
-                <!-- ⚠️ REPLACE: ?match=[your-match-slug] -->
-                <a href="p/1-live.html?match=[match-slug]" class="stream-link-card" onclick="return handleAdClick(this);">
-                    <span class="live-badge">
-                        <span class="live-dot"></span>
-                        LIVE
-                    </span>
-                    <span class="stream-link-label">LINK 1</span>
-                    <div class="stream-badges">
-                        <span class="quality-badge hd">HD</span>
-                        <span class="lang-badge">EN</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Desktop / Mobile</p>
-                </a>
-
-                <a href="p/2-live.html?match=[match-slug]" class="stream-link-card" onclick="return handleAdClick(this);">
-                    <span class="live-badge">
-                        <span class="live-dot"></span>
-                        LIVE
-                    </span>
-                    <span class="stream-link-label">LINK 2</span>
-                    <div class="stream-badges">
-                        <span class="quality-badge hd">HD</span>
-                        <span class="lang-badge">EN</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Desktop / Mobile</p>
-                </a>
-
-                <a href="p/3-live.html?match=[match-slug]" class="stream-link-card" onclick="return handleAdClick(this);">
-                    <span class="stream-link-label">LINK 3</span>
-                    <div class="stream-badges">
-                        <span class="quality-badge sd">SD</span>
-                        <span class="lang-badge">EN</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Mobile Optimized</p>
-                </a>
-
-                <a href="p/4-live.html?match=[match-slug]" class="stream-link-card" onclick="return handleAdClick(this);">
-                    <span class="live-badge">
-                        <span class="live-dot"></span>
-                        LIVE
-                    </span>
-                    <span class="stream-link-label">LINK 4</span>
-                    <div class="stream-badges">
-                        <span class="quality-badge hd">HD</span>
-                        <span class="lang-badge">Multi</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">Multi-language</p>
-                </a>
-            </div>
-
-            <p class="text-muted" style="margin-top: 1.5rem; font-size: 0.85rem;">
-                💡 <strong>Tip:</strong> If a player fails to load, wait 20 seconds or try opening in a new tab.
-                Video quality depends on the third-party source.
-            </p>
+            <a href="https://live.footholics.in/[MATCH_SLUG]"
+               class="btn btn-primary"
+               style="font-size: 1.1rem; padding: 0.9rem 2.5rem; display: inline-block;"
+               target="_blank" rel="noopener noreferrer">
+                Watch Live &rarr;
+            </a>
         </section>
 
         <!-- Social Share -->
@@ -349,20 +300,18 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <h4>About Foot Holics</h4>
-                    <p>
-                        Foot Holics is your premium sports streaming aggregator, providing links to
-                        live football matches from around the world. We curate the best streaming
-                        sources so you never miss a game.
-                    </p>
+                    <p>Your premium football destination for news, standings, fixtures and in-depth match coverage from all the leagues you love.</p>
                 </div>
 
                 <div class="footer-section">
                     <h4>Quick Links</h4>
                     <ul class="footer-links">
                         <li><a href="index.html">Home</a></li>
-                        <li><a href="search.html">Search Matches</a></li>
-                        <li><a href="#leagues">Browse Leagues</a></li>
-                        <li><a href="mailto:footholicsin@gmail.com">Contact</a></li>
+                        <li><a href="news.html">Football News</a></li>
+                        <li><a href="articles/index.html">Articles</a></li>
+                        <li><a href="standings.html">Standings</a></li>
+                        <li><a href="fixtures.html">Fixtures</a></li>
+                        <li><a href="contact.html">Contact</a></li>
                     </ul>
                 </div>
 
