@@ -1,5 +1,73 @@
 [
   {
+    "id": "event-1775564437077",
+    "date": "2026-04-08",
+    "time": "00:30",
+    "slug": "2026-04-08-real-madrid-vs-bayern-munich",
+    "title": "Real Madrid vs Bayern Munich",
+    "homeTeam": "Real Madrid",
+    "awayTeam": "Bayern Munich",
+    "league": "Champions League",
+    "leagueSlug": "champions-league",
+    "stadium": "Santiago Bernabéu",
+    "poster": "assets/img/2026-04-08-real-madrid-vs-bayern-munich-poster.jpg",
+    "excerpt": "The clash between Real Madrid and Bayern Munich today is a high-stakes UEFA Champions League quarterfinal first leg at the Santiago Bernabéu, bringing...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly9leGFtcGxlLmNvbS9zdHJlYW0x&type=hls"
+      },
+      {
+        "name": "Stream 2",
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly9leGFtcGxlLmNvbS9zdHJlYW0y&type=hls"
+      },
+      {
+        "name": "Stream 3",
+        "url": "#"
+      },
+      {
+        "name": "Stream 4",
+        "url": "#"
+      }
+    ],
+    "streams": 2
+  },
+  {
+    "id": "event-1775379442074",
+    "date": "2026-04-05",
+    "time": "20:00",
+    "slug": "2026-04-05-chelsea-vs-manchester-united",
+    "title": "Chelsea  vs Manchester United",
+    "homeTeam": "Chelsea",
+    "awayTeam": "Manchester United",
+    "league": "Premier League",
+    "leagueSlug": "premier-league",
+    "stadium": "Old Trafford",
+    "poster": "assets/img/chelsea-manchester-united-poster.jpg",
+    "excerpt": "testingThis will be displayed on the match page. Include key details about the match, team form, key players, or rivalry context.This will be displaye...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://footholics.in/universal-player.html?get=aHR0cHM6Ly9leGFtcGxlLmNvbS9zdHJlYW0x&type=hls"
+      },
+      {
+        "name": "Stream 2",
+        "url": "#"
+      },
+      {
+        "name": "Stream 3",
+        "url": "#"
+      },
+      {
+        "name": "Stream 4",
+        "url": "#"
+      }
+    ],
+    "streams": 1
+  },
+  {
     "id": "event-1775327823219",
     "date": "2026-04-04",
     "time": "19:00",
