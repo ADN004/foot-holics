@@ -135,6 +135,7 @@ p {
   display: flex;
   align-items: center;
   padding: var(--space-2) 0;
+  gap: var(--space-2);
 }
 
 .logo {
@@ -166,7 +167,7 @@ p {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   flex: 1;
   margin: 0;
 }
@@ -174,7 +175,7 @@ p {
 .primary-nav a {
   color: var(--text);
   font-weight: 500;
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) 10px;
   border-radius: var(--radius-sm);
   transition: all 0.3s ease;
   position: relative;
