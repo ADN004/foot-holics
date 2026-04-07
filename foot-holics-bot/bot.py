@@ -2716,7 +2716,7 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             integration_results.append("⚠️ Could not add to events.json")
 
         # 2. Generate and copy live subdomain page (matches live on live.footholics.in only)
-        live_html_code = generate_live_html(data)
+        live_html_code = generate_live_html(context.user_data)
         if copy_html_to_live(html_filename, live_html_code):
             integration_results.append("✅ Live page copied to foot-holics-live/")
         else:
