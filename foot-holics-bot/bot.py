@@ -432,6 +432,21 @@ def get_broadcaster_table(league_slug: str) -> str:
                     </tr>"""
 
 
+def get_broadcaster_table_compact(league_slug: str) -> str:
+    """Return compact HTML rows for the live page broadcast table (2-col)."""
+    bc = BROADCASTER_MAP.get(league_slug, {"uk": "Check local listings", "us": "Check local listings", "in": "Check local listings"})
+    rows = [
+        ("🇬🇧 United Kingdom", bc['uk']),
+        ("🇺🇸 United States",  bc['us']),
+        ("🇮🇳 India",           bc['in']),
+        ("🌍 International",    "Check local listings"),
+    ]
+    html = ""
+    for region, channel in rows:
+        html += f'<tr style="border-bottom:1px solid var(--glass-border);"><td style="padding:0.4rem 0;color:var(--text);">{region}</td><td style="padding:0.4rem 0;color:var(--muted);">{channel}</td></tr>\n'
+    return html
+
+
 def generate_live_html(data: dict) -> str:
     """Generate the live subdomain stream-links page."""
     from urllib.parse import quote
@@ -578,6 +593,36 @@ def generate_live_html(data: dict) -> str:
             <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="community-btn btn-whatsapp">
                 <i class="fa-brands fa-whatsapp"></i> WhatsApp Channel
             </a>
+        </div>
+
+        <!-- ── MATCH INFO SECTION ────────────────────────────────────────── -->
+        <div style="background:var(--panel);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:1.25rem;margin:1.5rem 0;">
+            <h2 style="color:var(--accent);font-size:1rem;margin-bottom:0.9rem;">Match Information</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.65rem 1.25rem;font-size:0.84rem;">
+                <div><span style="color:var(--muted);display:block;margin-bottom:0.15rem;">Competition</span><strong style="color:var(--text);">{data['league']}</strong></div>
+                <div><span style="color:var(--muted);display:block;margin-bottom:0.15rem;">Kickoff (IST)</span><strong style="color:var(--text);">{data['time']} IST</strong></div>
+                <div><span style="color:var(--muted);display:block;margin-bottom:0.15rem;">Date</span><strong style="color:var(--text);">{date_obj.strftime('%B %d, %Y')}</strong></div>
+                <div><span style="color:var(--muted);display:block;margin-bottom:0.15rem;">Venue</span><strong style="color:var(--text);">{data['stadium']}</strong></div>
+            </div>
+        </div>
+
+        <!-- ── OFFICIAL BROADCAST ────────────────────────────────────────── -->
+        <div style="background:var(--panel);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:1.25rem;margin-bottom:1.5rem;">
+            <h2 style="color:var(--accent);font-size:1rem;margin-bottom:0.9rem;">Official Broadcast</h2>
+            <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+                <thead><tr style="border-bottom:1px solid var(--glass-border);">
+                    <th style="text-align:left;padding:0.35rem 0;color:var(--muted);font-weight:600;">Region</th>
+                    <th style="text-align:left;padding:0.35rem 0;color:var(--muted);font-weight:600;">Channel / Platform</th>
+                </tr></thead>
+                <tbody>{get_broadcaster_table_compact(data['league_slug'])}</tbody>
+            </table>
+        </div>
+
+        <!-- ── MATCH PREVIEW ─────────────────────────────────────────────── -->
+        <div style="background:var(--panel);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:1.25rem;margin-bottom:1.5rem;">
+            <h2 style="color:var(--accent);font-size:1rem;margin-bottom:0.75rem;">Match Preview</h2>
+            <p style="color:var(--muted);font-size:0.86rem;line-height:1.7;">{data.get('preview', f"Stay tuned for the latest updates on this {data['league']} clash.")[:350]}</p>
+            <p style="margin-top:0.75rem;"><a href="https://footholics.in/{match_slug}.html" style="color:var(--accent);font-size:0.84rem;font-weight:600;">Full preview &amp; analysis &rarr;</a></p>
         </div>
 
         <div class="live-disclaimer">
@@ -2302,6 +2347,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     "thumbnail": _updated_ev.get("poster", ""),
                     "stream_urls": _raw_streams,
                     "image_file": "og-image.jpg",
+                    "preview": _updated_ev.get("excerpt", ""),
                 }
                 _live_html = generate_live_html(_live_data)
                 _live_updated = copy_html_to_live(filename, _live_html)
@@ -2715,7 +2761,17 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         else:
             integration_results.append("⚠️ Could not add to events.json")
 
-        # 2. Generate and copy live subdomain page (matches live on live.footholics.in only)
+        # 2. Write main site editorial page to foot-holics/ root
+        try:
+            main_site_root = get_project_root()
+            main_page_path = os.path.join(main_site_root, html_filename)
+            with open(main_page_path, "w", encoding="utf-8") as f:
+                f.write(html_code)
+            integration_results.append("✅ Main site page written to foot-holics/")
+        except Exception as _me:
+            integration_results.append(f"⚠️ Could not write main site page: {_me}")
+
+        # 3. Generate and copy live subdomain page (matches live on live.footholics.in only)
         live_html_code = generate_live_html(context.user_data)
         if copy_html_to_live(html_filename, live_html_code):
             integration_results.append("✅ Live page copied to foot-holics-live/")
@@ -2805,8 +2861,11 @@ def generate_html(data: Dict[str, Any]) -> str:
     html = html.replace("{{PREVIEW}}", data["preview"])
     html = html.replace("{{IMAGE_FILE}}", data["image_file"])
     html = html.replace("{{FILE_NAME}}", filename)
+    match_slug = filename.replace(".html", "")
+    html = html.replace("{{MATCH_SLUG}}", match_slug)
     html = html.replace("{{SLUG}}", f"{home_slug}-vs-{away_slug}")
     html = html.replace("{{MATCH_NAME_ENCODED}}", match_name_encoded)
+    html = html.replace("{{BROADCAST_ROWS}}", get_broadcaster_table(data["league_slug"]))
 
     # Replace stream URLs with branded player links
     html = html.replace("{{STREAM_URL_1}}", player_urls[0])
@@ -2962,19 +3021,20 @@ def get_inline_event_template() -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{{MATCH_NAME}} \u2014 {{LEAGUE}} match preview, broadcast channels, live score and kickoff time on {{DATE}} at {{STADIUM}}.">
-    <meta name="keywords" content="{{MATCH_NAME}}, {{HOME_TEAM}} vs {{AWAY_TEAM}}, {{LEAGUE}} live stream, watch football online, football live streaming, free football stream, {{STADIUM}}, {{HOME_TEAM}} live, {{AWAY_TEAM}} live, football match today, live soccer stream, watch {{LEAGUE}} online">
+    <meta name="robots" content="index, follow">
+    <meta name="description" content="{{MATCH_NAME}} \u2014 {{LEAGUE}} match preview, official broadcast channels, live score and kickoff time on {{DATE}} at {{STADIUM}}.">
+    <meta name="keywords" content="{{MATCH_NAME}}, {{HOME_TEAM}} vs {{AWAY_TEAM}}, {{LEAGUE}} preview, football match, kickoff time, {{STADIUM}}, {{HOME_TEAM}}, {{AWAY_TEAM}}, football today">
 
     <!-- Open Graph -->
-    <meta property="og:title" content="{{MATCH_NAME}} - {{LEAGUE}} Live Stream">
-    <meta property="og:description" content="Watch the {{LEAGUE}} match between {{HOME_TEAM}} and {{AWAY_TEAM}} live on {{DATE}}.">
-    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{MATCH_NAME}} \u2014 {{LEAGUE}} Match Preview">
+    <meta property="og:description" content="{{LEAGUE}} match preview: {{HOME_TEAM}} vs {{AWAY_TEAM}} on {{DATE}}. Kickoff time, broadcast info and live score.">
+    <meta property="og:type" content="article">
     <meta property="og:image" content="assets/img/{{IMAGE_FILE}}">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{MATCH_NAME}} - {{LEAGUE}} Live Stream">
-    <meta name="twitter:description" content="Watch the {{LEAGUE}} match live with multiple streaming options.">
+    <meta name="twitter:title" content="{{MATCH_NAME}} \u2014 {{LEAGUE}} Match Preview">
+    <meta name="twitter:description" content="{{LEAGUE}} preview: {{HOME_TEAM}} vs {{AWAY_TEAM}} on {{DATE}}. Kickoff time and broadcast info.">
 
     <title>{{MATCH_NAME}} \u2014 {{LEAGUE}} Match Preview | Foot Holics</title>
 
@@ -3004,7 +3064,7 @@ def get_inline_event_template() -> str:
       "@context": "https://schema.org",
       "@type": "SportsEvent",
       "name": "{{MATCH_NAME}}",
-      "description": "Watch {{MATCH_NAME}} live stream free on Foot Holics. {{LEAGUE}} match with multiple HD streaming links.",
+      "description": "{{MATCH_NAME}} \u2014 {{LEAGUE}} match preview on Foot Holics. Kickoff time, official broadcast channels, live score and editorial coverage.",
       "startDate": "{{ISO_DATE}}",
       "location": {
         "@type": "Place",
@@ -3040,7 +3100,7 @@ def get_inline_event_template() -> str:
       },
       "eventStatus": "https://schema.org/EventScheduled",
       "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-      "isAccessibleForFree": false,
+      "isAccessibleForFree": true,
       "url": "https://footholics.in/{{FILENAME}}"
     }
     </script>
@@ -3053,7 +3113,7 @@ def get_inline_event_template() -> str:
       "name": "Foot Holics",
       "url": "https://footholics.in",
       "logo": "https://footholics.in/assets/img/logos/site/logo.png",
-      "description": "Premium football streaming aggregator providing links to live football matches from around the world",
+      "description": "Premium football media platform covering match previews, standings, fixtures and the latest football news from around the world",
       "sameAs": [
         "https://t.me/+XyKdBR9chQpjM2I9",
         "https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T"
@@ -3232,31 +3292,7 @@ def get_inline_event_template() -> str:
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>🇬🇧 United Kingdom</td>
-                        <td>Sky Sports Premier League</td>
-                        <td>HD, Sky Go available</td>
-                    </tr>
-                    <tr>
-                        <td>🇺🇸 United States</td>
-                        <td>NBC Sports, Peacock</td>
-                        <td>Streaming available</td>
-                    </tr>
-                    <tr>
-                        <td>🇮🇳 India</td>
-                        <td>Star Sports, Hotstar</td>
-                        <td>Hindi & English commentary</td>
-                    </tr>
-                    <tr>
-                        <td>🇪🇸 Spain</td>
-                        <td>DAZN</td>
-                        <td>Streaming, HD</td>
-                    </tr>
-                    <tr>
-                        <td>🌍 International</td>
-                        <td>Various (check local listings)</td>
-                        <td>Contact your provider</td>
-                    </tr>
+                    {{BROADCAST_ROWS}}
                 </tbody>
             </table>
         </section>
@@ -3267,7 +3303,7 @@ def get_inline_event_template() -> str:
             <p class="text-muted" style="margin-bottom: 1.5rem; font-size: 0.95rem;">
                 Multiple live stream links are available for this match. Click below to access them.
             </p>
-            <a href="https://live.footholics.in/{{FILE_NAME}}"
+            <a href="https://live.footholics.in/{{MATCH_SLUG}}"
                class="btn btn-primary"
                style="font-size: 1.1rem; padding: 0.9rem 2.5rem; display: inline-block;"
                target="_blank" rel="noopener noreferrer">
