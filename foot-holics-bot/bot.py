@@ -2986,7 +2986,9 @@ async def send_generated_files(
     home_slug = slugify(context.user_data.get("home_team", "home"))
     away_slug = slugify(context.user_data.get("away_team", "away"))
     date_slug = context.user_data.get("date", "")
-    live_url = f"https://live.footholics.in/{date_slug}-{home_slug}-vs-{away_slug}"
+    match_slug_str = f"{date_slug}-{home_slug}-vs-{away_slug}"
+    detail_url     = f"https://live.footholics.in/detail?slug={match_slug_str}"
+    streams_url    = f"https://live.footholics.in/{match_slug_str}"
 
     if poster_saved:
         poster_note = f"• Poster saved to `assets/img/{image_file}`"
@@ -2996,11 +2998,14 @@ async def send_generated_files(
     instructions = (
         f"🎉 *MATCH CREATED!*\n\n"
         f"✅ *Done automatically:*\n"
-        f"• Live stream page → `foot-holics-live/`\n"
+        f"• Main site page → `foot-holics/`\n"
+        f"• Stream links page → `foot-holics-live/`\n"
         f"• Entry added to `data/events.json`\n"
         f"{poster_note}\n\n"
-        f"🔗 *Share this link with users:*\n"
-        f"`{live_url}`\n\n"
+        f"🔗 *Share this card link with users:*\n"
+        f"`{detail_url}`\n\n"
+        f"📄 *Direct stream page (for reference):*\n"
+        f"`{streams_url}`\n\n"
         f"📋 *Push both repos to go live:*\n"
         f"```\n"
         f"cd ~/foot-holics\n"
