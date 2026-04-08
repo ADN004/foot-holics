@@ -1,26 +1,26 @@
 [
   {
-    "id": "event-1775564437077",
+    "id": "event-1775583428756",
     "date": "2026-04-08",
     "time": "00:30",
-    "slug": "2026-04-08-real-madrid-vs-bayern-munich",
-    "title": "Real Madrid vs Bayern Munich",
-    "homeTeam": "Real Madrid",
-    "awayTeam": "Bayern Munich",
+    "slug": "2026-04-08-bayern-munich-vs-real-madrid",
+    "title": "Bayern Munich vs Real Madrid",
+    "homeTeam": "Bayern Munich",
+    "awayTeam": "Real Madrid",
     "league": "Champions League",
     "leagueSlug": "champions-league",
     "stadium": "Santiago Bernabéu",
-    "poster": "assets/img/2026-04-08-real-madrid-vs-bayern-munich-poster.jpg",
+    "poster": "assets/img/2026-04-08-bayern-munich-vs-real-madrid-poster.jpg",
     "excerpt": "The clash between Real Madrid and Bayern Munich today is a high-stakes UEFA Champions League quarterfinal first leg at the Santiago Bernabéu, bringing...",
     "status": "upcoming",
     "broadcast": [
       {
         "name": "Stream 1",
-        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly9leGFtcGxlLmNvbS9zdHJlYW0x&type=hls"
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzEuc3BvcnRzem9ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDIucGhw&type=iframe"
       },
       {
         "name": "Stream 2",
-        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly9leGFtcGxlLmNvbS9zdHJlYW0y&type=hls"
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzEuc3BvcnRzem9ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDMucGhw&type=iframe"
       },
       {
         "name": "Stream 3",
