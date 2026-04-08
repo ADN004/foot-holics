@@ -7,11 +7,13 @@
     "title": "Barcelona vs Atletico Madrid",
     "homeTeam": "Barcelona",
     "awayTeam": "Atletico Madrid",
+    "homeLogo": "https://footholics.in/assets/img/logos/teams/la-liga/barcelona.png",
+    "awayLogo": "https://footholics.in/assets/img/logos/teams/la-liga/atletico-madrid.png",
     "league": "Champions League",
     "leagueSlug": "champions-league",
     "stadium": "Camp Nou",
     "poster": "assets/img/2026-04-09-barcelona-vs-atletico-madrid-poster.jpg",
-    "excerpt": "Tonight’s UEFA Champions League quarter-final between FC Barcelona and Atlético Madrid promises a high-intensity clash between two familiar rivals. Ba...",
+    "excerpt": "Tonight's UEFA Champions League quarter-final between FC Barcelona and Atlético Madrid promises a high-intensity clash between two familiar rivals. Ba...",
     "status": "upcoming",
     "broadcast": [
       {
@@ -41,6 +43,8 @@
     "title": "Bayern Munich vs Real Madrid",
     "homeTeam": "Bayern Munich",
     "awayTeam": "Real Madrid",
+    "homeLogo": "https://footholics.in/assets/img/logos/teams/bundesliga/bayern-munich.png",
+    "awayLogo": "https://footholics.in/assets/img/logos/teams/la-liga/real-madrid.png",
     "league": "Champions League",
     "leagueSlug": "champions-league",
     "stadium": "Santiago Bernabéu",

@@ -540,7 +540,7 @@ def generate_live_html(data: dict) -> str:
                     <img src="https://footholics.in/assets/img/logos/site/logo.png" alt="Foot Holics" onerror="this.style.display=\'none\'">
                     Foot Holics
                 </a>
-                <a href="https://footholics.in/{filename}" class="back-link">
+                <a href="/detail?slug={match_slug}" class="back-link">
                     <i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i>
                     Match Preview
                 </a>
@@ -2885,6 +2885,12 @@ def generate_json(data: Dict[str, Any]) -> str:
     # Create excerpt from preview (first 150 chars)
     excerpt = data["preview"][:150] + "..." if len(data["preview"]) > 150 else data["preview"]
 
+    # Resolve logo URLs as absolute paths (so detail page can use them directly)
+    home_logo_rel = find_team_logo(data["home_team"], data["league_slug"])
+    away_logo_rel = find_team_logo(data["away_team"], data["league_slug"])
+    home_logo_abs = f"https://footholics.in/{home_logo_rel.lstrip('/')}" if home_logo_rel else ""
+    away_logo_abs = f"https://footholics.in/{away_logo_rel.lstrip('/')}" if away_logo_rel else ""
+
     event_data = {
         "id": generate_event_id(),
         "date": data["date"],
@@ -2893,6 +2899,8 @@ def generate_json(data: Dict[str, Any]) -> str:
         "title": data["match_name"],
         "homeTeam": data["home_team"],
         "awayTeam": data["away_team"],
+        "homeLogo": home_logo_abs,
+        "awayLogo": away_logo_abs,
         "league": data["league"],
         "leagueSlug": data["league_slug"],
         "stadium": data["stadium"],
