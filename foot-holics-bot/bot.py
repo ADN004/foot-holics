@@ -462,6 +462,21 @@ def push_summary(*results: tuple) -> str:
     return text
 
 
+def set_pending_push(context, jobs: list, results: list) -> None:
+    """Store failed push jobs for retry.
+    jobs:    list of (repo_path, commit_message)
+    results: list of (ok, status) matching jobs"""
+    failed = [
+        {'path': path, 'msg': msg}
+        for (path, msg), (ok, status) in zip(jobs, results)
+        if not ok
+    ]
+    if failed:
+        context.user_data['pending_push'] = failed
+    else:
+        context.user_data.pop('pending_push', None)
+
+
 def copy_html_to_live(filename: str, html_code: str) -> bool:
     """Copy generated HTML to foot-holics-live/ folder."""
     live_root = get_live_project_root()
@@ -1059,6 +1074,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
     """Show the main menu with operation buttons."""
     creds_set = bool(context.user_data.get('git_username') and context.user_data.get('git_token'))
     creds_label = "🔑 Git: ✅ ready" if creds_set else "🔑 Git: ❌ set credentials"
+    pending_push = context.user_data.get('pending_push')
 
     keyboard = [
         [
@@ -1087,13 +1103,15 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
         [
             InlineKeyboardButton(creds_label, callback_data="menu_git_creds"),
         ],
-        [
-            InlineKeyboardButton("❌ Exit", callback_data="menu_exit"),
-        ],
     ]
+    if pending_push:
+        keyboard.append([InlineKeyboardButton("🔄 Retry Last Push", callback_data="menu_retry_push")])
+    keyboard.append([InlineKeyboardButton("❌ Exit", callback_data="menu_exit")])
+
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     creds_status = "✅ Git credentials set" if creds_set else "❌ Git credentials not set — push will fail"
+    pending_note = f"\n⚠️ *Last push failed — tap 🔄 Retry Last Push*" if pending_push else ""
     message_text = f"""
 🤖 **Foot Holics Match Manager**
 
@@ -1110,7 +1128,7 @@ Welcome! Choose an operation:
 🗑️ **Delete Article** - Remove a published article
 🔑 **Git Credentials** - {creds_status}
 ❌ **Exit** - Close the bot
-
+{pending_note}
 What would you like to do?
 """
 
@@ -1314,6 +1332,44 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     elif action == "delete_article":
         return await delete_article_start(update, context)
+
+    elif action == "retry_push":
+        pending = context.user_data.get('pending_push')
+        if not pending:
+            await query.edit_message_text("✅ No pending push — everything is already live.")
+            await show_main_menu(update, context, edit_message=False)
+            return MAIN_MENU
+
+        git_user = context.user_data.get('git_username', '')
+        git_token = context.user_data.get('git_token', '')
+        await query.edit_message_text("🔄 Retrying push...")
+
+        results = []
+        for job in pending:
+            ok, status = await asyncio.to_thread(git_auto_push, job['path'], job['msg'], git_user, git_token)
+            label = "foot-holics-live" if "live" in job['path'] else "foot-holics"
+            results.append((label, ok, status, job['path'], job['msg']))
+
+        display = push_summary(*[(label, ok, status) for label, ok, status, _, _ in results])
+        all_ok = all(ok for _, ok, _, _, _ in results)
+
+        if all_ok:
+            context.user_data.pop('pending_push', None)
+            outcome = "🚀 All pushed! Live in ~60 seconds."
+        else:
+            # keep only the ones still failing
+            context.user_data['pending_push'] = [
+                {'path': path, 'msg': msg}
+                for _, ok, _, path, msg in results if not ok
+            ]
+            outcome = "⚠️ Some repos still failed. Update credentials and tap Retry again."
+
+        await query.edit_message_text(
+            f"*Retry Push Result*\n\n{display}\n\n{outcome}",
+            parse_mode="Markdown"
+        )
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
 
     elif action == "git_creds":
         creds_set = bool(context.user_data.get('git_username') and context.user_data.get('git_token'))
@@ -1650,6 +1706,10 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
         ("foot-holics-live", live_ok, live_status),
     )
     all_ok = main_ok and live_ok
+    set_pending_push(context,
+        [(get_project_root(), commit_msg), (live_root, commit_msg)],
+        [(main_ok, main_status), (live_ok, live_status)]
+    )
     await query.edit_message_text(
         f"✅ **Match Deletion Complete!**\n\n"
         f"**Deleted:**\n{deleted_list}{failed_list}\n\n"
@@ -2563,9 +2623,17 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 ("foot-holics-live", live_ok, live_status),
             )
             all_ok = main_ok and live_ok
+            set_pending_push(context,
+                [(get_project_root(), commit_msg), (live_root, commit_msg)],
+                [(main_ok, main_status), (live_ok, live_status)]
+            )
         else:
             push_line = push_summary(("foot-holics", main_ok, main_status))
             all_ok = main_ok
+            set_pending_push(context,
+                [(get_project_root(), commit_msg)],
+                [(main_ok, main_status)]
+            )
 
         success_msg = (
             f"✅ *Match Updated Successfully!*\n\n"
@@ -2590,10 +2658,9 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text(error_msg)
 
     await show_main_menu(update, context, edit_message=False)
-    _git_u = context.user_data.get('git_username'); _git_t = context.user_data.get('git_token')
+    _keep = {k: context.user_data[k] for k in ('git_username', 'git_token', 'pending_push') if k in context.user_data}
     context.user_data.clear()
-    if _git_u: context.user_data['git_username'] = _git_u
-    if _git_t: context.user_data['git_token'] = _git_t
+    context.user_data.update(_keep)
     return MAIN_MENU
 
 
@@ -3226,6 +3293,10 @@ async def send_generated_files(
         ("foot-holics-live", live_ok, live_status),
     )
     all_ok = main_ok and live_ok
+    set_pending_push(context,
+        [(get_project_root(), commit_msg), (live_root, commit_msg)],
+        [(main_ok, main_status), (live_ok, live_status)]
+    )
     live_note = "🚀 Live in ~60 seconds!" if all_ok else "⚠️ Some pushes failed — check above."
 
     instructions = (
@@ -3892,10 +3963,9 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "❌ Operation cancelled.\n\nType /start to use the bot again.",
         parse_mode="Markdown"
     )
-    _git_u = context.user_data.get('git_username'); _git_t = context.user_data.get('git_token')
+    _keep = {k: context.user_data[k] for k in ('git_username', 'git_token', 'pending_push') if k in context.user_data}
     context.user_data.clear()
-    if _git_u: context.user_data['git_username'] = _git_u
-    if _git_t: context.user_data['git_token'] = _git_t
+    context.user_data.update(_keep)
     return ConversationHandler.END
 
 
@@ -4396,10 +4466,9 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
     await query.answer()
 
     if query.data == "art_cancel":
-        _git_u = context.user_data.get('git_username'); _git_t = context.user_data.get('git_token')
+        _keep = {k: context.user_data[k] for k in ('git_username', 'git_token', 'pending_push') if k in context.user_data}
         context.user_data.clear()
-        if _git_u: context.user_data['git_username'] = _git_u
-        if _git_t: context.user_data['git_token'] = _git_t
+        context.user_data.update(_keep)
         await query.edit_message_text("❌ Article cancelled.")
         await show_main_menu(update, context, edit_message=False)
         return MAIN_MENU
@@ -4497,9 +4566,11 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
         cover_line = f"\n• assets/img/articles/{slug}-cover (uploaded)" if cover_image else ""
         git_user = context.user_data.get('git_username', '')
         git_token = context.user_data.get('git_token', '')
+        _art_commit = f"Add article: {title[:50]}"
         push_ok, push_status = await asyncio.to_thread(
-            git_auto_push, get_project_root(), f"Add article: {title[:50]}", git_user, git_token
+            git_auto_push, get_project_root(), _art_commit, git_user, git_token
         )
+        set_pending_push(context, [(get_project_root(), _art_commit)], [(push_ok, push_status)])
         success_msg = (
             f"✅ *Article Published!*\n\n"
             f"*File:* `articles/{slug}.html`\n"
@@ -4519,10 +4590,9 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
         logger.error(f"Error publishing article: {e}", exc_info=True)
         await query.edit_message_text(f"❌ Error publishing article: {e}")
 
-    _git_u = context.user_data.get('git_username'); _git_t = context.user_data.get('git_token')
+    _keep = {k: context.user_data[k] for k in ('git_username', 'git_token', 'pending_push') if k in context.user_data}
     context.user_data.clear()
-    if _git_u: context.user_data['git_username'] = _git_u
-    if _git_t: context.user_data['git_token'] = _git_t
+    context.user_data.update(_keep)
     await show_main_menu(update, context, edit_message=False)
     return MAIN_MENU
 
@@ -4970,9 +5040,11 @@ async def edit_article_confirm_handler(update: Update, context: ContextTypes.DEF
 
         git_user = context.user_data.get('git_username', '')
         git_token = context.user_data.get('git_token', '')
+        _art_commit = f"Update article: {meta['title'][:50]}"
         push_ok, push_status = await asyncio.to_thread(
-            git_auto_push, get_project_root(), f"Update article: {meta['title'][:50]}", git_user, git_token
+            git_auto_push, get_project_root(), _art_commit, git_user, git_token
         )
+        set_pending_push(context, [(get_project_root(), _art_commit)], [(push_ok, push_status)])
         await query.edit_message_text(
             f"✅ *Article updated!*\n\n"
             f"*Field:* {field.replace('_', ' ').capitalize()}\n"
@@ -5129,9 +5201,11 @@ async def delete_article_confirm_handler(update: Update, context: ContextTypes.D
         removed_list = "\n".join(f"• {r}" for r in removed)
         git_user = context.user_data.get('git_username', '')
         git_token = context.user_data.get('git_token', '')
+        _art_commit = f"Delete article: {title[:40]}"
         push_ok, push_status = await asyncio.to_thread(
-            git_auto_push, get_project_root(), f"Delete article: {title[:40]}", git_user, git_token
+            git_auto_push, get_project_root(), _art_commit, git_user, git_token
         )
+        set_pending_push(context, [(get_project_root(), _art_commit)], [(push_ok, push_status)])
         await query.edit_message_text(
             f"✅ *Article Deleted!*\n\n"
             f"*Title:* {_html.escape(title)}\n\n"
