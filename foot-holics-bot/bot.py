@@ -8,6 +8,8 @@ import os
 import json
 import re
 import glob
+import subprocess
+import asyncio
 import base64
 import logging
 from datetime import datetime, timedelta, timezone
@@ -89,7 +91,8 @@ IST = timezone(timedelta(hours=5, minutes=30))
     EDIT_ARTICLE_CONFIRM,
     DELETE_ARTICLE_SELECT,
     DELETE_ARTICLE_CONFIRM,
-) = range(28)
+    SET_GIT_CREDS,
+) = range(29)
 
 # League data with emojis and colors
 LEAGUES = {
@@ -386,6 +389,53 @@ def get_live_project_root() -> str:
     if os.path.isdir(sibling):
         return sibling
     return ""
+
+
+def git_auto_push(repo_path: str, commit_message: str, username: str = "", token: str = "") -> tuple:
+    """Run git add/commit/push in repo_path. Returns (success: bool, status: str).
+    If username+token provided, injects them into the HTTPS remote URL so no
+    credentials need to be stored on disk."""
+    if not repo_path or not os.path.isdir(repo_path):
+        return False, "repo path not found"
+    if not username or not token:
+        return False, "git credentials not set — use 🔑 Set Git Credentials from menu"
+    try:
+        r = subprocess.run(["git", "add", "."], cwd=repo_path,
+                           capture_output=True, text=True, timeout=30)
+        if r.returncode != 0:
+            return False, f"git add failed: {r.stderr.strip()}"
+
+        r = subprocess.run(
+            ["git",
+             "-c", f"user.name={username}",
+             "-c", f"user.email={username}@users.noreply.github.com",
+             "commit", "-m", commit_message],
+            cwd=repo_path, capture_output=True, text=True, timeout=30
+        )
+        if r.returncode != 0:
+            if "nothing to commit" in r.stdout or "nothing to commit" in r.stderr:
+                return True, "nothing to commit"
+            return False, f"git commit failed: {r.stderr.strip()}"
+
+        # Build authenticated push URL (never stored — only passed as arg to this call)
+        r = subprocess.run(["git", "remote", "get-url", "origin"], cwd=repo_path,
+                           capture_output=True, text=True, timeout=10)
+        remote_url = r.stdout.strip()
+        if remote_url.startswith("https://"):
+            push_url = remote_url.replace("https://", f"https://{username}:{token}@", 1)
+        else:
+            push_url = remote_url  # SSH — credentials not needed
+
+        r = subprocess.run(["git", "push", push_url], cwd=repo_path,
+                           capture_output=True, text=True, timeout=60)
+        if r.returncode != 0:
+            return False, f"git push failed: {r.stderr.strip()}"
+
+        return True, "pushed ✓"
+    except subprocess.TimeoutExpired:
+        return False, "timed out"
+    except Exception as e:
+        return False, str(e)
 
 
 def copy_html_to_live(filename: str, html_code: str) -> bool:
@@ -983,6 +1033,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edit_message: bool = False) -> int:
     """Show the main menu with operation buttons."""
+    creds_set = bool(context.user_data.get('git_username') and context.user_data.get('git_token'))
+    creds_label = "🔑 Git: ✅ ready" if creds_set else "🔑 Git: ❌ set credentials"
+
     keyboard = [
         [
             InlineKeyboardButton("➕ Add New Match", callback_data="menu_add"),
@@ -1008,12 +1061,16 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
             InlineKeyboardButton("🗑️ Delete Article", callback_data="menu_delete_article"),
         ],
         [
+            InlineKeyboardButton(creds_label, callback_data="menu_git_creds"),
+        ],
+        [
             InlineKeyboardButton("❌ Exit", callback_data="menu_exit"),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    message_text = """
+    creds_status = "✅ Git credentials set" if creds_set else "❌ Git credentials not set — push will fail"
+    message_text = f"""
 🤖 **Foot Holics Match Manager**
 
 Welcome! Choose an operation:
@@ -1027,6 +1084,7 @@ Welcome! Choose an operation:
 ✍️ **Publish Article** - Write and publish an editorial
 ✏️ **Edit Article** - Edit a published article
 🗑️ **Delete Article** - Remove a published article
+🔑 **Git Credentials** - {creds_status}
 ❌ **Exit** - Close the bot
 
 What would you like to do?
@@ -1233,6 +1291,57 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     elif action == "delete_article":
         return await delete_article_start(update, context)
 
+    elif action == "git_creds":
+        creds_set = bool(context.user_data.get('git_username') and context.user_data.get('git_token'))
+        if creds_set:
+            current_user = context.user_data.get('git_username', '')
+            keyboard = [
+                [InlineKeyboardButton("✏️ Change Credentials", callback_data="menu_git_creds_update")],
+                [InlineKeyboardButton("🗑️ Clear Credentials", callback_data="menu_git_creds_clear")],
+                [InlineKeyboardButton("« Back", callback_data="menu_back")],
+            ]
+            await query.edit_message_text(
+                f"🔑 *Git Credentials*\n\n"
+                f"✅ Currently set for: `{current_user}`\n\n"
+                f"What would you like to do?",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            return MAIN_MENU
+        else:
+            await query.edit_message_text(
+                f"🔑 *Set Git Credentials*\n\n"
+                f"Send your GitHub username and Personal Access Token in this format:\n\n"
+                f"`username:ghp_yourtoken`\n\n"
+                f"⚠️ *Credentials are stored only in memory — cleared when bot restarts.*\n"
+                f"⚠️ *Delete your message after sending for extra safety.*\n\n"
+                f"_Type /cancel to go back_",
+                parse_mode="Markdown"
+            )
+            return SET_GIT_CREDS
+
+    elif action == "git_creds_update":
+        await query.edit_message_text(
+            f"🔑 *Change Git Credentials*\n\n"
+            f"Send your new GitHub username and Personal Access Token:\n\n"
+            f"`username:ghp_yourtoken`\n\n"
+            f"⚠️ *Delete your message after sending for extra safety.*\n\n"
+            f"_Type /cancel to go back_",
+            parse_mode="Markdown"
+        )
+        return SET_GIT_CREDS
+
+    elif action == "git_creds_clear":
+        context.user_data.pop('git_username', None)
+        context.user_data.pop('git_token', None)
+        await query.edit_message_text(
+            "🗑️ *Git credentials cleared.*\n\n"
+            "All pushes will fail until you set them again.",
+            parse_mode="Markdown"
+        )
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
     elif action == "exit":
         await query.edit_message_text(
             "👋 **Goodbye!**\n\n"
@@ -1244,6 +1353,36 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     elif action == "back":
         return await show_main_menu(update, context, edit_message=True)
 
+    return MAIN_MENU
+
+
+async def receive_git_creds(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Receive username:token, store in RAM only, try to delete the message."""
+    text = update.message.text.strip()
+    username, sep, token = text.partition(":")
+    if not sep or not username or not token:
+        await update.message.reply_text(
+            "❌ Wrong format. Send as `username:token` (colon between them).",
+            parse_mode="Markdown"
+        )
+        return SET_GIT_CREDS
+
+    context.user_data['git_username'] = username.strip()
+    context.user_data['git_token'] = token.strip()
+
+    # Try to delete the message containing the credentials
+    try:
+        await update.message.delete()
+    except Exception:
+        pass  # Can't delete — user should do it manually
+
+    await update.message.reply_text(
+        "✅ *Git credentials saved* (in memory only — not on disk).\n\n"
+        "They will be used for all git pushes until the bot restarts.\n"
+        "If your message above is still visible, please delete it manually.",
+        parse_mode="Markdown"
+    )
+    await show_main_menu(update, context, edit_message=False)
     return MAIN_MENU
 
 
@@ -1471,13 +1610,26 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
     await query.edit_message_text(
         f"✅ **Match Deletion Complete!**\n\n"
         f"**Deleted:**\n{deleted_list}{failed_list}\n\n"
-        f"**Push both repos:**\n"
-        f"```bash\n"
-        f"cd foot-holics\n"
-        f"git add . && git commit -m \"Remove {_slug}\" && git push\n\n"
-        f"cd ../foot-holics-live\n"
-        f"git add . && git commit -m \"Remove {_slug}\" && git push\n"
-        f"```",
+        f"⏳ Pushing to GitHub...",
+        parse_mode="Markdown"
+    )
+
+    commit_msg = f"Remove {_slug}"
+    git_user = context.user_data.get('git_username', '')
+    git_token = context.user_data.get('git_token', '')
+    main_ok, main_status = await asyncio.to_thread(git_auto_push, get_project_root(), commit_msg, git_user, git_token)
+    live_root = get_live_project_root()
+    live_ok, live_status = await asyncio.to_thread(git_auto_push, live_root, commit_msg, git_user, git_token)
+
+    push_line = (
+        f"**Git push:**\n"
+        f"{'✅' if main_ok else '❌'} foot-holics: {main_status}\n"
+        f"{'✅' if live_ok else '❌'} foot-holics-live: {live_status}"
+    )
+    await query.edit_message_text(
+        f"✅ **Match Deletion Complete!**\n\n"
+        f"**Deleted:**\n{deleted_list}{failed_list}\n\n"
+        f"{push_line}",
         parse_mode="Markdown"
     )
 
@@ -2374,19 +2526,35 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
             logger.warning(f"Could not regenerate live page: {_le}")
 
         _live_line = "\n• live.footholics.in stream page" if _live_updated else ""
+        _title = context.user_data.get('current_title', 'match')
+        commit_msg = f"Update {_title}"
+        git_user = context.user_data.get('git_username', '')
+        git_token = context.user_data.get('git_token', '')
+        main_ok, main_status = await asyncio.to_thread(git_auto_push, get_project_root(), commit_msg, git_user, git_token)
+        live_root = get_live_project_root()
+        if _live_updated and live_root:
+            live_ok, live_status = await asyncio.to_thread(git_auto_push, live_root, commit_msg, git_user, git_token)
+            push_line = (
+                f"*Git push:*\n"
+                f"{'✅' if main_ok else '❌'} foot-holics: {main_status}\n"
+                f"{'✅' if live_ok else '❌'} foot-holics-live: {live_status}"
+            )
+            all_ok = main_ok and live_ok
+        else:
+            push_line = (
+                f"*Git push:*\n"
+                f"{'✅' if main_ok else '❌'} foot-holics: {main_status}"
+            )
+            all_ok = main_ok
+
         success_msg = (
             f"✅ *Match Updated Successfully!*\n\n"
             f"Updated: `{filename}`\n\n"
             f"*Changes saved to:*\n"
             f"• Match HTML file\n"
             f"• data/events.json{_live_line}\n\n"
-            f"*Next steps:*\n"
-            f"```\n"
-            f"git add .\n"
-            f"git commit -m \"Update {context.user_data.get('current_title', 'match')}\"\n"
-            f"git push\n"
-            f"```\n\n"
-            f"Your changes will be live in 60 seconds!"
+            f"{push_line}\n\n"
+            f"{'🚀 Live in ~60 seconds!' if all_ok else '⚠️ Some pushes failed — check VPS!'}"
         )
 
         if query:
@@ -2402,7 +2570,10 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await update.message.reply_text(error_msg)
 
     await show_main_menu(update, context, edit_message=False)
+    _git_u = context.user_data.get('git_username'); _git_t = context.user_data.get('git_token')
     context.user_data.clear()
+    if _git_u: context.user_data['git_username'] = _git_u
+    if _git_t: context.user_data['git_token'] = _git_t
     return MAIN_MENU
 
 
@@ -3022,6 +3193,21 @@ async def send_generated_files(
     else:
         poster_note = f"• Using default thumbnail"
 
+    await update.message.reply_text("🚀 Pushing to GitHub...", parse_mode="Markdown")
+    commit_msg = f"Add {match_name}"
+    git_user = context.user_data.get('git_username', '')
+    git_token = context.user_data.get('git_token', '')
+    main_ok, main_status = await asyncio.to_thread(git_auto_push, get_project_root(), commit_msg, git_user, git_token)
+    live_root = get_live_project_root()
+    live_ok, live_status = await asyncio.to_thread(git_auto_push, live_root, commit_msg, git_user, git_token)
+
+    push_line = (
+        f"*Git push:*\n"
+        f"{'✅' if main_ok else '❌'} foot-holics: {main_status}\n"
+        f"{'✅' if live_ok else '❌'} foot-holics-live: {live_status}"
+    )
+    live_note = "🚀 Live in ~60 seconds!" if (main_ok and live_ok) else "⚠️ Some pushes failed — check VPS!"
+
     instructions = (
         f"🎉 *MATCH CREATED!*\n\n"
         f"✅ *Done automatically:*\n"
@@ -3033,14 +3219,8 @@ async def send_generated_files(
         f"`{detail_url}`\n\n"
         f"📄 *Direct stream page (for reference):*\n"
         f"`{streams_url}`\n\n"
-        f"📋 *Push both repos to go live:*\n"
-        f"```\n"
-        f"cd ~/foot-holics\n"
-        f"git add . && git commit -m \"Add {match_name}\" && git push\n\n"
-        f"cd ~/foot-holics-live\n"
-        f"git add . && git commit -m \"Add {match_name}\" && git push\n"
-        f"```\n\n"
-        f"🚀 Live in ~60 seconds after push!"
+        f"{push_line}\n\n"
+        f"{live_note}"
     )
 
     await update.message.reply_text(instructions, parse_mode="Markdown")
@@ -3692,7 +3872,10 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "❌ Operation cancelled.\n\nType /start to use the bot again.",
         parse_mode="Markdown"
     )
+    _git_u = context.user_data.get('git_username'); _git_t = context.user_data.get('git_token')
     context.user_data.clear()
+    if _git_u: context.user_data['git_username'] = _git_u
+    if _git_t: context.user_data['git_token'] = _git_t
     return ConversationHandler.END
 
 
@@ -4193,7 +4376,10 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
     await query.answer()
 
     if query.data == "art_cancel":
+        _git_u = context.user_data.get('git_username'); _git_t = context.user_data.get('git_token')
         context.user_data.clear()
+        if _git_u: context.user_data['git_username'] = _git_u
+        if _git_t: context.user_data['git_token'] = _git_t
         await query.edit_message_text("❌ Article cancelled.")
         await show_main_menu(update, context, edit_message=False)
         return MAIN_MENU
@@ -4289,6 +4475,11 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
                 f.write(sitemap)
 
         cover_line = f"\n• assets/img/articles/{slug}-cover (uploaded)" if cover_image else ""
+        git_user = context.user_data.get('git_username', '')
+        git_token = context.user_data.get('git_token', '')
+        push_ok, push_status = await asyncio.to_thread(
+            git_auto_push, get_project_root(), f"Add article: {title[:50]}", git_user, git_token
+        )
         success_msg = (
             f"✅ *Article Published!*\n\n"
             f"*File:* `articles/{slug}.html`\n"
@@ -4299,12 +4490,8 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
             f"• articles/index.json\n"
             f"• sitemap.xml"
             f"{cover_line}\n\n"
-            f"*Deploy:*\n"
-            f"```\n"
-            f"git add .\n"
-            f"git commit -m \"Add article: {title[:50]}\"\n"
-            f"git push\n"
-            f"```"
+            f"*Git push:* {'✅ ' if push_ok else '❌ '}{push_status}\n\n"
+            f"{'🚀 Live in ~60 seconds!' if push_ok else '⚠️ Push failed — check VPS!'}"
         )
         await query.edit_message_text(success_msg, parse_mode="Markdown")
 
@@ -4312,7 +4499,10 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
         logger.error(f"Error publishing article: {e}", exc_info=True)
         await query.edit_message_text(f"❌ Error publishing article: {e}")
 
+    _git_u = context.user_data.get('git_username'); _git_t = context.user_data.get('git_token')
     context.user_data.clear()
+    if _git_u: context.user_data['git_username'] = _git_u
+    if _git_t: context.user_data['git_token'] = _git_t
     await show_main_menu(update, context, edit_message=False)
     return MAIN_MENU
 
@@ -4758,11 +4948,16 @@ async def edit_article_confirm_handler(update: Update, context: ContextTypes.DEF
             with open(index_path, "w", encoding="utf-8") as f:
                 json.dump(articles, f, indent=2, ensure_ascii=False)
 
+        git_user = context.user_data.get('git_username', '')
+        git_token = context.user_data.get('git_token', '')
+        push_ok, push_status = await asyncio.to_thread(
+            git_auto_push, get_project_root(), f"Update article: {meta['title'][:50]}", git_user, git_token
+        )
         await query.edit_message_text(
             f"✅ *Article updated!*\n\n"
             f"*Field:* {field.replace('_', ' ').capitalize()}\n"
             f"*Article:* {_html.escape(meta['title'])}\n\n"
-            f"Don't forget to `git add . && git commit && git push`.",
+            f"*Git push:* {'✅ ' if push_ok else '❌ '}{push_status}",
             parse_mode="Markdown"
         )
 
@@ -4912,11 +5107,16 @@ async def delete_article_confirm_handler(update: Update, context: ContextTypes.D
             removed.append("sitemap.xml")
 
         removed_list = "\n".join(f"• {r}" for r in removed)
+        git_user = context.user_data.get('git_username', '')
+        git_token = context.user_data.get('git_token', '')
+        push_ok, push_status = await asyncio.to_thread(
+            git_auto_push, get_project_root(), f"Delete article: {title[:40]}", git_user, git_token
+        )
         await query.edit_message_text(
             f"✅ *Article Deleted!*\n\n"
             f"*Title:* {_html.escape(title)}\n\n"
             f"*Removed:*\n{removed_list}\n\n"
-            f"Deploy: `git add . && git commit -m \"Delete article: {title[:40]}\" && git push`",
+            f"*Git push:* {'✅ ' if push_ok else '❌ '}{push_status}",
             parse_mode="Markdown"
         )
 
@@ -5030,6 +5230,9 @@ def main() -> None:
             ],
             DELETE_ARTICLE_CONFIRM: [
                 CallbackQueryHandler(delete_article_confirm_handler, pattern="^del_confirm_"),
+            ],
+            SET_GIT_CREDS: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, receive_git_creds),
             ],
         },
         fallbacks=[
