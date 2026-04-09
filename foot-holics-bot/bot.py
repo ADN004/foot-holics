@@ -4444,16 +4444,36 @@ async def edit_article_field_handler(update: Update, context: ContextTypes.DEFAU
         return EDIT_ARTICLE_INPUT
 
     elif field == "content":
+        # Show blocks list so user can pick one to replace
+        meta   = context.user_data.get("edit_meta", {})
+        blocks = [b for b in meta.get("content", "").split("\n\n") if b.strip()]
+
+        if not blocks:
+            await query.edit_message_text("❌ No content blocks found.")
+            return EDIT_ARTICLE_FIELD
+
+        lines = []
+        for i, b in enumerate(blocks):
+            icon    = "🖼️" if b.startswith("![") else "📝"
+            preview = b[:70].replace("\n", " ") + ("…" if len(b) > 70 else "")
+            lines.append(f"{icon} *Block {i + 1}:* {_html.escape(preview)}")
+
+        keyboard = []
+        row = []
+        for i in range(len(blocks)):
+            row.append(InlineKeyboardButton(f"Block {i + 1}", callback_data=f"edit_block_{i}"))
+            if len(row) == 3:
+                keyboard.append(row)
+                row = []
+        if row:
+            keyboard.append(row)
+        keyboard.append([InlineKeyboardButton("➕ Add Block at End", callback_data="edit_block_new")])
+        keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="edit_field_back")])
+
         await query.edit_message_text(
-            "📄 Send the new *article body*.\n\n"
-            "Formatting:\n"
-            "• `## Heading` — H2 heading\n"
-            "• `### Heading` — H3 heading\n"
-            "• `![caption](url)` — inline image\n"
-            "• Blank line — new paragraph\n\n"
-            "Send all content in *one message*.\n"
-            "_Type /cancel to abort_",
-            parse_mode="Markdown"
+            "*Select a block to replace or delete:*\n\n" + "\n".join(lines),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return EDIT_ARTICLE_INPUT
 
@@ -4467,11 +4487,109 @@ async def edit_article_field_handler(update: Update, context: ContextTypes.DEFAU
         return EDIT_ARTICLE_INPUT
 
 
+async def edit_block_select_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """User tapped a block number — show it and ask for replacement."""
+    query = update.callback_query
+    await query.answer()
+
+    target = query.data.replace("edit_block_", "")
+    meta   = context.user_data.get("edit_meta", {})
+    blocks = [b for b in meta.get("content", "").split("\n\n") if b.strip()]
+
+    if target == "new":
+        context.user_data["edit_block_index"] = len(blocks)  # append
+        await query.edit_message_text(
+            "➕ *Add a new block at the end.*\n\n"
+            "Send a text block or a photo.\n\n"
+            "_Type /cancel to abort_",
+            parse_mode="Markdown"
+        )
+        return EDIT_ARTICLE_INPUT
+
+    idx = int(target)
+    context.user_data["edit_block_index"] = idx
+
+    if idx >= len(blocks):
+        await query.edit_message_text("❌ Block not found.")
+        return EDIT_ARTICLE_FIELD
+
+    current  = blocks[idx]
+    is_image = current.strip().startswith("![")
+    icon     = "🖼️ image" if is_image else "📝 text"
+    preview  = current[:300].replace("\n", " ") + ("…" if len(current) > 300 else "")
+
+    await query.edit_message_text(
+        f"*Block {idx + 1}* ({icon}):\n\n_{_html.escape(preview)}_\n\n"
+        "Send the *replacement*:\n"
+        "• Text block → replaces this block\n"
+        "• Photo / file → replaces with an image\n"
+        "• Type `delete` → removes this block\n\n"
+        "_Type /cancel to abort_",
+        parse_mode="Markdown"
+    )
+    return EDIT_ARTICLE_INPUT
+
+
 async def edit_article_input_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Receive new value for the chosen field (text or photo), show confirm."""
-    field = context.user_data.get("edit_field")
-    meta  = context.user_data.get("edit_meta", {})
-    slug  = context.user_data.get("edit_slug")
+    field      = context.user_data.get("edit_field")
+    meta       = context.user_data.get("edit_meta", {})
+    slug       = context.user_data.get("edit_slug")
+    block_idx  = context.user_data.get("edit_block_index")  # set when editing a block
+
+    # ── Block-level replacement ──────────────────────────────────────────────
+    if field == "content" and block_idx is not None:
+        blocks = [b for b in meta.get("content", "").split("\n\n") if b.strip()]
+
+        file_id = None
+        if update.message.photo:
+            file_id = update.message.photo[-1].file_id
+        elif update.message.document and (update.message.document.mime_type or "").startswith("image/"):
+            file_id = update.message.document.file_id
+
+        if file_id:
+            try:
+                tg_file  = await context.bot.get_file(file_id)
+                _, ext   = os.path.splitext(tg_file.file_path)
+                ext = ext.lower() if ext.lower() in ('.jpg', '.jpeg', '.png', '.webp') else '.jpg'
+                img_n    = block_idx + 1
+                fname    = f"{slug}-edit-img{img_n}{ext}"
+                root_dir = get_project_root()
+                img_dir  = os.path.join(root_dir, "assets", "img", "articles")
+                os.makedirs(img_dir, exist_ok=True)
+                await tg_file.download_to_drive(os.path.join(img_dir, fname))
+                caption  = (update.message.caption or "").strip()
+                new_block = f"![{caption}](https://footholics.in/assets/img/articles/{fname})"
+                await update.message.reply_text(f"✅ Image saved: `assets/img/articles/{fname}`", parse_mode="Markdown")
+            except Exception as e:
+                await update.message.reply_text(f"❌ Could not save image: {e}")
+                return EDIT_ARTICLE_INPUT
+
+            if block_idx >= len(blocks):
+                blocks.append(new_block)
+            else:
+                blocks[block_idx] = new_block
+
+        elif update.message.text:
+            text = update.message.text.strip()
+            if text.lower() == "delete":
+                if block_idx < len(blocks):
+                    blocks.pop(block_idx)
+                new_block = "_(deleted)_"
+            else:
+                if block_idx >= len(blocks):
+                    blocks.append(text)
+                else:
+                    blocks[block_idx] = text
+                new_block = text
+        else:
+            await update.message.reply_text("Send a text block or photo, or type `delete`.", parse_mode="Markdown")
+            return EDIT_ARTICLE_INPUT
+
+        context.user_data.pop("edit_block_index")
+        new_content = "\n\n".join(blocks)
+        context.user_data["edit_new_value"] = new_content
+        return await _show_edit_confirm(update, context, "content", new_content)
 
     new_value = None
 
@@ -4889,6 +5007,8 @@ def main() -> None:
                 MessageHandler(filters.PHOTO, edit_article_input_handler),
                 MessageHandler(filters.Document.IMAGE, edit_article_input_handler),
                 CallbackQueryHandler(edit_article_cat_handler, pattern="^edit_cat_"),
+                CallbackQueryHandler(edit_block_select_handler, pattern="^edit_block_"),
+                CallbackQueryHandler(edit_article_field_handler, pattern="^edit_field_"),
             ],
             EDIT_ARTICLE_CONFIRM: [
                 CallbackQueryHandler(edit_article_confirm_handler, pattern="^edit_confirm_"),
@@ -4901,7 +5021,11 @@ def main() -> None:
                 CallbackQueryHandler(delete_article_confirm_handler, pattern="^del_confirm_"),
             ],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            CommandHandler("start", start),   # /start always restarts from any state
+        ],
+        allow_reentry=True,
     )
 
     application.add_handler(conv_handler)
