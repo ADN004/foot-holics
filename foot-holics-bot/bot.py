@@ -4347,12 +4347,15 @@ async def edit_article_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await show_main_menu(update, context, edit_message=False)
         return MAIN_MENU
 
+    # Store list so select handler can look up by index (avoids 64-byte callback_data limit)
+    context.user_data["edit_article_list"] = editable[:10]
+
     keyboard = [
         [InlineKeyboardButton(
             f"{a['date']} — {a['title'][:40]}",
-            callback_data=f"edit_art_{a['slug']}"
+            callback_data=f"edit_art_{i}"
         )]
-        for a in editable[:10]
+        for i, a in enumerate(editable[:10])
     ]
     keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="menu_back")])
 
@@ -4369,7 +4372,13 @@ async def edit_article_select_handler(update: Update, context: ContextTypes.DEFA
     query = update.callback_query
     await query.answer()
 
-    slug = query.data.replace("edit_art_", "")
+    idx      = int(query.data.replace("edit_art_", ""))
+    listing  = context.user_data.get("edit_article_list", [])
+    if idx >= len(listing):
+        await query.edit_message_text("❌ Selection expired. Please try again.")
+        return await edit_article_start(update, context)
+
+    slug     = listing[idx]["slug"]
     root_dir = get_project_root()
     meta_path = os.path.join(root_dir, "articles", "meta", f"{slug}.json")
 
@@ -4788,12 +4797,15 @@ async def delete_article_start(update: Update, context: ContextTypes.DEFAULT_TYP
         await show_main_menu(update, context, edit_message=False)
         return MAIN_MENU
 
+    # Store list so select handler can look up by index (avoids 64-byte callback_data limit)
+    context.user_data["del_article_list"] = articles[:15]
+
     keyboard = [
         [InlineKeyboardButton(
             f"{a['date']} — {a['title'][:40]}",
-            callback_data=f"del_art_{a['slug']}"
+            callback_data=f"del_art_{i}"
         )]
-        for a in articles[:15]
+        for i, a in enumerate(articles[:15])
     ]
     keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="menu_back")])
 
@@ -4810,19 +4822,18 @@ async def delete_article_select_handler(update: Update, context: ContextTypes.DE
     query = update.callback_query
     await query.answer()
 
-    slug = query.data.replace("del_art_", "")
-    root_dir = get_project_root()
-    index_path = os.path.join(root_dir, "articles", "index.json")
+    idx     = int(query.data.replace("del_art_", ""))
+    listing = context.user_data.get("del_article_list", [])
+    if idx >= len(listing):
+        await query.edit_message_text("❌ Selection expired. Please try again.")
+        return await delete_article_start(update, context)
 
-    with open(index_path, "r", encoding="utf-8") as f:
-        articles = json.load(f)
-
-    entry = next((a for a in articles if a["slug"] == slug), None)
+    entry = listing[idx]
     if not entry:
         await query.edit_message_text("❌ Article not found.")
         return await delete_article_start(update, context)
 
-    context.user_data["del_slug"] = slug
+    context.user_data["del_slug"]  = entry["slug"]
     context.user_data["del_title"] = entry["title"]
 
     keyboard = [
