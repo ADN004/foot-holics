@@ -429,13 +429,37 @@ def git_auto_push(repo_path: str, commit_message: str, username: str = "", token
         r = subprocess.run(["git", "push", push_url], cwd=repo_path,
                            capture_output=True, text=True, timeout=60)
         if r.returncode != 0:
-            return False, f"git push failed: {r.stderr.strip()}"
+            err = r.stderr.strip()
+            auth_keywords = ("authentication failed", "invalid username or password",
+                             "could not read username", "403", "401", "bad credentials",
+                             "token", "permission denied")
+            if any(kw in err.lower() for kw in auth_keywords):
+                return False, "AUTH_FAILED"
+            return False, f"git push failed: {err}"
 
         return True, "pushed ✓"
     except subprocess.TimeoutExpired:
         return False, "timed out"
     except Exception as e:
         return False, str(e)
+
+
+def push_summary(*results: tuple) -> str:
+    """Format push results into a display string.
+    Each result is (repo_label, ok, status).
+    Appends a token-expired hint if any push got AUTH_FAILED."""
+    lines = []
+    auth_failed = False
+    for label, ok, status in results:
+        if status == "AUTH_FAILED":
+            lines.append(f"❌ {label}: token expired or invalid")
+            auth_failed = True
+        else:
+            lines.append(f"{'✅' if ok else '❌'} {label}: {status}")
+    text = "*Git push:*\n" + "\n".join(lines)
+    if auth_failed:
+        text += "\n\n⚠️ *Token expired — tap 🔑 Set Git Credentials to update.*"
+    return text
 
 
 def copy_html_to_live(filename: str, html_code: str) -> bool:
@@ -1621,11 +1645,11 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
     live_root = get_live_project_root()
     live_ok, live_status = await asyncio.to_thread(git_auto_push, live_root, commit_msg, git_user, git_token)
 
-    push_line = (
-        f"**Git push:**\n"
-        f"{'✅' if main_ok else '❌'} foot-holics: {main_status}\n"
-        f"{'✅' if live_ok else '❌'} foot-holics-live: {live_status}"
+    push_line = push_summary(
+        ("foot-holics", main_ok, main_status),
+        ("foot-holics-live", live_ok, live_status),
     )
+    all_ok = main_ok and live_ok
     await query.edit_message_text(
         f"✅ **Match Deletion Complete!**\n\n"
         f"**Deleted:**\n{deleted_list}{failed_list}\n\n"
@@ -2534,17 +2558,13 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
         live_root = get_live_project_root()
         if _live_updated and live_root:
             live_ok, live_status = await asyncio.to_thread(git_auto_push, live_root, commit_msg, git_user, git_token)
-            push_line = (
-                f"*Git push:*\n"
-                f"{'✅' if main_ok else '❌'} foot-holics: {main_status}\n"
-                f"{'✅' if live_ok else '❌'} foot-holics-live: {live_status}"
+            push_line = push_summary(
+                ("foot-holics", main_ok, main_status),
+                ("foot-holics-live", live_ok, live_status),
             )
             all_ok = main_ok and live_ok
         else:
-            push_line = (
-                f"*Git push:*\n"
-                f"{'✅' if main_ok else '❌'} foot-holics: {main_status}"
-            )
+            push_line = push_summary(("foot-holics", main_ok, main_status))
             all_ok = main_ok
 
         success_msg = (
@@ -3201,12 +3221,12 @@ async def send_generated_files(
     live_root = get_live_project_root()
     live_ok, live_status = await asyncio.to_thread(git_auto_push, live_root, commit_msg, git_user, git_token)
 
-    push_line = (
-        f"*Git push:*\n"
-        f"{'✅' if main_ok else '❌'} foot-holics: {main_status}\n"
-        f"{'✅' if live_ok else '❌'} foot-holics-live: {live_status}"
+    push_line = push_summary(
+        ("foot-holics", main_ok, main_status),
+        ("foot-holics-live", live_ok, live_status),
     )
-    live_note = "🚀 Live in ~60 seconds!" if (main_ok and live_ok) else "⚠️ Some pushes failed — check VPS!"
+    all_ok = main_ok and live_ok
+    live_note = "🚀 Live in ~60 seconds!" if all_ok else "⚠️ Some pushes failed — check above."
 
     instructions = (
         f"🎉 *MATCH CREATED!*\n\n"
@@ -4490,8 +4510,8 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
             f"• articles/index.json\n"
             f"• sitemap.xml"
             f"{cover_line}\n\n"
-            f"*Git push:* {'✅ ' if push_ok else '❌ '}{push_status}\n\n"
-            f"{'🚀 Live in ~60 seconds!' if push_ok else '⚠️ Push failed — check VPS!'}"
+            f"{push_summary(('foot-holics', push_ok, push_status))}\n\n"
+            f"{'🚀 Live in ~60 seconds!' if push_ok else ''}"
         )
         await query.edit_message_text(success_msg, parse_mode="Markdown")
 
@@ -4957,7 +4977,7 @@ async def edit_article_confirm_handler(update: Update, context: ContextTypes.DEF
             f"✅ *Article updated!*\n\n"
             f"*Field:* {field.replace('_', ' ').capitalize()}\n"
             f"*Article:* {_html.escape(meta['title'])}\n\n"
-            f"*Git push:* {'✅ ' if push_ok else '❌ '}{push_status}",
+            f"{push_summary(('foot-holics', push_ok, push_status))}",
             parse_mode="Markdown"
         )
 
@@ -5116,7 +5136,7 @@ async def delete_article_confirm_handler(update: Update, context: ContextTypes.D
             f"✅ *Article Deleted!*\n\n"
             f"*Title:* {_html.escape(title)}\n\n"
             f"*Removed:*\n{removed_list}\n\n"
-            f"*Git push:* {'✅ ' if push_ok else '❌ '}{push_status}",
+            f"{push_summary(('foot-holics', push_ok, push_status))}",
             parse_mode="Markdown"
         )
 
