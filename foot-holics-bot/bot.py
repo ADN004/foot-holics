@@ -80,9 +80,16 @@ IST = timezone(timedelta(hours=5, minutes=30))
     ARTICLE_TITLE,
     ARTICLE_CATEGORY,
     ARTICLE_EXCERPT,
+    ARTICLE_COVER_IMAGE,
     ARTICLE_CONTENT,
     ARTICLE_CONFIRM,
-) = range(21)
+    EDIT_ARTICLE_SELECT,
+    EDIT_ARTICLE_FIELD,
+    EDIT_ARTICLE_INPUT,
+    EDIT_ARTICLE_CONFIRM,
+    DELETE_ARTICLE_SELECT,
+    DELETE_ARTICLE_CONFIRM,
+) = range(28)
 
 # League data with emojis and colors
 LEAGUES = {
@@ -995,6 +1002,10 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
         ],
         [
             InlineKeyboardButton("✍️ Publish Article", callback_data="menu_article"),
+            InlineKeyboardButton("✏️ Edit Article", callback_data="menu_edit_article"),
+        ],
+        [
+            InlineKeyboardButton("🗑️ Delete Article", callback_data="menu_delete_article"),
         ],
         [
             InlineKeyboardButton("❌ Exit", callback_data="menu_exit"),
@@ -1014,6 +1025,8 @@ Welcome! Choose an operation:
 🎨 **Generate Card** - Create match card HTML
 📊 **Match Stats** - View statistics
 ✍️ **Publish Article** - Write and publish an editorial
+✏️ **Edit Article** - Edit a published article
+🗑️ **Delete Article** - Remove a published article
 ❌ **Exit** - Close the bot
 
 What would you like to do?
@@ -1207,12 +1220,18 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await query.edit_message_text(
             "✍️ *Publish Article*\n\n"
             "Let's write a new editorial article.\n\n"
-            "Step 1 of 4: Send me the *article title*.\n\n"
+            "Step 1 of 5: Send me the *article title*.\n\n"
             "Example: `Top Premier League Signings of the Summer`\n\n"
             "_Type /cancel to go back_",
             parse_mode="Markdown"
         )
         return ARTICLE_TITLE
+
+    elif action == "edit_article":
+        return await edit_article_start(update, context)
+
+    elif action == "delete_article":
+        return await delete_article_start(update, context)
 
     elif action == "exit":
         await query.edit_message_text(
@@ -3693,14 +3712,25 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 # ── Article Publishing ────────────────────────────────────────────────────────
 
-def generate_article_html(title: str, slug: str, category: str, excerpt: str, content: str, date: str) -> str:
+def generate_article_html(title: str, slug: str, category: str, excerpt: str, content: str, date: str, cover_image: str = None) -> str:
     """Generate a full editorial article HTML page."""
     try:
         date_display = datetime.strptime(date, "%Y-%m-%d").strftime("%B %d, %Y")
     except Exception:
         date_display = date
 
-    # Convert Markdown-like content to HTML paragraphs / headings
+    # Resolve OG / JSON-LD image
+    og_image = cover_image if cover_image else "https://footholics.in/assets/img/og-image.jpg"
+
+    # Convert Markdown-like content to HTML paragraphs / headings / inline images
+    # Supports:
+    #   ## Heading        → <h2>
+    #   ### Heading       → <h3>
+    #   ![caption](url)   → <figure><img ...><figcaption>
+    #   blank line        → paragraph break
+    #   regular text      → <p>
+    INLINE_IMG_RE = re.compile(r'!\[([^\]]*)\]\(([^)]+)\)')
+
     html_parts = []
     current_para_lines = []
 
@@ -3720,10 +3750,34 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
         elif line == "":
             flush_para()
         else:
-            current_para_lines.append(_html.escape(line))
+            # Check for standalone inline image line
+            m = INLINE_IMG_RE.fullmatch(line.strip())  # noqa: F821 — re compiled above
+            if m:
+                flush_para()
+                caption = _html.escape(m.group(1))
+                url = _html.escape(m.group(2))
+                figcap = f"\n                    <figcaption style=\"color:var(--muted);font-size:0.85rem;margin-top:0.5rem;\">{caption}</figcaption>" if caption else ""
+                html_parts.append(
+                    f"\n                <figure style=\"margin:2rem 0;text-align:center;\">"
+                    f"\n                    <img src=\"{url}\" alt=\"{caption}\" style=\"max-width:100%;border-radius:10px;\">"
+                    f"{figcap}"
+                    f"\n                </figure>"
+                )
+            else:
+                current_para_lines.append(_html.escape(line))
     flush_para()
 
     html_body = "\n".join(html_parts)
+
+    # Cover image block (rendered after article header, before body)
+    cover_html = ""
+    if cover_image:
+        cover_html = (
+            f"\n            <figure style=\"margin:0 0 2rem;\">"
+            f"\n                <img src=\"{_html.escape(cover_image)}\" alt=\"{_html.escape(title)}\" "
+            f"style=\"width:100%;border-radius:12px;display:block;\">"
+            f"\n            </figure>"
+        )
 
     # Partial slug for the related-articles filter (strip date prefix)
     slug_parts = slug.split("-")
@@ -3739,7 +3793,7 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
     <meta property="og:title" content="{_html.escape(title)} - Foot Holics">
     <meta property="og:description" content="{_html.escape(excerpt[:160])}">
     <meta property="og:type" content="article">
-    <meta property="og:image" content="https://footholics.in/assets/img/og-image.jpg">
+    <meta property="og:image" content="{_html.escape(og_image)}">
     <meta name="twitter:card" content="summary_large_image">
     <title>{_html.escape(title)} | Foot Holics</title>
     <link rel="canonical" href="https://footholics.in/articles/{slug}.html">
@@ -3762,7 +3816,7 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
         "name": "Foot Holics",
         "logo": {{ "@type": "ImageObject", "url": "https://footholics.in/assets/img/logos/site/logo.png" }}
       }},
-      "image": "https://footholics.in/assets/img/og-image.jpg",
+      "image": "{_html.escape(og_image)}",
       "url": "https://footholics.in/articles/{slug}.html"
     }}
     </script>
@@ -3814,7 +3868,7 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
                 <h1 style="font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); line-height: 1.25; margin-bottom: 1.25rem;">{_html.escape(title)}</h1>
                 <p style="font-size: 1.1rem; color: var(--muted); line-height: 1.7;">{_html.escape(excerpt)}</p>
             </header>
-
+{cover_html}
             <div class="article-body" style="font-size: 1rem; line-height: 1.8; color: var(--text);">
 
 {html_body}
@@ -3932,7 +3986,7 @@ async def article_title_handler(update: Update, context: ContextTypes.DEFAULT_TY
     ]
     await update.message.reply_text(
         f"✅ Title saved: *{_html.escape(title)}*\n\n"
-        "Step 2 of 4: Choose a *category*:",
+        "Step 2 of 5: Choose a *category*:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -3948,7 +4002,7 @@ async def article_category_handler(update: Update, context: ContextTypes.DEFAULT
 
     await query.edit_message_text(
         f"✅ Category: *{category}*\n\n"
-        "Step 3 of 4: Send the *excerpt* (1-2 sentences shown in article cards).\n\n"
+        "Step 3 of 5: Send the *excerpt* (1-2 sentences shown in article cards).\n\n"
         "_Type /cancel to abort_",
         parse_mode="Markdown"
     )
@@ -3968,56 +4022,173 @@ async def article_excerpt_handler(update: Update, context: ContextTypes.DEFAULT_
 
     await update.message.reply_text(
         "✅ Excerpt saved.\n\n"
-        "Step 4 of 4: Send the *article body*.\n\n"
-        "Formatting rules:\n"
-        "• `## Heading` — becomes an H2 heading\n"
-        "• `### Heading` — becomes an H3 heading\n"
-        "• Blank line — starts a new paragraph\n"
-        "• Everything else — regular paragraph text\n\n"
-        "Send all content in *one message* (up to 4000 characters).\n\n"
+        "Step 4 of 5: Send a *cover image* for this article.\n\n"
+        "• Send a photo (or send as file for full quality)\n"
+        "• Or type `skip` to publish without a cover image\n\n"
         "_Type /cancel to abort_",
+        parse_mode="Markdown"
+    )
+    return ARTICLE_COVER_IMAGE
+
+
+async def article_cover_image_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Step 4 — collect optional cover image, then ask for body."""
+    date_str = datetime.now(IST).strftime("%Y-%m-%d")
+    title = context.user_data.get("art_title", "article")
+    provisional_slug = f"{date_str}-{slugify(title)}"
+
+    file_id = None
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+    elif update.message.document and (update.message.document.mime_type or "").startswith("image/"):
+        file_id = update.message.document.file_id
+
+    cover_image_url = None
+
+    if file_id:
+        try:
+            tg_file = await context.bot.get_file(file_id)
+            _, ext = os.path.splitext(tg_file.file_path)
+            ext = ext.lower()
+            if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+                ext = '.jpg'
+
+            img_filename = f"{provisional_slug}-cover{ext}"
+            root_dir = get_project_root()
+            img_dir = os.path.join(root_dir, "assets", "img", "articles")
+            os.makedirs(img_dir, exist_ok=True)
+            save_path = os.path.join(img_dir, img_filename)
+            await tg_file.download_to_drive(save_path)
+
+            cover_image_url = f"https://footholics.in/assets/img/articles/{img_filename}"
+            await update.message.reply_text(
+                f"✅ Cover image saved as `assets/img/articles/{img_filename}`",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            await update.message.reply_text(f"⚠️ Could not save image: {e}\nContinuing without cover image.")
+    else:
+        # "skip" or any text — no cover image
+        await update.message.reply_text("⏭️ Skipping cover image.")
+
+    context.user_data["art_cover_image"] = cover_image_url
+    context.user_data["art_parts"] = []   # ordered list of text/image parts
+    context.user_data["art_img_count"] = 0
+
+    await update.message.reply_text(
+        "Step 5 of 5: *Compose your article.*\n\n"
+        "Send your content in the exact order you want it to appear:\n"
+        "• Send a *text block* → becomes paragraph(s)\n"
+        "• Send a *photo or file* → saved and placed at that position\n"
+        "• Use `## Heading` / `### Heading` for section headings\n\n"
+        "Type `done` when you're finished.\n\n"
+        "_Example: send intro text → send image → send next section → done_",
         parse_mode="Markdown"
     )
     return ARTICLE_CONTENT
 
 
 async def article_content_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Step 4 — collect article body, then show confirm screen."""
-    content = update.message.text.strip()
-    if len(content) < 50:
-        await update.message.reply_text(
-            "❌ Article body is too short (minimum 50 characters). Please write a proper article."
-        )
+    """Step 5 — compose body by interleaving text blocks and image uploads; 'done' finishes."""
+    parts     = context.user_data.setdefault("art_parts", [])
+    img_count = context.user_data.get("art_img_count", 0)
+
+    # ── Photo / document image ────────────────────────────────────────────────
+    file_id = None
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+    elif update.message.document and (update.message.document.mime_type or "").startswith("image/"):
+        file_id = update.message.document.file_id
+
+    if file_id:
+        try:
+            date_str  = datetime.now(IST).strftime("%Y-%m-%d")
+            base_slug = f"{date_str}-{slugify(context.user_data.get('art_title', 'article'))}"
+            img_count += 1
+            context.user_data["art_img_count"] = img_count
+
+            tg_file = await context.bot.get_file(file_id)
+            _, ext = os.path.splitext(tg_file.file_path)
+            ext = ext.lower()
+            if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+                ext = '.jpg'
+
+            img_filename = f"{base_slug}-img{img_count}{ext}"
+            root_dir = get_project_root()
+            img_dir  = os.path.join(root_dir, "assets", "img", "articles")
+            os.makedirs(img_dir, exist_ok=True)
+            await tg_file.download_to_drive(os.path.join(img_dir, img_filename))
+
+            img_url = f"https://footholics.in/assets/img/articles/{img_filename}"
+            caption = (update.message.caption or "").strip()
+            parts.append(f"![{caption}]({img_url})")
+
+            await update.message.reply_text(
+                f"✅ Image {img_count} placed at this position.\n"
+                f"`{img_url}`\n\n"
+                "Send the next text block, another image, or type `done`.",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            await update.message.reply_text(f"⚠️ Could not save image: {e}\nTry again or continue.")
         return ARTICLE_CONTENT
 
-    context.user_data["art_content"] = content
+    # ── Text message ──────────────────────────────────────────────────────────
+    text = (update.message.text or "").strip()
 
-    title    = context.user_data["art_title"]
-    category = context.user_data["art_category"]
-    excerpt  = context.user_data["art_excerpt"]
+    if text.lower() == "done":
+        content = "\n\n".join(parts)
+        if len(content.replace("\n", "").replace("!", "").replace("[", "").replace("]", "").replace("(", "").replace(")", "")) < 50:
+            await update.message.reply_text(
+                "❌ Article body is too short. Send more text and then type `done`.",
+                parse_mode="Markdown"
+            )
+            return ARTICLE_CONTENT
 
-    preview = content[:300] + ("…" if len(content) > 300 else "")
+        context.user_data["art_content"] = content
 
-    keyboard = [
-        [InlineKeyboardButton("✅ Publish", callback_data="art_confirm"),
-         InlineKeyboardButton("❌ Cancel", callback_data="art_cancel")],
-    ]
+        title    = context.user_data["art_title"]
+        category = context.user_data["art_category"]
+        excerpt  = context.user_data["art_excerpt"]
+        cover_image = context.user_data.get("art_cover_image")
 
+        text_parts   = [p for p in parts if not p.startswith("![")]
+        image_count  = img_count
+        word_count   = sum(len(p.split()) for p in text_parts)
+        cover_line   = "\n*Cover image:* ✅ uploaded" if cover_image else "\n*Cover image:* _(none)_"
+        body_preview = content[:300] + ("…" if len(content) > 300 else "")
+
+        keyboard = [
+            [InlineKeyboardButton("✅ Publish", callback_data="art_confirm"),
+             InlineKeyboardButton("❌ Cancel", callback_data="art_cancel")],
+        ]
+        await update.message.reply_text(
+            f"📋 *Preview — confirm before publishing:*\n\n"
+            f"*Title:* {_html.escape(title)}\n"
+            f"*Category:* {category}"
+            f"{cover_line}\n"
+            f"*Parts:* {len(parts)} ({word_count} words, {image_count} image(s))\n"
+            f"*Excerpt:* {_html.escape(excerpt[:120])}\n\n"
+            f"*Body preview:*\n_{_html.escape(body_preview)}_",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return ARTICLE_CONFIRM
+
+    if not text:
+        await update.message.reply_text("Send a text block, a photo, or type `done`.", parse_mode="Markdown")
+        return ARTICLE_CONTENT
+
+    parts.append(text)
     await update.message.reply_text(
-        f"📋 *Preview — confirm before publishing:*\n\n"
-        f"*Title:* {_html.escape(title)}\n"
-        f"*Category:* {category}\n"
-        f"*Excerpt:* {_html.escape(excerpt[:120])}\n\n"
-        f"*Body preview:*\n_{_html.escape(preview)}_\n\n"
-        f"*Word count:* ~{len(content.split())} words",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        f"✅ Block {len(parts)} added. Send the next block, an image, or type `done`.",
+        parse_mode="Markdown"
     )
-    return ARTICLE_CONFIRM
+    return ARTICLE_CONTENT
 
 
 async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Step 5 — publish or cancel."""
+    """Step 6 — publish or cancel."""
     query = update.callback_query
     await query.answer()
 
@@ -4028,10 +4199,11 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
         return MAIN_MENU
 
     # Publish
-    title    = context.user_data["art_title"]
-    category = context.user_data["art_category"]
-    excerpt  = context.user_data["art_excerpt"]
-    content  = context.user_data["art_content"]
+    title       = context.user_data["art_title"]
+    category    = context.user_data["art_category"]
+    excerpt     = context.user_data["art_excerpt"]
+    content     = context.user_data["art_content"]
+    cover_image = context.user_data.get("art_cover_image")  # may be None
 
     await query.edit_message_text("⏳ Publishing article…")
 
@@ -4041,7 +4213,7 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
         slug = f"{date_str}-{slugify(title)}"
 
         # Generate HTML
-        html_content = generate_article_html(title, slug, category, excerpt, content, date_str)
+        html_content = generate_article_html(title, slug, category, excerpt, content, date_str, cover_image)
 
         # Write HTML file
         articles_dir = os.path.join(root_dir, "articles")
@@ -4049,6 +4221,21 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
         html_path = os.path.join(articles_dir, f"{slug}.html")
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html_content)
+
+        # Save source meta JSON (enables editing later)
+        meta_dir = os.path.join(articles_dir, "meta")
+        os.makedirs(meta_dir, exist_ok=True)
+        meta = {
+            "title": title,
+            "slug": slug,
+            "category": category,
+            "excerpt": excerpt,
+            "content": content,
+            "cover_image": cover_image,
+            "date": date_str,
+        }
+        with open(os.path.join(meta_dir, f"{slug}.json"), "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2, ensure_ascii=False)
 
         # Update articles/index.json
         index_path = os.path.join(articles_dir, "index.json")
@@ -4058,17 +4245,17 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
         else:
             articles = []
 
+        index_image = cover_image if cover_image else "https://footholics.in/assets/img/og-image.jpg"
         new_entry = {
             "slug": slug,
             "title": title,
             "excerpt": excerpt,
-            "image": "https://footholics.in/assets/img/og-image.jpg",
+            "image": index_image,
             "date": date_str,
             "author": "Foot Holics Editorial",
             "category": category,
             "url": f"/articles/{slug}.html",
         }
-        # Prepend so newest is first
         articles.insert(0, new_entry)
         with open(index_path, "w", encoding="utf-8") as f:
             json.dump(articles, f, indent=2, ensure_ascii=False)
@@ -4086,18 +4273,32 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
                 f"        <priority>0.8</priority>\n"
                 f"    </url>"
             )
+            # Bump lastmod on homepage and articles listing
+            sitemap = re.sub(
+                r'(<loc>https://footholics\.in/</loc>\s*\n\s*<lastmod>)[^<]+(</lastmod>)',
+                rf'\g<1>{date_str}\g<2>',
+                sitemap
+            )
+            sitemap = re.sub(
+                r'(<loc>https://footholics\.in/articles/index\.html</loc>\s*\n\s*<lastmod>)[^<]+(</lastmod>)',
+                rf'\g<1>{date_str}\g<2>',
+                sitemap
+            )
             sitemap = sitemap.replace("</urlset>", new_url_entry + "\n\n</urlset>")
             with open(sitemap_path, "w", encoding="utf-8") as f:
                 f.write(sitemap)
 
+        cover_line = f"\n• assets/img/articles/{slug}-cover (uploaded)" if cover_image else ""
         success_msg = (
             f"✅ *Article Published!*\n\n"
             f"*File:* `articles/{slug}.html`\n"
             f"*URL:* `https://footholics.in/articles/{slug}.html`\n\n"
             f"*Saved to:*\n"
             f"• articles/{slug}.html\n"
+            f"• articles/meta/{slug}.json\n"
             f"• articles/index.json\n"
-            f"• sitemap.xml\n\n"
+            f"• sitemap.xml"
+            f"{cover_line}\n\n"
             f"*Deploy:*\n"
             f"```\n"
             f"git add .\n"
@@ -4112,6 +4313,488 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
         await query.edit_message_text(f"❌ Error publishing article: {e}")
 
     context.user_data.clear()
+    await show_main_menu(update, context, edit_message=False)
+    return MAIN_MENU
+
+
+# ── Article Editing ────────────────────────────────────────────────────────────
+
+async def edit_article_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Show list of articles that have a meta file (published via bot)."""
+    query = update.callback_query
+    root_dir = get_project_root()
+    articles_dir = os.path.join(root_dir, "articles")
+    index_path = os.path.join(articles_dir, "index.json")
+
+    if not os.path.exists(index_path):
+        await query.edit_message_text("❌ No articles found.")
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    with open(index_path, "r", encoding="utf-8") as f:
+        articles = json.load(f)
+
+    meta_dir = os.path.join(articles_dir, "meta")
+
+    # Only show articles that have a meta file (bot-published)
+    editable = [a for a in articles if os.path.exists(os.path.join(meta_dir, f"{a['slug']}.json"))]
+
+    if not editable:
+        await query.edit_message_text(
+            "❌ No editable articles found.\n\n"
+            "Only articles published via the bot can be edited here."
+        )
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    keyboard = [
+        [InlineKeyboardButton(
+            f"{a['date']} — {a['title'][:40]}",
+            callback_data=f"edit_art_{a['slug']}"
+        )]
+        for a in editable[:10]
+    ]
+    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="menu_back")])
+
+    await query.edit_message_text(
+        "✏️ *Edit Article*\n\nSelect an article to edit:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return EDIT_ARTICLE_SELECT
+
+
+async def edit_article_select_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """User picked an article — show field selection menu."""
+    query = update.callback_query
+    await query.answer()
+
+    slug = query.data.replace("edit_art_", "")
+    root_dir = get_project_root()
+    meta_path = os.path.join(root_dir, "articles", "meta", f"{slug}.json")
+
+    if not os.path.exists(meta_path):
+        await query.edit_message_text("❌ Meta file not found for this article.")
+        return await edit_article_start(update, context)
+
+    with open(meta_path, "r", encoding="utf-8") as f:
+        meta = json.load(f)
+
+    context.user_data["edit_slug"] = slug
+    context.user_data["edit_meta"] = meta
+
+    cover_status = "✅ has image" if meta.get("cover_image") else "_(none)_"
+    keyboard = [
+        [InlineKeyboardButton("📝 Title", callback_data="edit_field_title"),
+         InlineKeyboardButton("🏷️ Category", callback_data="edit_field_category")],
+        [InlineKeyboardButton("💬 Excerpt", callback_data="edit_field_excerpt"),
+         InlineKeyboardButton("🖼️ Cover Image", callback_data="edit_field_cover_image")],
+        [InlineKeyboardButton("📄 Body", callback_data="edit_field_content")],
+        [InlineKeyboardButton("🔙 Back to list", callback_data="edit_field_back")],
+    ]
+
+    await query.edit_message_text(
+        f"✏️ *Editing:* {_html.escape(meta['title'])}\n\n"
+        f"*Category:* {meta['category']}\n"
+        f"*Cover image:* {cover_status}\n\n"
+        f"Which field would you like to edit?",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return EDIT_ARTICLE_FIELD
+
+
+async def edit_article_field_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """User picked a field — ask for new value."""
+    query = update.callback_query
+    await query.answer()
+
+    field = query.data.replace("edit_field_", "")
+
+    if field == "back":
+        return await edit_article_start(update, context)
+
+    context.user_data["edit_field"] = field
+
+    if field == "category":
+        keyboard = [
+            [InlineKeyboardButton("Premier League", callback_data="edit_cat_Premier League"),
+             InlineKeyboardButton("Champions League", callback_data="edit_cat_Champions League")],
+            [InlineKeyboardButton("La Liga", callback_data="edit_cat_La Liga"),
+             InlineKeyboardButton("Bundesliga", callback_data="edit_cat_Bundesliga")],
+            [InlineKeyboardButton("Serie A", callback_data="edit_cat_Serie A"),
+             InlineKeyboardButton("Ligue 1", callback_data="edit_cat_Ligue 1")],
+            [InlineKeyboardButton("World Football", callback_data="edit_cat_World Football"),
+             InlineKeyboardButton("Guide", callback_data="edit_cat_Guide")],
+        ]
+        await query.edit_message_text(
+            "Choose the new *category*:",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return EDIT_ARTICLE_INPUT
+
+    elif field == "cover_image":
+        await query.edit_message_text(
+            "🖼️ Send a new *cover image* (photo or file).\n\n"
+            "Type `remove` to remove the existing cover image.\n"
+            "Type `skip` to keep the current image.",
+            parse_mode="Markdown"
+        )
+        return EDIT_ARTICLE_INPUT
+
+    elif field == "content":
+        await query.edit_message_text(
+            "📄 Send the new *article body*.\n\n"
+            "Formatting:\n"
+            "• `## Heading` — H2 heading\n"
+            "• `### Heading` — H3 heading\n"
+            "• `![caption](url)` — inline image\n"
+            "• Blank line — new paragraph\n\n"
+            "Send all content in *one message*.\n"
+            "_Type /cancel to abort_",
+            parse_mode="Markdown"
+        )
+        return EDIT_ARTICLE_INPUT
+
+    else:
+        field_labels = {"title": "Title", "excerpt": "Excerpt"}
+        label = field_labels.get(field, field.capitalize())
+        await query.edit_message_text(
+            f"Send the new *{label}*:\n\n_Type /cancel to abort_",
+            parse_mode="Markdown"
+        )
+        return EDIT_ARTICLE_INPUT
+
+
+async def edit_article_input_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Receive new value for the chosen field (text or photo), show confirm."""
+    field = context.user_data.get("edit_field")
+    meta  = context.user_data.get("edit_meta", {})
+    slug  = context.user_data.get("edit_slug")
+
+    new_value = None
+
+    # Handle photo uploads for cover_image
+    if field == "cover_image":
+        file_id = None
+        if update.message.photo:
+            file_id = update.message.photo[-1].file_id
+        elif update.message.document and (update.message.document.mime_type or "").startswith("image/"):
+            file_id = update.message.document.file_id
+
+        if file_id:
+            try:
+                tg_file = await context.bot.get_file(file_id)
+                _, ext = os.path.splitext(tg_file.file_path)
+                ext = ext.lower()
+                if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+                    ext = '.jpg'
+                img_filename = f"{slug}-cover{ext}"
+                root_dir = get_project_root()
+                img_dir = os.path.join(root_dir, "assets", "img", "articles")
+                os.makedirs(img_dir, exist_ok=True)
+                await tg_file.download_to_drive(os.path.join(img_dir, img_filename))
+                new_value = f"https://footholics.in/assets/img/articles/{img_filename}"
+                await update.message.reply_text(f"✅ Image saved as `assets/img/articles/{img_filename}`", parse_mode="Markdown")
+            except Exception as e:
+                await update.message.reply_text(f"❌ Could not save image: {e}")
+                return EDIT_ARTICLE_INPUT
+        else:
+            text = update.message.text.strip().lower()
+            if text == "remove":
+                new_value = None
+            elif text == "skip":
+                await update.message.reply_text("⏭️ Cover image unchanged.")
+                return await _show_edit_confirm(update, context, field, meta.get("cover_image"), unchanged=True)
+            else:
+                await update.message.reply_text("❌ Send a photo/file, type `remove`, or type `skip`.", parse_mode="Markdown")
+                return EDIT_ARTICLE_INPUT
+    else:
+        if not update.message.text:
+            await update.message.reply_text("❌ Please send a text value.")
+            return EDIT_ARTICLE_INPUT
+        new_value = update.message.text.strip()
+        if not new_value:
+            await update.message.reply_text("❌ Value cannot be empty.")
+            return EDIT_ARTICLE_INPUT
+
+    context.user_data["edit_new_value"] = new_value
+    return await _show_edit_confirm(update, context, field, new_value)
+
+
+async def edit_article_cat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle category button selection during edit."""
+    query = update.callback_query
+    await query.answer()
+    new_value = query.data.replace("edit_cat_", "")
+    context.user_data["edit_new_value"] = new_value
+
+    keyboard = [
+        [InlineKeyboardButton("✅ Save", callback_data="edit_confirm_yes"),
+         InlineKeyboardButton("❌ Cancel", callback_data="edit_confirm_no")],
+    ]
+    await query.edit_message_text(
+        f"Update category to *{_html.escape(new_value)}*?",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return EDIT_ARTICLE_CONFIRM
+
+
+async def _show_edit_confirm(update, context, field, new_value, unchanged=False):
+    """Helper — show confirm keyboard after collecting new value."""
+    if unchanged:
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    field_labels = {
+        "title": "Title", "excerpt": "Excerpt", "content": "Body",
+        "category": "Category", "cover_image": "Cover Image",
+    }
+    label = field_labels.get(field, field.capitalize())
+    preview = str(new_value)[:200] + ("…" if new_value and len(str(new_value)) > 200 else "") if new_value else "_(removed)_"
+
+    keyboard = [
+        [InlineKeyboardButton("✅ Save", callback_data="edit_confirm_yes"),
+         InlineKeyboardButton("❌ Cancel", callback_data="edit_confirm_no")],
+    ]
+    await update.message.reply_text(
+        f"*Save changes?*\n\n*Field:* {label}\n*New value:* {_html.escape(preview)}",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return EDIT_ARTICLE_CONFIRM
+
+
+async def edit_article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Save the edit or cancel."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "edit_confirm_no":
+        context.user_data.pop("edit_field", None)
+        context.user_data.pop("edit_new_value", None)
+        await query.edit_message_text("❌ Edit cancelled.")
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    field     = context.user_data.get("edit_field")
+    new_value = context.user_data.get("edit_new_value")
+    slug      = context.user_data.get("edit_slug")
+    meta      = context.user_data.get("edit_meta", {})
+
+    await query.edit_message_text("⏳ Saving changes…")
+
+    try:
+        root_dir    = get_project_root()
+        articles_dir = os.path.join(root_dir, "articles")
+        meta_path   = os.path.join(articles_dir, "meta", f"{slug}.json")
+
+        # Update the meta dict
+        meta[field] = new_value
+        context.user_data["edit_meta"] = meta
+
+        # Regenerate HTML from updated meta
+        html_content = generate_article_html(
+            title=meta["title"],
+            slug=meta["slug"],
+            category=meta["category"],
+            excerpt=meta["excerpt"],
+            content=meta["content"],
+            date=meta["date"],
+            cover_image=meta.get("cover_image"),
+        )
+        with open(os.path.join(articles_dir, f"{slug}.html"), "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        # Save updated meta JSON
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2, ensure_ascii=False)
+
+        # Update articles/index.json entry
+        index_path = os.path.join(articles_dir, "index.json")
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as f:
+                articles = json.load(f)
+            for entry in articles:
+                if entry["slug"] == slug:
+                    if field == "title":
+                        entry["title"] = new_value
+                    elif field == "excerpt":
+                        entry["excerpt"] = new_value
+                    elif field == "category":
+                        entry["category"] = new_value
+                    elif field == "cover_image":
+                        entry["image"] = new_value if new_value else "https://footholics.in/assets/img/og-image.jpg"
+                    break
+            with open(index_path, "w", encoding="utf-8") as f:
+                json.dump(articles, f, indent=2, ensure_ascii=False)
+
+        await query.edit_message_text(
+            f"✅ *Article updated!*\n\n"
+            f"*Field:* {field.replace('_', ' ').capitalize()}\n"
+            f"*Article:* {_html.escape(meta['title'])}\n\n"
+            f"Don't forget to `git add . && git commit && git push`.",
+            parse_mode="Markdown"
+        )
+
+    except Exception as e:
+        logger.error(f"Error editing article: {e}", exc_info=True)
+        await query.edit_message_text(f"❌ Error saving edit: {e}")
+
+    context.user_data.pop("edit_field", None)
+    context.user_data.pop("edit_new_value", None)
+    await show_main_menu(update, context, edit_message=False)
+    return MAIN_MENU
+
+
+# ── Article Deletion ───────────────────────────────────────────────────────────
+
+async def delete_article_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Show all published articles for deletion selection."""
+    query = update.callback_query
+    root_dir = get_project_root()
+    index_path = os.path.join(root_dir, "articles", "index.json")
+
+    if not os.path.exists(index_path):
+        await query.edit_message_text("❌ No articles found.")
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    with open(index_path, "r", encoding="utf-8") as f:
+        articles = json.load(f)
+
+    if not articles:
+        await query.edit_message_text("❌ No articles to delete.")
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    keyboard = [
+        [InlineKeyboardButton(
+            f"{a['date']} — {a['title'][:40]}",
+            callback_data=f"del_art_{a['slug']}"
+        )]
+        for a in articles[:15]
+    ]
+    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="menu_back")])
+
+    await query.edit_message_text(
+        "🗑️ *Delete Article*\n\nSelect an article to delete:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return DELETE_ARTICLE_SELECT
+
+
+async def delete_article_select_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """User selected an article — show confirm prompt."""
+    query = update.callback_query
+    await query.answer()
+
+    slug = query.data.replace("del_art_", "")
+    root_dir = get_project_root()
+    index_path = os.path.join(root_dir, "articles", "index.json")
+
+    with open(index_path, "r", encoding="utf-8") as f:
+        articles = json.load(f)
+
+    entry = next((a for a in articles if a["slug"] == slug), None)
+    if not entry:
+        await query.edit_message_text("❌ Article not found.")
+        return await delete_article_start(update, context)
+
+    context.user_data["del_slug"] = slug
+    context.user_data["del_title"] = entry["title"]
+
+    keyboard = [
+        [InlineKeyboardButton("✅ Yes, delete it", callback_data="del_confirm_yes"),
+         InlineKeyboardButton("❌ Cancel", callback_data="del_confirm_no")],
+    ]
+    await query.edit_message_text(
+        f"🗑️ *Confirm Deletion*\n\n"
+        f"Are you sure you want to delete:\n\n"
+        f"*{_html.escape(entry['title'])}*\n\n"
+        f"This will remove the HTML file, meta JSON, and sitemap entry.",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return DELETE_ARTICLE_CONFIRM
+
+
+async def delete_article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Execute deletion or cancel."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "del_confirm_no":
+        context.user_data.pop("del_slug", None)
+        context.user_data.pop("del_title", None)
+        await query.edit_message_text("❌ Deletion cancelled.")
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    slug  = context.user_data.pop("del_slug", None)
+    title = context.user_data.pop("del_title", "")
+
+    await query.edit_message_text("⏳ Deleting article…")
+
+    try:
+        root_dir     = get_project_root()
+        articles_dir = os.path.join(root_dir, "articles")
+        removed      = []
+
+        # 1. Delete HTML file
+        html_path = os.path.join(articles_dir, f"{slug}.html")
+        if os.path.exists(html_path):
+            os.remove(html_path)
+            removed.append(f"articles/{slug}.html")
+
+        # 2. Delete meta JSON
+        meta_path = os.path.join(articles_dir, "meta", f"{slug}.json")
+        if os.path.exists(meta_path):
+            os.remove(meta_path)
+            removed.append(f"articles/meta/{slug}.json")
+
+        # 3. Remove from index.json
+        index_path = os.path.join(articles_dir, "index.json")
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as f:
+                articles = json.load(f)
+            articles = [a for a in articles if a["slug"] != slug]
+            with open(index_path, "w", encoding="utf-8") as f:
+                json.dump(articles, f, indent=2, ensure_ascii=False)
+            removed.append("articles/index.json")
+
+        # 4. Remove from sitemap.xml
+        sitemap_path = os.path.join(root_dir, "sitemap.xml")
+        if os.path.exists(sitemap_path):
+            with open(sitemap_path, "r", encoding="utf-8") as f:
+                sitemap = f.read()
+            # Remove the <url> block for this article
+            sitemap = re.sub(
+                r'\n\s*<url>\s*\n\s*<loc>https://footholics\.in/articles/' + re.escape(slug) + r'\.html</loc>.*?</url>',
+                '',
+                sitemap,
+                flags=re.DOTALL
+            )
+            with open(sitemap_path, "w", encoding="utf-8") as f:
+                f.write(sitemap)
+            removed.append("sitemap.xml")
+
+        removed_list = "\n".join(f"• {r}" for r in removed)
+        await query.edit_message_text(
+            f"✅ *Article Deleted!*\n\n"
+            f"*Title:* {_html.escape(title)}\n\n"
+            f"*Removed:*\n{removed_list}\n\n"
+            f"Deploy: `git add . && git commit -m \"Delete article: {title[:40]}\" && git push`",
+            parse_mode="Markdown"
+        )
+
+    except Exception as e:
+        logger.error(f"Error deleting article: {e}", exc_info=True)
+        await query.edit_message_text(f"❌ Error deleting article: {e}")
+
     await show_main_menu(update, context, edit_message=False)
     return MAIN_MENU
 
@@ -4179,10 +4862,43 @@ def main() -> None:
             ARTICLE_TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, article_title_handler)],
             ARTICLE_CATEGORY: [CallbackQueryHandler(article_category_handler, pattern="^art_cat_")],
             ARTICLE_EXCERPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, article_excerpt_handler)],
-            ARTICLE_CONTENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, article_content_handler)],
+            ARTICLE_COVER_IMAGE: [
+                MessageHandler(filters.PHOTO, article_cover_image_handler),
+                MessageHandler(filters.Document.IMAGE, article_cover_image_handler),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, article_cover_image_handler),
+            ],
+            ARTICLE_CONTENT: [
+                MessageHandler(filters.PHOTO, article_content_handler),
+                MessageHandler(filters.Document.IMAGE, article_content_handler),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, article_content_handler),
+            ],
             ARTICLE_CONFIRM: [
                 CallbackQueryHandler(article_confirm_handler, pattern="^art_confirm"),
                 CallbackQueryHandler(article_confirm_handler, pattern="^art_cancel"),
+            ],
+            EDIT_ARTICLE_SELECT: [
+                CallbackQueryHandler(edit_article_select_handler, pattern="^edit_art_"),
+                CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
+            ],
+            EDIT_ARTICLE_FIELD: [
+                CallbackQueryHandler(edit_article_field_handler, pattern="^edit_field_"),
+                CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
+            ],
+            EDIT_ARTICLE_INPUT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, edit_article_input_handler),
+                MessageHandler(filters.PHOTO, edit_article_input_handler),
+                MessageHandler(filters.Document.IMAGE, edit_article_input_handler),
+                CallbackQueryHandler(edit_article_cat_handler, pattern="^edit_cat_"),
+            ],
+            EDIT_ARTICLE_CONFIRM: [
+                CallbackQueryHandler(edit_article_confirm_handler, pattern="^edit_confirm_"),
+            ],
+            DELETE_ARTICLE_SELECT: [
+                CallbackQueryHandler(delete_article_select_handler, pattern="^del_art_"),
+                CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
+            ],
+            DELETE_ARTICLE_CONFIRM: [
+                CallbackQueryHandler(delete_article_confirm_handler, pattern="^del_confirm_"),
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
