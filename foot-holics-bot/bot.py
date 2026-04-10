@@ -627,6 +627,7 @@ def generate_live_html(data: dict) -> str:
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="assets/css/live.css">
     <link rel="icon" type="image/png" href="https://footholics.in/assets/img/logos/site/logo.png">
+    <script src="assets/js/live-match.js" defer></script>
 </head>
 <body>
     <header class="live-header">
@@ -668,6 +669,36 @@ def generate_live_html(data: dict) -> str:
                 <span><i class="fa-regular fa-calendar" style="color:var(--accent);"></i> {date_obj.strftime('%B %d, %Y')}</span>
                 <span><i class="fa-regular fa-clock" style="color:var(--accent);"></i> {data['time']} IST</span>
                 <span><i class="fa-solid fa-location-dot" style="color:var(--accent);"></i> {data['stadium']}</span>
+            </div>
+        </div>
+
+        <!-- ── LIVE SCORE WIDGET ──────────────────────────────────────────── -->
+        <div id="liveScoreWidget" style="display:none;background:var(--panel);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:1rem 1.5rem;margin-bottom:1.25rem;text-align:center;">
+            <div id="liveScoreStatus" style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem;"></div>
+            <div id="liveScoreValue" style="font-size:2.2rem;font-weight:700;letter-spacing:4px;line-height:1;"></div>
+        </div>
+
+        <!-- ── MATCH DATA WIDGET (Timeline + Tabs) ───────────────────────── -->
+        <div id="matchDataSection" style="display:none;margin-bottom:1.25rem;">
+            <div id="mdTimeline" class="md-timeline" style="display:none;">
+                <div class="tl-header">Match Timeline</div>
+                <div class="tl-track">
+                    <div class="tl-line"></div>
+                    <div class="tl-ht" style="left:50%"></div>
+                </div>
+                <div class="tl-minute-labels"><span>0'</span><span>45'</span><span>90'</span></div>
+            </div>
+            <div class="md-panel">
+                <div class="md-tabs">
+                    <button class="md-tab active" onclick="mdTab(this,'mdStats')">Stats</button>
+                    <button class="md-tab" onclick="mdTab(this,'mdLineups')">Lineups</button>
+                    <button class="md-tab" onclick="mdTab(this,'mdFormation')">Formation</button>
+                    <button class="md-tab" onclick="mdTab(this,'mdCommentary')">Commentary</button>
+                </div>
+                <div id="mdStats" class="md-pane"></div>
+                <div id="mdLineups" class="md-pane" style="display:none;"></div>
+                <div id="mdFormation" class="md-pane" style="display:none;"></div>
+                <div id="mdCommentary" class="md-pane" style="display:none;"></div>
             </div>
         </div>
 
@@ -746,6 +777,7 @@ def generate_live_html(data: dict) -> str:
 
     <script>
     (function () {{
+        // ── Live badge ───────────────────────────────────────────────────
         var kickoffIST = new Date('{data['date']}T{time_24h}:00+05:30');
         function checkLive() {{
             var now = new Date();
@@ -757,6 +789,45 @@ def generate_live_html(data: dict) -> str:
         }}
         checkLive();
         setInterval(checkLive, 60000);
+
+        // ── Live score widget ────────────────────────────────────────────
+        var scoreSlug = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
+        if (scoreSlug) {{
+            function fetchScore() {{
+                fetch('https://footholics.in/api/match-info?slug=' + encodeURIComponent(scoreSlug))
+                    .then(function(r) {{ return r.ok ? r.json() : null; }})
+                    .then(function(info) {{
+                        if (!info || !info.fixtureId) return null;
+                        return fetch('https://footholics.in/api/match-live?id=' + info.fixtureId)
+                            .then(function(r) {{ return r.ok ? r.json() : null; }});
+                    }})
+                    .then(function(d) {{
+                        if (!d || !d.fixture) return;
+                        var gs = d.fixture.goals;
+                        var fs = d.fixture.fixture.status;
+                        renderMatchData(d);
+                        if (fs.short === 'NS' || fs.short === 'TBD') return;
+                        var widget = document.getElementById('liveScoreWidget');
+                        var statusEl = document.getElementById('liveScoreStatus');
+                        var scoreEl = document.getElementById('liveScoreValue');
+                        if (!widget) return;
+                        widget.style.display = 'block';
+                        scoreEl.textContent = (gs.home !== null ? gs.home : 0) + ' \u2013 ' + (gs.away !== null ? gs.away : 0);
+                        if (fs.short === 'FT' || fs.short === 'AET' || fs.short === 'PEN') {{
+                            statusEl.innerHTML = '<span style="color:var(--muted)">Full Time</span>';
+                        }} else if (fs.short === 'HT') {{
+                            statusEl.innerHTML = '<span style="color:var(--accent)">Half Time</span>';
+                        }} else {{
+                            var min = fs.elapsed ? fs.elapsed + "\'" : '';
+                            statusEl.innerHTML = '<span style="display:inline-flex;align-items:center;gap:5px;color:#f87171"><span style="width:7px;height:7px;background:#f87171;border-radius:50%;display:inline-block;animation:live-pulse 1.3s ease-in-out infinite"></span>LIVE ' + min + '</span>';
+                        }}
+                    }})
+                    .catch(function() {{}});
+            }}
+            fetchScore();
+            setInterval(fetchScore, 10 * 60 * 1000); // refresh every 10 min
+        }}
+
         if (!localStorage.getItem('lhCookieOk')) {{
             document.getElementById('cookieBar').style.display = 'flex';
         }}
