@@ -7,7 +7,7 @@
     <!-- Homepage -->
     <url>
         <loc>https://footholics.in/</loc>
-        <lastmod>2026-04-09</lastmod>
+        <lastmod>2026-04-11</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
@@ -51,7 +51,7 @@
     <!-- Articles -->
     <url>
         <loc>https://footholics.in/articles/index.html</loc>
-        <lastmod>2026-04-09</lastmod>
+        <lastmod>2026-04-11</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
@@ -117,6 +117,14 @@
     <url>
         <loc>https://footholics.in/articles/2026-04-09-red-card-resistance-and-ruthless-atlético-barcelona-stunned-at-camp-nou.html</loc>
         <lastmod>2026-04-09</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+
+    <url>
+        <loc>https://footholics.in/articles/2026-04-11-valverde-strikes-lemar-responds-real-madrid-held-by-resilient-girona-in-bernabéu-stalemate.html</loc>
+        <lastmod>2026-04-11</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
