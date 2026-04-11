@@ -412,9 +412,10 @@ def git_auto_push(repo_path: str, commit_message: str, username: str = "", token
              "commit", "-m", commit_message],
             cwd=repo_path, capture_output=True, text=True, timeout=30
         )
-        if r.returncode != 0:
-            if "nothing to commit" in r.stdout or "nothing to commit" in r.stderr:
-                return True, "nothing to commit"
+        nothing_to_commit = r.returncode != 0 and (
+            "nothing to commit" in r.stdout or "nothing to commit" in r.stderr
+        )
+        if r.returncode != 0 and not nothing_to_commit:
             return False, f"git commit failed: {r.stderr.strip()}"
 
         # Build authenticated push URL (never stored — only passed as arg to this call)
