@@ -426,6 +426,12 @@ def git_auto_push(repo_path: str, commit_message: str, username: str = "", token
         else:
             push_url = remote_url  # SSH — credentials not needed
 
+        # Pull remote changes first to avoid "fetch first" rejection
+        r = subprocess.run(["git", "pull", "--rebase", push_url], cwd=repo_path,
+                           capture_output=True, text=True, timeout=60)
+        if r.returncode != 0:
+            return False, f"git pull failed: {r.stderr.strip()}"
+
         r = subprocess.run(["git", "push", push_url], cwd=repo_path,
                            capture_output=True, text=True, timeout=60)
         if r.returncode != 0:
