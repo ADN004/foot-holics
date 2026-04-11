@@ -1184,6 +1184,8 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
     ]
     if pending_push:
         keyboard.append([InlineKeyboardButton("🔄 Retry Last Push", callback_data="menu_retry_push")])
+    if creds_set:
+        keyboard.append([InlineKeyboardButton("📤 Force Push (sync unpushed commits)", callback_data="menu_force_push")])
     keyboard.append([InlineKeyboardButton("❌ Exit", callback_data="menu_exit")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1444,6 +1446,29 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
         await query.edit_message_text(
             f"*Retry Push Result*\n\n{display}\n\n{outcome}",
+            parse_mode="Markdown"
+        )
+        await show_main_menu(update, context, edit_message=False)
+        return MAIN_MENU
+
+    elif action == "force_push":
+        git_user = context.user_data.get('git_username', '')
+        git_token = context.user_data.get('git_token', '')
+        await query.edit_message_text("📤 Pushing any unpushed commits...")
+
+        main_root = get_project_root()
+        live_root = main_root.replace("foot-holics", "foot-holics-live").replace("foot-holics-bot", "").rstrip("/\\")
+        # Use git pull+push directly without add/commit
+        results = []
+        for repo_path, label in [(main_root, "foot-holics"), (live_root, "foot-holics-live")]:
+            ok, status = await asyncio.to_thread(git_auto_push, repo_path, "sync", git_user, git_token)
+            results.append((label, ok, status))
+
+        display = push_summary(*results)
+        all_ok = all(ok for _, ok, _ in results)
+        outcome = "🚀 All synced! Live in ~60 seconds." if all_ok else "⚠️ Some repos failed."
+        await query.edit_message_text(
+            f"*Force Push Result*\n\n{display}\n\n{outcome}",
             parse_mode="Markdown"
         )
         await show_main_menu(update, context, edit_message=False)
