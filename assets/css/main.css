@@ -2099,8 +2099,7 @@ body {
 }
 
 .hero,
-main,
-.site-header {
+main {
   position: relative;
   z-index: 1;
 }
