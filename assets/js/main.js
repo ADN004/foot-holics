@@ -13,27 +13,41 @@
   const primaryNav = document.getElementById('primaryNav');
   const ctaGroup = document.getElementById('ctaGroup');
 
+  function closeMobileMenu() {
+    primaryNav?.classList.remove('mobile-open');
+    ctaGroup?.classList.remove('mobile-open');
+    if (mobileMenuBtn) mobileMenuBtn.innerHTML = '☰';
+    document.body.style.overflow = '';
+  }
+
   if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener('click', function() {
-      primaryNav?.classList.toggle('mobile-open');
-      ctaGroup?.classList.toggle('mobile-open');
-
-      // Toggle icon
-      if (primaryNav?.classList.contains('mobile-open')) {
-        mobileMenuBtn.innerHTML = '✕';
+      const isOpen = primaryNav?.classList.contains('mobile-open');
+      if (isOpen) {
+        closeMobileMenu();
       } else {
-        mobileMenuBtn.innerHTML = '☰';
+        primaryNav?.classList.add('mobile-open');
+        ctaGroup?.classList.add('mobile-open');
+        mobileMenuBtn.innerHTML = '✕';
+        // Lock body scroll while overlay is open
+        document.body.style.overflow = 'hidden';
       }
     });
   }
 
-  // Close mobile menu when clicking outside
+  // Close menu when a nav link inside the overlay is clicked
+  primaryNav?.addEventListener('click', function(e) {
+    if (e.target.tagName === 'A' && primaryNav.classList.contains('mobile-open')) {
+      closeMobileMenu();
+    }
+  });
+
+  // Close mobile menu when clicking the overlay backdrop (outside nav links)
   document.addEventListener('click', function(e) {
     if (primaryNav?.classList.contains('mobile-open')) {
-      if (!e.target.closest('.header-inner')) {
-        primaryNav.classList.remove('mobile-open');
-        ctaGroup?.classList.remove('mobile-open');
-        if (mobileMenuBtn) mobileMenuBtn.innerHTML = '☰';
+      // Close if click is outside the header (i.e. on the backdrop area below the header)
+      if (!e.target.closest('.site-header')) {
+        closeMobileMenu();
       }
     }
   });
