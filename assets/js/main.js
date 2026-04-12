@@ -83,7 +83,6 @@
   // ========================================
   // Sticky Header on Scroll
   // ========================================
-  const siteHeader = document.querySelector('.site-header');
   let lastScrollTop = 0;
 
   window.addEventListener('scroll', function() {
