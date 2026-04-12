@@ -7,48 +7,76 @@
   'use strict';
 
   // ========================================
-  // Mobile Menu Toggle
+  // Mobile Menu Toggle — body-level overlay
   // ========================================
+  // Fixed elements inside a sticky/transformed ancestor share its stacking
+  // context and cannot paint above siblings at a higher z-index. The only
+  // reliable fix is to append the overlay as a direct <body> child so it lives
+  // in the root stacking context with an uncontested z-index.
+
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-  const primaryNav = document.getElementById('primaryNav');
-  const ctaGroup = document.getElementById('ctaGroup');
+  const primaryNav    = document.getElementById('primaryNav');
+  const ctaGroup      = document.getElementById('ctaGroup');
+  const siteHeader    = document.querySelector('.site-header');
+
+  // Build overlay elements and attach to <body> once
+  var mobOverlay = document.createElement('div');
+  mobOverlay.id = 'mob-nav-overlay';
+
+  var mobCtaBar = document.createElement('div');
+  mobCtaBar.id = 'mob-cta-bar';
+
+  // Clone nav links into overlay
+  if (primaryNav) {
+    primaryNav.querySelectorAll('a').forEach(function(link) {
+      var a = link.cloneNode(true);
+      a.addEventListener('click', closeMobileMenu);
+      mobOverlay.appendChild(a);
+    });
+  }
+
+  // Clone CTA buttons into bottom bar
+  if (ctaGroup) {
+    ctaGroup.querySelectorAll('a').forEach(function(btn) {
+      mobCtaBar.appendChild(btn.cloneNode(true));
+    });
+  }
+
+  document.body.appendChild(mobOverlay);
+  document.body.appendChild(mobCtaBar);
 
   function closeMobileMenu() {
-    primaryNav?.classList.remove('mobile-open');
-    ctaGroup?.classList.remove('mobile-open');
+    mobOverlay.classList.remove('is-open');
+    mobCtaBar.classList.remove('is-open');
+    siteHeader && siteHeader.classList.remove('menu-open');
     if (mobileMenuBtn) mobileMenuBtn.innerHTML = '☰';
     document.body.style.overflow = '';
   }
 
   if (mobileMenuBtn) {
-    mobileMenuBtn.addEventListener('click', function() {
-      const isOpen = primaryNav?.classList.contains('mobile-open');
-      if (isOpen) {
+    mobileMenuBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (mobOverlay.classList.contains('is-open')) {
         closeMobileMenu();
       } else {
-        primaryNav?.classList.add('mobile-open');
-        ctaGroup?.classList.add('mobile-open');
+        mobOverlay.classList.add('is-open');
+        mobCtaBar.classList.add('is-open');
+        siteHeader && siteHeader.classList.add('menu-open');
         mobileMenuBtn.innerHTML = '✕';
-        // Lock body scroll while overlay is open
         document.body.style.overflow = 'hidden';
       }
     });
   }
 
-  // Close menu when a nav link inside the overlay is clicked
-  primaryNav?.addEventListener('click', function(e) {
-    if (e.target.tagName === 'A' && primaryNav.classList.contains('mobile-open')) {
-      closeMobileMenu();
-    }
-  });
-
-  // Close mobile menu when clicking the overlay backdrop (outside nav links)
+  // Tap the backdrop (anywhere outside the overlay / cta-bar / header) to close
   document.addEventListener('click', function(e) {
-    if (primaryNav?.classList.contains('mobile-open')) {
-      // Close if click is outside the header (i.e. on the backdrop area below the header)
-      if (!e.target.closest('.site-header')) {
-        closeMobileMenu();
-      }
+    if (!mobOverlay.classList.contains('is-open')) return;
+    if (
+      !e.target.closest('#mob-nav-overlay') &&
+      !e.target.closest('#mob-cta-bar') &&
+      !e.target.closest('.site-header')
+    ) {
+      closeMobileMenu();
     }
   });
 
