@@ -756,7 +756,7 @@ def generate_live_html(data: dict) -> str:
         <div style="background:var(--panel);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:1.25rem;margin-bottom:1.5rem;">
             <h2 style="color:var(--accent);font-size:1rem;margin-bottom:0.75rem;">Match Preview</h2>
             <p style="color:var(--muted);font-size:0.86rem;line-height:1.7;">{data.get('preview', f"Stay tuned for the latest updates on this {data['league']} clash.")[:350]}</p>
-            <p style="margin-top:0.75rem;"><a href="https://footholics.in/{match_slug}.html" style="color:var(--accent);font-size:0.84rem;font-weight:600;">Full preview &amp; analysis &rarr;</a></p>
+            <p style="margin-top:0.75rem;"><a href="/detail?slug={match_slug}" style="color:var(--accent);font-size:0.84rem;font-weight:600;">Full preview &amp; analysis &rarr;</a></p>
         </div>
 
         <div class="live-disclaimer">
@@ -3141,17 +3141,7 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         else:
             integration_results.append("⚠️ Could not add to events.json")
 
-        # 2. Write main site editorial page to foot-holics/ root
-        try:
-            main_site_root = get_project_root()
-            main_page_path = os.path.join(main_site_root, html_filename)
-            with open(main_page_path, "w", encoding="utf-8") as f:
-                f.write(html_code)
-            integration_results.append("✅ Main site page written to foot-holics/")
-        except Exception as _me:
-            integration_results.append(f"⚠️ Could not write main site page: {_me}")
-
-        # 3. Generate and copy live subdomain page (matches live on live.footholics.in only)
+        # 2. Generate and copy live subdomain page (matches live on live.footholics.in only)
         live_html_code = generate_live_html(context.user_data)
         if copy_html_to_live(html_filename, live_html_code):
             integration_results.append("✅ Live page copied to foot-holics-live/")
@@ -3405,7 +3395,6 @@ async def send_generated_files(
     instructions = (
         f"🎉 *MATCH CREATED!*\n\n"
         f"✅ *Done automatically:*\n"
-        f"• Main site page → `foot-holics/`\n"
         f"• Stream links page → `foot-holics-live/`\n"
         f"• Entry added to `data/events.json`\n"
         f"{poster_note}\n\n"
