@@ -3475,7 +3475,6 @@ main {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   overflow: hidden;
-  flex: 1;
 }
 
 .rel-card-excerpt {
@@ -3493,7 +3492,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 0.75rem;
+  margin-top: auto;
   padding-top: 0.8rem;
   border-top: 1px solid var(--glass-border);
 }
