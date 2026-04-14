@@ -172,9 +172,12 @@
             </div>
         </article>
 
-        <section style="margin-top: 4rem;">
-            <h2 style="margin-bottom: 1.5rem;">More Articles</h2>
-            <div class="home-news-grid" id="relatedArticles">
+        <section class="more-articles-section">
+                    <div class="more-articles-header">
+                <h2 class="more-articles-title">More Articles</h2>
+                <a href="index.html" class="more-articles-view-all">View All &rarr;</a>
+            </div>
+            <div class="rel-grid" id="relatedArticles">
                 <div class="content-loading" style="grid-column:1/-1;"><div class="spinner"></div><span>Loading...</span></div>
             </div>
         </section>
@@ -232,15 +235,39 @@
                 const others = all.filter(a => !a.url.includes('real-madrid-vs-bayern')).slice(0, 3);
                 if (!others.length) { grid.innerHTML = ''; return; }
                 function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
-                grid.innerHTML = others.map(a => `
-                    <a href="${esc(a.url)}" class="news-card" style="text-decoration:none;">
-                        ${a.image ? `<img src="${esc(a.image)}" alt="${esc(a.title)}" class="news-card-img" loading="lazy">` : '<div class="news-card-img-placeholder">⚽</div>'}
-                        <div class="news-card-body">
-                            <div class="news-card-meta"><span class="news-cat-badge">${esc(a.category)}</span><span class="news-date">${esc(a.date)}</span></div>
-                            <h3 class="news-card-title">${esc(a.title)}</h3>
-                            <span class="news-card-link">Read more <i class="fa-solid fa-arrow-right" style="font-size:0.75rem;"></i></span>
-                        </div>
-                    </a>`).join('');
+                function catGradient(cat) {
+                  var c = (cat || '').toLowerCase();
+                  if (c.includes('la liga')) return 'linear-gradient(135deg,#b83217 0%,#e0633a 100%)';
+                  if (c.includes('champions') || c.includes('ucl')) return 'linear-gradient(135deg,#0b1560 0%,#2340c8 100%)';
+                  if (c.includes('premier')) return 'linear-gradient(135deg,#2b003a 0%,#5e0fa8 100%)';
+                  if (c.includes('bundesliga')) return 'linear-gradient(135deg,#7a0000 0%,#cc2200 100%)';
+                  if (c.includes('serie a')) return 'linear-gradient(135deg,#002f70 0%,#0055b3 100%)';
+                  if (c.includes('ligue')) return 'linear-gradient(135deg,#002580 0%,#0088d4 100%)';
+                  if (c.includes('europa')) return 'linear-gradient(135deg,#b34a00 0%,#e87020 100%)';
+                  return 'linear-gradient(135deg,#0a1628 0%,#1c3a54 100%)';
+                }
+                function catIcon(cat) {
+                  var c = (cat || '').toLowerCase();
+                  if (c.includes('champions') || c.includes('ucl')) return '⭐';
+                  if (c.includes('premier')) return '⚽';
+                  return '⚽';
+                }
+                grid.innerHTML = others.map(function(a) {
+                  return '<a href="' + esc(a.url) + '" class="rel-card">' +
+                    '<div class="rel-card-thumb" style="background:' + catGradient(a.category) + '">' +
+                      '<span class="rel-card-thumb-icon">' + catIcon(a.category) + '</span>' +
+                    '</div>' +
+                    '<div class="rel-card-body">' +
+                      '<span class="rel-card-badge">' + esc(a.category || 'Football') + '</span>' +
+                      '<h3 class="rel-card-title">' + esc(a.title) + '</h3>' +
+                      (a.excerpt ? '<p class="rel-card-excerpt">' + esc(a.excerpt) + '</p>' : '') +
+                      '<div class="rel-card-footer">' +
+                        '<time class="rel-card-date">' + esc(a.date) + '</time>' +
+                        '<span class="rel-card-read">Read &#x2192;</span>' +
+                      '</div>' +
+                    '</div>' +
+                  '</a>';
+                }).join('');
             } catch { grid.innerHTML = ''; }
         }
         loadRelated();
