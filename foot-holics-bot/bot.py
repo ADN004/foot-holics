@@ -4870,7 +4870,7 @@ async def edit_article_field_handler(update: Update, context: ContextTypes.DEFAU
         for i, b in enumerate(blocks):
             icon    = "🖼️" if b.startswith("![") else "📝"
             preview = b[:70].replace("\n", " ") + ("…" if len(b) > 70 else "")
-            lines.append(f"{icon} *Block {i + 1}:* {_html.escape(preview)}")
+            lines.append(f"{icon} <b>Block {i + 1}:</b> {_html.escape(preview)}")
 
         keyboard = []
         row = []
@@ -4885,8 +4885,8 @@ async def edit_article_field_handler(update: Update, context: ContextTypes.DEFAU
         keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="edit_field_back")])
 
         await query.edit_message_text(
-            "*Select a block to replace or delete:*\n\n" + "\n".join(lines),
-            parse_mode="Markdown",
+            "<b>Select a block to replace or delete:</b>\n\n" + "\n".join(lines),
+            parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return EDIT_ARTICLE_INPUT
@@ -4933,13 +4933,13 @@ async def edit_block_select_handler(update: Update, context: ContextTypes.DEFAUL
     preview  = current[:300].replace("\n", " ") + ("…" if len(current) > 300 else "")
 
     await query.edit_message_text(
-        f"*Block {idx + 1}* ({icon}):\n\n_{_html.escape(preview)}_\n\n"
-        "Send the *replacement*:\n"
+        f"<b>Block {idx + 1}</b> ({icon}):\n\n<i>{_html.escape(preview)}</i>\n\n"
+        "Send the <b>replacement</b>:\n"
         "• Text block → replaces this block\n"
         "• Photo / file → replaces with an image\n"
-        "• Type `delete` → removes this block\n\n"
-        "_Type /cancel to abort_",
-        parse_mode="Markdown"
+        "• Type <code>delete</code> → removes this block\n\n"
+        "<i>Type /cancel to abort</i>",
+        parse_mode="HTML"
     )
     return EDIT_ARTICLE_INPUT
 
@@ -5092,8 +5092,8 @@ async def _show_edit_confirm(update, context, field, new_value, unchanged=False)
          InlineKeyboardButton("❌ Cancel", callback_data="edit_confirm_no")],
     ]
     await update.message.reply_text(
-        f"*Save changes?*\n\n*Field:* {label}\n*New value:* {_html.escape(preview)}",
-        parse_mode="Markdown",
+        f"<b>Save changes?</b>\n\n<b>Field:</b> {_html.escape(label)}\n<b>New value:</b> {_html.escape(preview)}",
+        parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return EDIT_ARTICLE_CONFIRM
