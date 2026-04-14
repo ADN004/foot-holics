@@ -4196,6 +4196,8 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
       "url": "https://footholics.in/articles/{slug}.html"
     }}
     </script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8308140971175602"
+     crossorigin="anonymous"></script>
 </head>
 <body>
     <header class="site-header">
