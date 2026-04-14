@@ -17,6 +17,11 @@
     <title>Contact Us - Foot Holics</title>
 
     <link rel="canonical" href="https://footholics.in/contact.html">
+    <style>
+        @media (max-width: 600px) {
+            #contactFormGrid { grid-template-columns: 1fr !important; }
+        }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -113,7 +118,7 @@
                 <p style="color:var(--muted);margin-bottom:2rem;font-size:0.95rem;">We typically respond within 24–48 hours.</p>
 
                 <form id="contactForm" action="https://formspree.io/f/footholicsin" method="POST" style="display:flex;flex-direction:column;gap:1.25rem;">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div id="contactFormGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                         <div>
                             <label for="contactName" style="display:block;color:var(--text);font-size:0.9rem;font-weight:500;margin-bottom:0.4rem;">Your Name</label>
                             <input type="text" id="contactName" name="name" required placeholder="John Doe"

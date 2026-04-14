@@ -2,10 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'dark');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="index, follow">
-    <meta name="description" content="DMCA and Copyright Policy for Foot Holics">
+    <meta name="description" content="DMCA and Copyright Policy for Foot Holics - Football editorial media site.">
     <title>DMCA / Copyright - Foot Holics</title>
+
+    <link rel="canonical" href="https://footholics.in/dmca.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
     <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
@@ -18,7 +25,6 @@
             backdrop-filter: blur(20px);
             border-radius: 12px;
             border: 1px solid var(--glass-border);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
         }
         .legal-document h1 {
             font-size: 1.75rem;
@@ -72,18 +78,12 @@
             border-color: rgba(255, 255, 255, 0.3);
             transform: translateX(-4px);
         }
-        .warning {
-            background: rgba(239, 68, 68, 0.1);
-            padding: 1rem;
-            border-left: 3px solid #ef4444;
-            border-radius: 4px;
-            margin: 1rem 0;
-        }
         .contact-box {
             background: rgba(14, 165, 233, 0.1);
-            padding: 1rem;
-            border-radius: 6px;
-            margin: 1rem 0;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            margin: 1.25rem 0;
         }
     </style>
 </head>
@@ -92,10 +92,10 @@
         <div class="container">
             <div class="header-inner">
                 <a href="index.html" class="logo">
-                    <div class="logo-icon">⚽</div>
+                    <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="logo-icon">
                     <span>Foot Holics</span>
                 </a>
-                                <nav class="primary-nav" id="primaryNav">
+                <nav class="primary-nav" id="primaryNav">
                     <a href="index.html">Home</a>
                     <a href="news.html">News</a>
                     <a href="articles/index.html">Articles</a>
@@ -104,6 +104,11 @@
                     <a href="about.html">About</a>
                     <a href="contact.html">Contact</a>
                 </nav>
+                <div class="cta-group" id="ctaGroup">
+                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">WhatsApp</a>
+                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Telegram</a>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">&#9776;</button>
             </div>
         </div>
     </header>
@@ -111,60 +116,91 @@
     <main class="container">
         <article class="legal-document">
             <h1>DMCA / Copyright Policy</h1>
-            <div class="last-updated">Last Updated: October 27, 2025</div>
+            <div class="last-updated">Last Updated: April 14, 2026</div>
 
-            <div class="warning">
-                <p><strong>Important Notice:</strong> Foot Holics does NOT host, upload, or store any video content. We are a link aggregator that directs users to publicly available third-party sources.</p>
-            </div>
+            <h2>1. Our Content</h2>
+            <p>Foot Holics is an independent editorial football media website. All original articles, match reports, and analysis published on this site are created by our editorial team and are protected by copyright. We respect the intellectual property rights of others and expect others to respect ours.</p>
 
-            <h2>1. Our Role</h2>
-            <p>We aggregate and display links to streaming content hosted on third-party websites. We have no control over the content, quality, or availability of these external streams.</p>
+            <h2>2. Third-Party Content &amp; Attribution</h2>
+            <p>News headlines and summaries featured on our News page are sourced from and attributed to their original publishers (ESPN, BBC Sport, The Guardian, etc.) with links back to the original source. We do not reproduce full third-party articles. All referenced club names, league names, and logos are trademarks of their respective owners and are used for editorial and informational purposes only.</p>
 
-            <h2>2. Copyright Holders</h2>
-            <p>If you believe your copyrighted content is being streamed on a site we link to:</p>
+            <h2>3. Copyright Infringement Notice</h2>
+            <p>If you believe that content published on Foot Holics infringes your copyright, please send us a written notice containing:</p>
             <ul>
-                <li>Contact the hosting website directly - they control the content</li>
-                <li>Send us a takedown request and we will remove the link</li>
-                <li>We respond to valid DMCA takedown requests within 24-48 hours</li>
-            </ul>
-
-            <h2>3. DMCA Takedown Request</h2>
-            <p>To file a valid takedown request, provide:</p>
-            <ul>
-                <li>Your contact information (name, email, phone)</li>
-                <li>Description of the copyrighted work</li>
-                <li>URL of the link on our site</li>
-                <li>Statement of good faith belief</li>
-                <li>Statement that the information is accurate</li>
-                <li>Physical or electronic signature</li>
+                <li>Your full name, email address, and contact details</li>
+                <li>A description of the copyrighted work you believe has been infringed</li>
+                <li>The specific URL on our site where the allegedly infringing content appears</li>
+                <li>A statement that you have a good faith belief the use is not authorised</li>
+                <li>A statement that the information in your notice is accurate</li>
+                <li>Your physical or electronic signature</li>
             </ul>
 
             <div class="contact-box">
                 <p><strong>DMCA Contact:</strong></p>
                 <p>Email: <a href="mailto:footholicsin@gmail.com">footholicsin@gmail.com</a></p>
-                <p>Subject Line: "DMCA Takedown Request"</p>
+                <p>Subject Line: <strong>DMCA Takedown Request</strong></p>
             </div>
 
             <h2>4. Response Time</h2>
-            <p>We typically respond to valid requests within:</p>
+            <p>We aim to respond to valid takedown requests within:</p>
             <ul>
-                <li>Urgent cases: 24-48 hours</li>
-                <li>Standard cases: 5-7 business days</li>
+                <li>Urgent cases: 24–48 hours</li>
+                <li>Standard cases: 5–7 business days</li>
             </ul>
 
             <h2>5. Counter-Notification</h2>
-            <p>If you believe content was removed in error, you may file a counter-notification. We will forward it to the original complainant.</p>
+            <p>If you believe content was removed from our site in error, you may submit a counter-notification. We will forward it to the original complainant and proceed in accordance with applicable law.</p>
 
             <h2>6. Repeat Infringers</h2>
-            <p>We will remove links from sources that repeatedly infringe copyrights.</p>
-
-            <h2>7. No Liability</h2>
-            <p>We are not responsible for copyright violations by third-party hosting sites. All legal actions should be directed at content hosts, not link aggregators.</p>
+            <p>In accordance with the Digital Millennium Copyright Act, Foot Holics reserves the right to terminate access for users or contributors who are found to be repeat infringers.</p>
 
             <a href="index.html" class="back-btn">← Back to Home</a>
         </article>
     </main>
 
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Foot Holics</h4>
+                    <p>Original football writing — match reports, league analysis and in-depth coverage from all the competitions you love.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="articles/index.html">Articles</a></li>
+                        <li><a href="news.html">Football News</a></li>
+                        <li><a href="standings.html">Standings</a></li>
+                        <li><a href="fixtures.html">Fixtures</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms &amp; Conditions</a></li>
+                        <li><a href="dmca.html">DMCA / Copyright</a></li>
+                        <li><a href="disclaimer.html">Disclaimer</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Connect</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">WhatsApp Channel</a></li>
+                        <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">Telegram</a></li>
+                        <li><a href="mailto:footholicsin@gmail.com">Email Us</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Foot Holics. All rights reserved.</p>
+                <p style="margin-top:0.5rem;font-size:0.8rem;">Built with passion for football fans worldwide.</p>
+            </div>
+        </div>
+    </footer>
 
     <script src="assets/js/main.js" defer></script>
 </body>
