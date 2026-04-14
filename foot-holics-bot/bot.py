@@ -4666,12 +4666,12 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
             with open(sitemap_path, "r", encoding="utf-8") as f:
                 sitemap = f.read()
             new_url_entry = (
-                f"\n    <url>\n"
+                f"    <url>\n"
                 f"        <loc>https://footholics.in/articles/{slug}.html</loc>\n"
                 f"        <lastmod>{date_str}</lastmod>\n"
                 f"        <changefreq>weekly</changefreq>\n"
                 f"        <priority>0.8</priority>\n"
-                f"    </url>"
+                f"    </url>\n\n"
             )
             # Bump lastmod on homepage and articles listing
             sitemap = re.sub(
@@ -4684,7 +4684,14 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
                 rf'\g<1>{date_str}\g<2>',
                 sitemap
             )
-            sitemap = sitemap.replace("</urlset>", new_url_entry + "\n\n</urlset>")
+            # Insert new article immediately after articles/index.html entry (newest first)
+            sitemap = re.sub(
+                r'(<loc>https://footholics\.in/articles/index\.html</loc>.*?</url>\s*\n)',
+                lambda m: m.group(0) + "\n" + new_url_entry,
+                sitemap,
+                count=1,
+                flags=re.DOTALL
+            )
             with open(sitemap_path, "w", encoding="utf-8") as f:
                 f.write(sitemap)
 

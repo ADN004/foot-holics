@@ -57,6 +57,27 @@
     </url>
 
     <url>
+        <loc>https://footholics.in/articles/2026-04-12-torres-double-sparks-derby-delight-as-barcelona-crush-espanyol-4-1.html</loc>
+        <lastmod>2026-04-12</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.in/articles/2026-04-11-valverde-strikes-lemar-responds-real-madrid-held-by-resilient-girona-in-bernab%C3%A9u-stalemate.html</loc>
+        <lastmod>2026-04-11</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.in/articles/2026-04-09-red-card-resistance-and-ruthless-atl%C3%A9tico-barcelona-stunned-at-camp-nou.html</loc>
+        <lastmod>2026-04-09</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
         <loc>https://footholics.in/articles/2026-04-08-real-madrid-vs-bayern-ucl-qf-first-leg.html</loc>
         <lastmod>2026-04-08</lastmod>
         <changefreq>weekly</changefreq>
@@ -65,22 +86,22 @@
 
     <url>
         <loc>https://footholics.in/articles/2026-04-06-top-5-premier-league-matches.html</loc>
-        <lastmod>2026-04-07</lastmod>
+        <lastmod>2026-04-06</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
         <loc>https://footholics.in/articles/2026-04-06-champions-league-2026-analysis.html</loc>
-        <lastmod>2026-04-07</lastmod>
+        <lastmod>2026-04-06</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
     <url>
         <loc>https://footholics.in/articles/2026-04-06-follow-football-free-2026.html</loc>
-        <lastmod>2026-04-07</lastmod>
-        <changefreq>monthly</changefreq>
+        <lastmod>2026-04-06</lastmod>
+        <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
 
@@ -111,30 +132,6 @@
         <lastmod>2026-04-07</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
-    </url>
-
-
-    <url>
-        <loc>https://footholics.in/articles/2026-04-09-red-card-resistance-and-ruthless-atl%C3%A9tico-barcelona-stunned-at-camp-nou.html</loc>
-        <lastmod>2026-04-09</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-
-
-    <url>
-        <loc>https://footholics.in/articles/2026-04-11-valverde-strikes-lemar-responds-real-madrid-held-by-resilient-girona-in-bernab%C3%A9u-stalemate.html</loc>
-        <lastmod>2026-04-11</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-
-
-    <url>
-        <loc>https://footholics.in/articles/2026-04-12-torres-double-sparks-derby-delight-as-barcelona-crush-espanyol-4-1.html</loc>
-        <lastmod>2026-04-12</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
     </url>
 
 </urlset>
