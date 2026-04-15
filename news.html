@@ -91,8 +91,8 @@
         <!-- From Our Writers -->
         <div style="margin-bottom: 3rem;">
             <h2 style="font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 1.25rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent); display: inline-block;">From Our Writers</h2>
-            <div class="home-news-grid" id="editorialHighlights">
-                <div class="content-loading" style="grid-column:1/-1;">
+            <div id="editorialHighlights">
+                <div class="content-loading">
                     <div class="spinner"></div>
                     <span>Loading...</span>
                 </div>
@@ -269,25 +269,74 @@
         // Expose to global scope so onclick attributes can reach it
         window.filterNews = filterNews;
 
+        function fmtDate(iso) {
+            if (!iso) return '';
+            try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return iso; }
+        }
+
         async function loadEditorialHighlights() {
-            const grid = document.getElementById('editorialHighlights');
-            if (!grid) return;
+            const wrap = document.getElementById('editorialHighlights');
+            if (!wrap) return;
             try {
                 const res = await fetch('/api/articles');
                 if (!res.ok) throw new Error();
                 const all = await res.json();
                 const latest = all.slice(0, 3);
-                if (!latest.length) { grid.innerHTML = ''; return; }
-                function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
-                grid.innerHTML = latest.map(a => `<a href="${esc(a.url)}" class="news-card" style="text-decoration:none;">
-                    <div class="news-card-content">
-                        <span class="news-cat-badge" style="font-size:0.7rem;">${esc(a.category || 'Football')}</span>
-                        <h3 class="news-card-title">${esc(a.title)}</h3>
-                        <p class="news-card-excerpt">${esc(a.excerpt)}</p>
-                        <span style="font-size:0.8rem;color:var(--muted);">${esc(a.date)}</span>
+                if (!latest.length) { wrap.innerHTML = ''; return; }
+
+                function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+                const [hero, ...side] = latest;
+
+                const heroCard = `
+                <a href="${esc(hero.url)}" class="ew-hero" style="text-decoration:none;">
+                    <div class="ew-hero-img-wrap">
+                        ${hero.image
+                            ? `<img src="${esc(hero.image)}" alt="${esc(hero.title)}" class="ew-hero-img" loading="eager" onerror="this.style.display='none'">`
+                            : ''
+                        }
+                        <div class="ew-hero-overlay"></div>
+                        <div class="ew-hero-content">
+                            <span class="news-cat-badge" style="margin-bottom:0.6rem;display:inline-block;">${esc(hero.category || 'Football')}</span>
+                            <h2 class="ew-hero-title">${esc(hero.title)}</h2>
+                            <p class="ew-hero-excerpt">${esc(hero.excerpt)}</p>
+                            <div class="ew-meta">
+                                <span class="ew-author"><i class="fa-solid fa-pen-nib" style="margin-right:0.3rem;font-size:0.7rem;"></i>${esc(hero.author || 'Adityan Nair')}</span>
+                                <span class="ew-dot">·</span>
+                                <span class="ew-date">${fmtDate(hero.date)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>`;
+
+                const sideCards = side.map(a => `
+                <a href="${esc(a.url)}" class="ew-side-card" style="text-decoration:none;">
+                    <div class="ew-side-img-wrap">
+                        ${a.image
+                            ? `<img src="${esc(a.image)}" alt="${esc(a.title)}" class="ew-side-img" loading="lazy" onerror="this.style.display='none'">`
+                            : ''
+                        }
+                    </div>
+                    <div class="ew-side-body">
+                        <span class="news-cat-badge" style="font-size:0.68rem;margin-bottom:0.35rem;display:inline-block;">${esc(a.category || 'Football')}</span>
+                        <h3 class="ew-side-title">${esc(a.title)}</h3>
+                        <p class="ew-side-excerpt">${esc(a.excerpt)}</p>
+                        <div class="ew-meta" style="margin-top:auto;">
+                            <span class="ew-author"><i class="fa-solid fa-pen-nib" style="margin-right:0.3rem;font-size:0.65rem;"></i>${esc(a.author || 'Adityan Nair')}</span>
+                            <span class="ew-dot">·</span>
+                            <span class="ew-date">${fmtDate(a.date)}</span>
+                        </div>
                     </div>
                 </a>`).join('');
-            } catch (e) { grid.innerHTML = ''; }
+
+                wrap.innerHTML = `
+                <div class="ew-layout">
+                    ${heroCard}
+                    <div class="ew-sidebar">
+                        ${sideCards}
+                    </div>
+                </div>`;
+            } catch (e) { wrap.innerHTML = ''; }
         }
 
         async function loadNews() {
