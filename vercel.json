@@ -6,5 +6,15 @@
         { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/universal-player.html",
+      "destination": "/not-found"
+    },
+    {
+      "source": "/TEMPLATE-event.html",
+      "destination": "/not-found"
+    }
   ]
 }
