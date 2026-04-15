@@ -4175,7 +4175,7 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
       "headline": "{_html.escape(title)}",
       "datePublished": "{date}",
       "dateModified": "{date}",
-      "author": {{ "@type": "Organization", "name": "Foot Holics Editorial" }},
+      "author": {{ "@type": "Person", "name": "Adityan Nair", "url": "https://footholics.in/about.html" }},
       "publisher": {{
         "@type": "Organization",
         "name": "Foot Holics",
@@ -4230,7 +4230,7 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
                 <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
                     <span class="news-cat-badge">{_html.escape(category)}</span>
                     <span style="color: var(--muted); font-size: 0.85rem;">{date_display}</span>
-                    <span style="color: var(--muted); font-size: 0.85rem;">By Foot Holics Editorial</span>
+                    <span style="color: var(--muted); font-size: 0.85rem;">By Adityan Nair</span>
                 </div>
                 <h1 style="font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 4vw, 2.4rem); line-height: 1.25; margin-bottom: 1.25rem;">{_html.escape(title)}</h1>
                 <p style="font-size: 1.1rem; color: var(--muted); line-height: 1.7;">{_html.escape(excerpt)}</p>
@@ -4242,7 +4242,18 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
 
                 <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 2rem 0;">
 
-                <p style="color: var(--muted); font-size: 0.9rem;">Stay up to date with our <a href="../fixtures.html" style="color: var(--accent);">Fixtures page</a> and live <a href="../standings.html" style="color: var(--accent);">Standings</a>.</p>
+                <div style="margin: 2.5rem 0 0; padding: 1.5rem; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; display: flex; gap: 1.25rem; align-items: flex-start;">
+                    <div style="flex-shrink:0; width:48px; height:48px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center;">
+                        <i class="fa-solid fa-pen-nib" style="color:#000; font-size:1rem;"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:700; color:var(--text); margin-bottom:0.2rem;">Adityan Nair</div>
+                        <div style="font-size:0.78rem; color:var(--accent); margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Football Writer &amp; Analyst</div>
+                        <p style="font-size:0.88rem; color:var(--muted); line-height:1.65; margin:0;">Adityan has covered European football for over eight years, with a focus on the Champions League, La Liga, and the Premier League. He writes regularly on tactics, team dynamics, and the stories that shape a season.</p>
+                    </div>
+                </div>
+
+                <p style="color: var(--muted); font-size: 0.9rem; margin-top: 1.5rem;">Stay up to date with our <a href="../fixtures.html" style="color: var(--accent);">Fixtures page</a> and live <a href="../standings.html" style="color: var(--accent);">Standings</a>.</p>
             </div>
         </article>
 
@@ -4643,7 +4654,7 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
             "excerpt": excerpt,
             "image": index_image,
             "date": date_str,
-            "author": "Foot Holics Editorial",
+            "author": "Adityan Nair",
             "category": category,
             "url": f"/articles/{slug}.html",
         }

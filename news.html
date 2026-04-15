@@ -81,6 +81,26 @@
     <!-- Main Content -->
     <main class="container" style="margin-top: 2rem; margin-bottom: 4rem;">
 
+        <!-- Editorial intro -->
+        <div style="max-width: 720px; margin-bottom: 2.5rem;">
+            <p style="font-size: 1.05rem; color: var(--muted); line-height: 1.8;">
+                Football never stops. On this page we aggregate the most important headlines from across world football — transfers, injuries, managerial news, match previews and post-match reaction — drawing from the top sports desks so you get the full picture in one place. All stories link to their original source. For our own match reports, tactics pieces, and analysis, visit our <a href="articles/index.html" style="color: var(--accent);">Articles section</a>.
+            </p>
+        </div>
+
+        <!-- From Our Writers -->
+        <div style="margin-bottom: 3rem;">
+            <h2 style="font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 1.25rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent); display: inline-block;">From Our Writers</h2>
+            <div class="home-news-grid" id="editorialHighlights">
+                <div class="content-loading" style="grid-column:1/-1;">
+                    <div class="spinner"></div>
+                    <span>Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 1.25rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--glass-border); display: inline-block;">Latest Football Headlines</h2>
+
         <!-- Category filter tabs -->
         <div class="tab-nav" id="newsTabs" role="tablist">
             <button class="tab-btn active" data-cat="all" onclick="window.filterNews('all')">All</button>
@@ -249,6 +269,27 @@
         // Expose to global scope so onclick attributes can reach it
         window.filterNews = filterNews;
 
+        async function loadEditorialHighlights() {
+            const grid = document.getElementById('editorialHighlights');
+            if (!grid) return;
+            try {
+                const res = await fetch('/api/articles');
+                if (!res.ok) throw new Error();
+                const all = await res.json();
+                const latest = all.slice(0, 3);
+                if (!latest.length) { grid.innerHTML = ''; return; }
+                function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
+                grid.innerHTML = latest.map(a => `<a href="${esc(a.url)}" class="news-card" style="text-decoration:none;">
+                    <div class="news-card-content">
+                        <span class="news-cat-badge" style="font-size:0.7rem;">${esc(a.category || 'Football')}</span>
+                        <h3 class="news-card-title">${esc(a.title)}</h3>
+                        <p class="news-card-excerpt">${esc(a.excerpt)}</p>
+                        <span style="font-size:0.8rem;color:var(--muted);">${esc(a.date)}</span>
+                    </div>
+                </a>`).join('');
+            } catch (e) { grid.innerHTML = ''; }
+        }
+
         async function loadNews() {
             const loading = document.getElementById('newsLoading');
             const errorEl = document.getElementById('newsError');
@@ -270,6 +311,7 @@
             }
         }
 
+        loadEditorialHighlights();
         loadNews();
     })();
     </script>
