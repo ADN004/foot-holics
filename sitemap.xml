@@ -7,7 +7,7 @@
     <!-- Homepage -->
     <url>
         <loc>https://footholics.in/</loc>
-        <lastmod>2026-04-15</lastmod>
+        <lastmod>2026-04-16</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
@@ -51,12 +51,28 @@
     <!-- Articles -->
     <url>
         <loc>https://footholics.in/articles/index.html</loc>
-        <lastmod>2026-04-15</lastmod>
+        <lastmod>2026-04-16</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
 
 
+
+
+
+    <url>
+        <loc>https://footholics.in/articles/2026-04-16-ousmane-dembélé-double-silences-anfield-as-psg-eliminate-liverpool-from-champions-league.html</loc>
+        <lastmod>2026-04-16</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <url>
+        <loc>https://footholics.in/articles/2026-04-16-late-luis-díaz-dagger-sends-bayern-past-real-madrid-in-7-goal-champions-league-epic.html</loc>
+        <lastmod>2026-04-16</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
 
     <url>
         <loc>https://footholics.in/articles/2026-04-15-atletico-madrid-hold-nerves-at-metropolitano-despite-barcelonas-ferocious-21-comeback.html</loc>
