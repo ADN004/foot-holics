@@ -1,0 +1,12 @@
+# Enforce LF line endings for all text files in the repo.
+# This prevents Docker git (Linux) from seeing Windows CRLF files as modified.
+* text=auto eol=lf
+
+# Treat these explicitly as binary so git never touches line endings
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.pdf binary

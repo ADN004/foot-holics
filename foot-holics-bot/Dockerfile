@@ -5,7 +5,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/* \
     && git config --global --add safe.directory /app \
-    && git config --global --add safe.directory /foot-holics-live
+    && git config --global --add safe.directory /foot-holics-live \
+    && git config --global core.autocrlf input \
+    && git config --global core.safecrlf false
 
 WORKDIR /app
 
