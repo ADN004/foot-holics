@@ -394,22 +394,34 @@ def get_live_project_root() -> str:
 def git_auto_push(repo_path: str, commit_message: str, username: str = "", token: str = "") -> tuple:
     """Run git add/commit/push in repo_path. Returns (success: bool, status: str).
     If username+token provided, injects them into the HTTPS remote URL so no
-    credentials need to be stored on disk."""
+    credentials need to be stored on disk.
+
+    Files are always staged+committed locally even if push credentials are missing,
+    so they are never left as untracked on disk.
+    """
     if not repo_path or not os.path.isdir(repo_path):
         return False, "repo path not found"
-    if not username or not token:
-        return False, "git credentials not set — use 🔑 Set Git Credentials from menu"
+
+    # Pass safe.directory so git works correctly inside Docker regardless of
+    # file ownership differences between the container user and the host.
+    safe_flags = ["-c", f"safe.directory={repo_path}"]
+
     try:
-        r = subprocess.run(["git", "add", "."], cwd=repo_path,
-                           capture_output=True, text=True, timeout=30)
+        # Stage all changes (always, regardless of push credentials)
+        r = subprocess.run(
+            ["git"] + safe_flags + ["add", "."],
+            cwd=repo_path, capture_output=True, text=True, timeout=30
+        )
         if r.returncode != 0:
             return False, f"git add failed: {r.stderr.strip()}"
 
+        # Commit locally (always)
         r = subprocess.run(
-            ["git",
-             "-c", f"user.name={username}",
-             "-c", f"user.email={username}@users.noreply.github.com",
-             "commit", "-m", commit_message],
+            ["git"] + safe_flags + [
+                "-c", f"user.name={username or 'footholics-bot'}",
+                "-c", f"user.email={username or 'bot'}@users.noreply.github.com",
+                "commit", "-m", commit_message,
+            ],
             cwd=repo_path, capture_output=True, text=True, timeout=30
         )
         nothing_to_commit = r.returncode != 0 and (
@@ -418,9 +430,15 @@ def git_auto_push(repo_path: str, commit_message: str, username: str = "", token
         if r.returncode != 0 and not nothing_to_commit:
             return False, f"git commit failed: {r.stderr.strip()}"
 
+        # Push requires credentials
+        if not username or not token:
+            return False, "committed locally — set git credentials to push"
+
         # Build authenticated push URL (never stored — only passed as arg to this call)
-        r = subprocess.run(["git", "remote", "get-url", "origin"], cwd=repo_path,
-                           capture_output=True, text=True, timeout=10)
+        r = subprocess.run(
+            ["git"] + safe_flags + ["remote", "get-url", "origin"],
+            cwd=repo_path, capture_output=True, text=True, timeout=10
+        )
         remote_url = r.stdout.strip()
         if remote_url.startswith("https://"):
             push_url = remote_url.replace("https://", f"https://{username}:{token}@", 1)
@@ -428,13 +446,17 @@ def git_auto_push(repo_path: str, commit_message: str, username: str = "", token
             push_url = remote_url  # SSH — credentials not needed
 
         # Pull remote changes first to avoid "fetch first" rejection
-        r = subprocess.run(["git", "pull", "--rebase", push_url], cwd=repo_path,
-                           capture_output=True, text=True, timeout=60)
+        r = subprocess.run(
+            ["git"] + safe_flags + ["pull", "--rebase", push_url],
+            cwd=repo_path, capture_output=True, text=True, timeout=60
+        )
         if r.returncode != 0:
             return False, f"git pull failed: {r.stderr.strip()}"
 
-        r = subprocess.run(["git", "push", push_url], cwd=repo_path,
-                           capture_output=True, text=True, timeout=60)
+        r = subprocess.run(
+            ["git"] + safe_flags + ["push", push_url],
+            cwd=repo_path, capture_output=True, text=True, timeout=60
+        )
         if r.returncode != 0:
             err = r.stderr.strip()
             auth_keywords = ("authentication failed", "invalid username or password",
