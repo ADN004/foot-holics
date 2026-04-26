@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Foot Holics Match Manager Bot
 A Telegram bot for managing football matches on the Foot Holics website.
