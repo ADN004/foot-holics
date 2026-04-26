@@ -3,7 +3,9 @@ FROM python:3.11-slim
 # git is needed so the bot can commit & push after making changes
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --global --add safe.directory /app \
+    && git config --global --add safe.directory /foot-holics-live
 
 WORKDIR /app
 
