@@ -451,7 +451,9 @@ def git_auto_push(repo_path: str, commit_message: str, username: str = "", token
             cwd=repo_path, capture_output=True, text=True, timeout=60
         )
         if r.returncode != 0:
-            return False, f"git pull failed: {r.stderr.strip()}"
+            subprocess.run(["git"] + safe_flags + ["rebase", "--abort"],
+                           cwd=repo_path, capture_output=True, timeout=15)
+            return False, f"git pull failed: {r.stderr.strip()[:200]}"
 
         r = subprocess.run(
             ["git"] + safe_flags + ["push", push_url],
@@ -473,6 +475,13 @@ def git_auto_push(repo_path: str, commit_message: str, username: str = "", token
         return False, str(e)
 
 
+def _md_escape(s: str) -> str:
+    """Escape Telegram Markdown v1 special chars in dynamic/untrusted text."""
+    for ch in ('\\', '*', '_', '`', '['):
+        s = s.replace(ch, '\\' + ch)
+    return s
+
+
 def push_summary(*results: tuple) -> str:
     """Format push results into a display string.
     Each result is (repo_label, ok, status).
@@ -484,7 +493,7 @@ def push_summary(*results: tuple) -> str:
             lines.append(f"❌ {label}: token expired or invalid")
             auth_failed = True
         else:
-            lines.append(f"{'✅' if ok else '❌'} {label}: {status}")
+            lines.append(f"{'✅' if ok else '❌'} {label}: {_md_escape(status)}")
     text = "*Git push:*\n" + "\n".join(lines)
     if auth_failed:
         text += "\n\n⚠️ *Token expired — tap 🔑 Set Git Credentials to update.*"
@@ -1466,10 +1475,15 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             ]
             outcome = "⚠️ Some repos still failed. Update credentials and tap Retry again."
 
-        await query.edit_message_text(
-            f"*Retry Push Result*\n\n{display}\n\n{outcome}",
-            parse_mode="Markdown"
-        )
+        try:
+            await query.edit_message_text(
+                f"*Retry Push Result*\n\n{display}\n\n{outcome}",
+                parse_mode="Markdown"
+            )
+        except Exception:
+            await query.edit_message_text(
+                f"Retry Push Result\n\n{display}\n\n{outcome}".replace("*", "").replace("`", "").replace("_", "")
+            )
         await show_main_menu(update, context, edit_message=False)
         return MAIN_MENU
 
@@ -1489,10 +1503,15 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         display = push_summary(*results)
         all_ok = all(ok for _, ok, _ in results)
         outcome = "🚀 All synced! Live in ~60 seconds." if all_ok else "⚠️ Some repos failed."
-        await query.edit_message_text(
-            f"*Force Push Result*\n\n{display}\n\n{outcome}",
-            parse_mode="Markdown"
-        )
+        try:
+            await query.edit_message_text(
+                f"*Force Push Result*\n\n{display}\n\n{outcome}",
+                parse_mode="Markdown"
+            )
+        except Exception:
+            await query.edit_message_text(
+                f"Force Push Result\n\n{display}\n\n{outcome}".replace("*", "").replace("`", "").replace("_", "")
+            )
         await show_main_menu(update, context, edit_message=False)
         return MAIN_MENU
 
@@ -1835,12 +1854,19 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
         [(get_project_root(), commit_msg), (live_root, commit_msg)],
         [(main_ok, main_status), (live_ok, live_status)]
     )
-    await query.edit_message_text(
-        f"✅ **Match Deletion Complete!**\n\n"
-        f"**Deleted:**\n{deleted_list}{failed_list}\n\n"
-        f"{push_line}",
-        parse_mode="Markdown"
-    )
+    try:
+        await query.edit_message_text(
+            f"✅ **Match Deletion Complete!**\n\n"
+            f"**Deleted:**\n{deleted_list}{failed_list}\n\n"
+            f"{push_line}",
+            parse_mode="Markdown"
+        )
+    except Exception:
+        await query.edit_message_text(
+            f"✅ Match Deletion Complete!\n\n"
+            f"Deleted:\n{deleted_list}{failed_list}\n\n"
+            f"{push_line}".replace("*", "").replace("`", "").replace("_", "")
+        )
 
     await show_main_menu(update, context, edit_message=False)
     return MAIN_MENU
@@ -2771,9 +2797,15 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
 
         if query:
-            await query.edit_message_text(success_msg, parse_mode="Markdown")
+            try:
+                await query.edit_message_text(success_msg, parse_mode="Markdown")
+            except Exception:
+                await query.edit_message_text(success_msg.replace("*", "").replace("`", "").replace("_", ""))
         else:
-            await update.message.reply_text(success_msg, parse_mode="Markdown")
+            try:
+                await update.message.reply_text(success_msg, parse_mode="Markdown")
+            except Exception:
+                await update.message.reply_text(success_msg.replace("*", "").replace("`", "").replace("_", ""))
 
     except Exception as e:
         error_msg = f"❌ Error updating match: {str(e)}"
@@ -3428,7 +3460,10 @@ async def send_generated_files(
         f"{live_note}"
     )
 
-    await update.message.reply_text(instructions, parse_mode="Markdown")
+    try:
+        await update.message.reply_text(instructions, parse_mode="Markdown")
+    except Exception:
+        await update.message.reply_text(instructions.replace("*", "").replace("`", "").replace("_", ""))
 
 
 def get_inline_event_template() -> str:
@@ -4740,7 +4775,10 @@ async def article_confirm_handler(update: Update, context: ContextTypes.DEFAULT_
             f"{push_summary(('foot-holics', push_ok, push_status))}\n\n"
             f"{'🚀 Live in ~60 seconds!' if push_ok else ''}"
         )
-        await query.edit_message_text(success_msg, parse_mode="Markdown")
+        try:
+            await query.edit_message_text(success_msg, parse_mode="Markdown")
+        except Exception:
+            await query.edit_message_text(success_msg.replace("*", "").replace("`", "").replace("_", ""))
 
     except Exception as e:
         logger.error(f"Error publishing article: {e}", exc_info=True)
@@ -5201,13 +5239,16 @@ async def edit_article_confirm_handler(update: Update, context: ContextTypes.DEF
             git_auto_push, get_project_root(), _art_commit, git_user, git_token
         )
         set_pending_push(context, [(get_project_root(), _art_commit)], [(push_ok, push_status)])
-        await query.edit_message_text(
+        _art_update_msg = (
             f"✅ *Article updated!*\n\n"
             f"*Field:* {field.replace('_', ' ').capitalize()}\n"
             f"*Article:* {_html.escape(meta['title'])}\n\n"
-            f"{push_summary(('foot-holics', push_ok, push_status))}",
-            parse_mode="Markdown"
+            f"{push_summary(('foot-holics', push_ok, push_status))}"
         )
+        try:
+            await query.edit_message_text(_art_update_msg, parse_mode="Markdown")
+        except Exception:
+            await query.edit_message_text(_art_update_msg.replace("*", "").replace("`", "").replace("_", ""))
 
     except Exception as e:
         logger.error(f"Error editing article: {e}", exc_info=True)
@@ -5362,13 +5403,16 @@ async def delete_article_confirm_handler(update: Update, context: ContextTypes.D
             git_auto_push, get_project_root(), _art_commit, git_user, git_token
         )
         set_pending_push(context, [(get_project_root(), _art_commit)], [(push_ok, push_status)])
-        await query.edit_message_text(
+        _art_del_msg = (
             f"✅ *Article Deleted!*\n\n"
             f"*Title:* {_html.escape(title)}\n\n"
             f"*Removed:*\n{removed_list}\n\n"
-            f"{push_summary(('foot-holics', push_ok, push_status))}",
-            parse_mode="Markdown"
+            f"{push_summary(('foot-holics', push_ok, push_status))}"
         )
+        try:
+            await query.edit_message_text(_art_del_msg, parse_mode="Markdown")
+        except Exception:
+            await query.edit_message_text(_art_del_msg.replace("*", "").replace("`", "").replace("_", ""))
 
     except Exception as e:
         logger.error(f"Error deleting article: {e}", exc_info=True)
