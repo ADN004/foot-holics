@@ -34,41 +34,5 @@
       }
     ],
     "streams": 4
-  },
-  {
-    "id": "event-1775663354683",
-    "date": "2026-04-09",
-    "time": "00:30",
-    "slug": "2026-04-09-barcelona-vs-atletico-madrid",
-    "title": "Barcelona vs Atletico Madrid",
-    "homeTeam": "Barcelona",
-    "awayTeam": "Atletico Madrid",
-    "homeLogo": "https://footholics.in/assets/img/logos/teams/la-liga/barcelona.png",
-    "awayLogo": "https://footholics.in/assets/img/logos/teams/la-liga/atletico-madrid.png",
-    "league": "Champions League",
-    "leagueSlug": "champions-league",
-    "stadium": "Camp Nou",
-    "poster": "assets/img/2026-04-09-barcelona-vs-atletico-madrid-poster.jpg",
-    "excerpt": "Tonight's UEFA Champions League quarter-final between FC Barcelona and Atlético Madrid promises a high-intensity clash between two familiar rivals. Ba...",
-    "status": "upcoming",
-    "broadcast": [
-      {
-        "name": "Stream 1",
-        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzEuc3BvcnRzem9ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDIucGhw&type=iframe"
-      },
-      {
-        "name": "Stream 2",
-        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzEuc3BvcnRzem9ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDMucGhw&type=iframe"
-      },
-      {
-        "name": "Stream 3",
-        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzEuc3BvcnRzem9ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDUucGhw&type=iframe"
-      },
-      {
-        "name": "Stream 4",
-        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzEuc3BvcnRzem9ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDYucGhw&type=iframe"
-      }
-    ],
-    "streams": 4
   }
 ]
