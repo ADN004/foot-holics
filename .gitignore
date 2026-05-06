@@ -52,6 +52,7 @@ build/
 .git/
 
 # Project-specific exclusions
+foot-holics-bot/generated/
 guides/
 DEPLOYMENT-STEPS.md
 QUICK-START.txt

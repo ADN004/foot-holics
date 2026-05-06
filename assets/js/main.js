@@ -968,4 +968,62 @@
     document.getElementById('cookieDecline').addEventListener('click', () => dismiss('declined'));
   })();
 
+  // ── Adsterra monetisation (all footholics.in pages) ──────────────────────
+  (function () {
+    var SMARTLINK = 'https://www.profitablecpmratenetwork.com/w5hzdwkr3h?key=bfbd283ffe1573110488645fe30c5cfd';
+
+    function injectScript(src) {
+      var s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      document.head.appendChild(s);
+    }
+
+    // Popunder — fires on first click anywhere on the page
+    injectScript('https://pl28194614.profitablecpmratenetwork.com/98/b2/61/98b2610dbd944ffe41efc4663be4b3ad.js');
+    // Social bar — sticky floating bar
+    injectScript('https://pl28190484.profitablecpmratenetwork.com/ad/f7/17/adf7172d701fdcad288330f7b67c9293.js');
+
+    // Smartlink: open in new tab whenever user clicks any "Watch Live" / live subdomain link
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest('a');
+      if (!a) return;
+      var href = a.getAttribute('href') || '';
+      if (href.indexOf('live.footholics.in') !== -1 || a.classList.contains('watch-live-btn')) {
+        window.open(SMARTLINK, '_blank');
+      }
+    });
+
+    // 300×250 banner — injected after first content card/section on every page
+    document.addEventListener('DOMContentLoaded', function () {
+      var target = document.querySelector('main .glass-card, main section, .article-content, .article-body, .article-section, main > .container > *');
+      if (!target || !target.parentNode) return;
+      window.atOptions = { 'key': '66dc201b64275feeae63bc4b419a241c', 'format': 'iframe', 'height': 250, 'width': 300, 'params': {} };
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'text-align:center;margin:2rem auto;';
+      var s = document.createElement('script');
+      s.src = 'https://www.highperformanceformat.com/66dc201b64275feeae63bc4b419a241c/invoke.js';
+      wrap.appendChild(s);
+      target.parentNode.insertBefore(wrap, target.nextSibling);
+    });
+
+    // Native banner — injected after second content card/section
+    document.addEventListener('DOMContentLoaded', function () {
+      var cards = document.querySelectorAll('main .glass-card, main section');
+      var target = cards[1] || cards[0];
+      if (!target || !target.parentNode) return;
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'text-align:center;margin:2rem auto;';
+      var s = document.createElement('script');
+      s.async = true;
+      s.setAttribute('data-cfasync', 'false');
+      s.src = 'https://pl28194628.profitablecpmratenetwork.com/0eafec7e4106026e364203d54ba0c8e9/invoke.js';
+      var d = document.createElement('div');
+      d.id = 'container-0eafec7e4106026e364203d54ba0c8e9';
+      wrap.appendChild(s);
+      wrap.appendChild(d);
+      target.parentNode.insertBefore(wrap, target.nextSibling);
+    });
+  }());
+
 })();
