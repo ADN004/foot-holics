@@ -3,42 +3,195 @@
    Liquid Glass (iOS 26) Design
    =================================== */
 
-/* === Design Tokens === */
+/* ═══════════════════════════════════════════════════════════
+   LOCAL FONTS
+   ─────────────────────────────────────────────────────────
+   Clash Display     — hero h1/h2, site logo
+   Plus Jakarta Sans — h3/h4, nav, buttons, card titles
+   Space Grotesk     — eyebrow labels, badges, table heads
+   Khand             — sport text: team names, match rows
+   Satoshi           — body copy, descriptions, paragraphs
+   Bebas Neue        — large display numbers only
+   ═══════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Clash Display';
+  src: url('../fonts/ClashDisplay-Variable.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Clash Display';
+  src: url('../fonts/ClashDisplay-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('../fonts/PlusJakartaSans-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../fonts/SpaceGrotesk-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Khand';
+  src: url('../fonts/Khand-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('../fonts/Satoshi-Variable.woff2') format('woff2');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('../fonts/BebasNeue-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Token Definitions
+   Foot Holics v2 Design System
+   ═══════════════════════════════════════════════════════════ */
 :root {
-  /* Colors */
-  --bg: #071428;
-  --panel: #0f2a44;
-  --accent: #D4AF37;
-  --accent-2: #7DE3E3;
-  --text: #F5F7FA;
-  --muted: #B9C3CF;
-  --glass: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.12);
+
+  /* ── Surfaces ────────────────────────────────────────────── */
+  --surface-bg:  #071428;                    /* page background */
+  --surface-1:   #0f2a44;                    /* raised panels */
+  --surface-2:   rgba(255, 255, 255, 0.08);  /* glass surfaces */
+
+  /* backwards-compat aliases (used throughout existing code) */
+  --bg:    var(--surface-bg);
+  --panel: var(--surface-1);
+  --glass: var(--surface-2);
+
+  /* ── Glass borders / highlights ──────────────────────────── */
+  --glass-border:    rgba(255, 255, 255, 0.12);
   --glass-highlight: rgba(255, 255, 255, 0.15);
 
-  /* Theme Support */
-  --theme-bg: var(--bg);
+  /* ── Accent ──────────────────────────────────────────────── */
+  --accent:        #D4AF37;
+  --accent-2:      #7DE3E3;
+  --accent-dim:    rgba(212, 175, 55, 0.10);
+  --accent-border: rgba(212, 175, 55, 0.25);
+  --accent-hover:  rgba(212, 175, 55, 0.45);
+
+  /* ── Text ────────────────────────────────────────────────── */
+  --text:     #F5F7FA;   /* primary — headings, body copy */
+  --muted:    #B9C3CF;   /* secondary — captions, descriptions */
+  --text-dim: #8899AA;   /* tertiary — timestamps, fine print */
+
+  /* ── Semantic colors ─────────────────────────────────────── */
+  --color-live:    #ef4444;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-info:    #3b82f6;
+
+  /* Theme Support (legacy) */
+  --theme-bg:    var(--bg);
   --theme-panel: var(--panel);
-  --theme-text: var(--text);
+  --theme-text:  var(--text);
 
-  /* Radius */
-  --radius-sm: 12px;
-  --radius-lg: 24px;
+  /* ── Radius ──────────────────────────────────────────────── */
+  --radius-xs:   6px;
+  --radius-sm:  12px;
+  --radius-md:  16px;
+  --radius-lg:  24px;
+  --radius-full: 9999px;
 
-  /* Shadows */
-  --card-shadow: 0 10px 30px rgba(2, 6, 23, 0.6);
-  --card-shadow-hover: 0 15px 40px rgba(2, 6, 23, 0.8);
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow-sm:  0 2px  8px rgba(2, 6, 23, 0.40);
+  --shadow-md:  0 8px 24px rgba(2, 6, 23, 0.50);
+  --shadow-lg:  0 12px 40px rgba(2, 6, 23, 0.65);
+  --shadow-xl:  0 20px 60px rgba(2, 6, 23, 0.75);
 
-  /* Spacing */
-  --space-1: 8px;
-  --space-2: 16px;
-  --space-3: 24px;
-  --space-4: 32px;
-  --space-5: 48px;
+  /* backwards-compat aliases */
+  --card-shadow:       var(--shadow-lg);
+  --card-shadow-hover: var(--shadow-xl);
 
-  /* Typography */
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-heading: 'Playfair Display', 'Merriweather', serif;
+  /* ── Spacing ─────────────────────────────────────────────── */
+  --space-0-5: 4px;
+  --space-1:   8px;
+  --space-2:  16px;
+  --space-3:  24px;
+  --space-4:  32px;
+  --space-5:  48px;
+  --space-6:  64px;
+  --space-7:  80px;
+  --space-8:  96px;
+  /* Fluid section gap — responsive vertical rhythm */
+  --space-section: clamp(2.5rem, 5vw, 4rem);
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  --container-max: 1280px;
+  --container-pad: var(--space-2);   /* 16px default; 24px at ≤1024px via MQ */
+  --header-h:      68px;             /* sticky header height */
+  --sidebar-top:   100px;            /* sticky sidebar offset (header + buffer) */
+
+  /* ── Typography: Families ────────────────────────────────── */
+  --font-body:    'Satoshi', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Clash Display', 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
+  --font-ui:      'Plus Jakarta Sans', 'Satoshi', system-ui, sans-serif;
+  --font-label:   'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sport:   'Khand', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Bebas Neue', 'Impact', 'Arial Narrow', sans-serif;
+
+  /* ── Typography: Scale (mobile-first, 16px base) ────────── */
+  --text-xs:   0.72rem;    /* ~11.5px — timestamps, badge labels */
+  --text-sm:   0.82rem;    /* ~13px   — captions, metadata */
+  --text-base: 1rem;       /*  16px   — body copy */
+  --text-md:   1.125rem;   /*  18px   — lead / emphasis */
+  --text-lg:   1.25rem;    /*  20px   — card titles */
+  --text-xl:   1.5rem;     /*  24px   — section titles */
+  --text-2xl:  1.875rem;   /*  30px   — page headings */
+  --text-3xl:  2.25rem;    /*  36px   — hero sub-headings */
+  --text-4xl:  3rem;       /*  48px   — hero titles */
+
+  /* ── Typography: Line heights ────────────────────────────── */
+  --leading-tight:   1.15;
+  --leading-snug:    1.35;
+  --leading-normal:  1.60;
+  --leading-relaxed: 1.75;
+
+  /* ── Typography: Weights ─────────────────────────────────── */
+  --weight-normal:   400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* ── Transitions ─────────────────────────────────────────── */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Z-index scale ───────────────────────────────────────── */
+  --z-base:     1;
+  --z-raised:   10;
+  --z-dropdown: 100;
+  --z-sticky:   1000;
+  --z-overlay:  9000;
+  --z-modal:    99999;
 }
 
 /* === Reset & Base === */
@@ -61,8 +214,10 @@ body {
   color: var(--text);
   line-height: 1.6;
   font-size: 16px;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'kern' 1, 'liga' 1;
 }
 
 img {
@@ -74,7 +229,8 @@ img {
 a {
   color: var(--accent);
   text-decoration: none;
-  transition: all 0.3s ease;
+  /* explicit properties only — prevents outline from being transition-animated */
+  transition: color var(--transition-base), opacity var(--transition-base);
 }
 
 a:hover {
@@ -82,24 +238,37 @@ a:hover {
 }
 
 /* === Typography === */
-h1, h2, h3, h4, h5, h6 {
+h1, h2 {
   font-family: var(--font-heading);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: var(--leading-tight);
   margin-bottom: var(--space-2);
+  letter-spacing: -0.02em;
+}
+
+h3, h4, h5, h6 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.005em;
 }
 
 h1 {
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: clamp(var(--text-2xl), 5vw, var(--text-4xl));
 }
 
 h2 {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: clamp(var(--text-xl), 4vw, var(--text-3xl));
 }
 
 h3 {
-  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-size: clamp(var(--text-lg), 3vw, var(--text-2xl));
 }
+
+h4 { font-size: clamp(var(--text-base), 2.5vw, var(--text-lg)); }
+h5 { font-size: var(--text-base); }
+h6 { font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.06em; }
 
 p {
   margin-bottom: var(--space-2);
@@ -109,9 +278,9 @@ p {
 /* === Layout Container === */
 .container {
   width: 100%;
-  max-width: 1280px;
+  max-width: var(--container-max);
   margin: 0 auto;
-  padding: 0 var(--space-2);
+  padding: 0 var(--container-pad);
 }
 
 .container-fluid {
@@ -176,8 +345,11 @@ p {
 }
 
 .primary-nav a {
+  font-family: var(--font-ui);
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.01em;
   padding: var(--space-1) 10px;
   border-radius: var(--radius-sm);
   transition: all 0.3s ease;
@@ -206,6 +378,13 @@ p {
   width: 80%;
 }
 
+/* World Cup nav link — always accented regardless of hover/active state */
+.primary-nav .nav-wc-link,
+.primary-nav .nav-wc-link:hover {
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+}
+
 /* === CTA Buttons === */
 .cta-group {
   display: flex;
@@ -220,7 +399,9 @@ p {
   gap: var(--space-1);
   padding: 10px 20px;
   border-radius: 24px;
+  font-family: var(--font-ui);
   font-weight: 600;
+  letter-spacing: 0.01em;
   font-size: 0.9rem;
   cursor: pointer;
   border: none;
@@ -469,10 +650,17 @@ p {
 .hero-tagline {
   font-size: 1.125rem;
   color: var(--accent);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   letter-spacing: 2px;
   margin-bottom: var(--space-2);
   text-transform: uppercase;
+}
+
+@media (max-width: 480px) {
+  .hero-tagline {
+    font-size: var(--text-sm);
+    letter-spacing: 0.06em;
+  }
 }
 
 .hero-title {
@@ -528,12 +716,20 @@ p {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .search-btn:hover {
   transform: translateY(-50%) scale(1.1);
   box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+}
+
+/* 44px minimum touch target on mobile */
+@media (max-width: 768px) {
+  .search-btn {
+    width: 44px;
+    height: 44px;
+  }
 }
 
 /* === Glass Card === */
@@ -607,8 +803,9 @@ p {
 }
 
 .match-title {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-family: var(--font-ui);
+  font-size: 1.2rem;
+  font-weight: 600;
   color: var(--text);
   flex: 1;
 }
@@ -619,9 +816,11 @@ p {
   background: var(--accent);
   color: var(--bg);
   border-radius: 16px;
-  font-size: 0.75rem;
+  font-family: var(--font-label);
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
   white-space: nowrap;
 }
 
@@ -821,7 +1020,7 @@ p {
   padding: var(--space-3);
   backdrop-filter: blur(6px);
   position: sticky;
-  top: 100px;
+  top: var(--sidebar-top);
 }
 
 .sidebar-title {
@@ -1292,6 +1491,27 @@ p {
 }
 
 /* === Accessibility === */
+
+/* Skip to main content — visible only on keyboard focus */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  z-index: var(--z-modal);
+  border-radius: 0 0 var(--radius-xs) 0;
+  text-decoration: none;
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1299,13 +1519,16 @@ p {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* Focus visible for keyboard navigation */
+/* Focus ring — explicit outline only, no transition animation */
 *:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  /* Prevent transition-all on parent elements from animating the focus ring */
+  transition: outline-offset var(--transition-fast);
 }
 
 /* === Responsive Design === */
@@ -1362,7 +1585,13 @@ p {
   }
 
   .footer-content {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  /* About blurb spans the full width on tablet */
+  .footer-section:first-child {
+    grid-column: 1 / -1;
   }
 
   /* ── Hero CTA: stack buttons on tablet and below ── */
@@ -1910,7 +2139,7 @@ p {
 .search-results-dropdown::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
 
 /* ===================================
-   ANIMATED GRADIENT BACKGROUNDS
+   BACKGROUND GRADIENTS (static — animated version removed for perf)
    =================================== */
 
 body {
@@ -1918,25 +2147,18 @@ body {
     var(--bg) 0%,
     var(--panel) 50%,
     var(--bg) 100%);
-  background-size: 200% 200%;
-  animation: gradientShift 15s ease infinite;
 }
 
+/* @keyframes gradientShift retained for potential opt-in use */
 @keyframes gradientShift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
 }
 
 .hero {
   background: linear-gradient(135deg,
     rgba(15, 42, 68, 0.8) 0%,
     rgba(7, 20, 40, 0.9) 100%);
-  background-size: 200% 200%;
-  animation: gradientShift 20s ease infinite;
   position: relative;
   overflow: visible;
 }
@@ -2417,8 +2639,9 @@ main {
 }
 
 .news-card-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-ui);
   font-size: 1rem;
+  font-weight: 600;
   color: var(--text);
   line-height: 1.4;
   margin-bottom: var(--space-1);
@@ -2641,9 +2864,9 @@ main {
 }
 
 .ew-side-title {
-  font-family: var(--font-heading);
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--text);
   line-height: 1.35;
   margin-bottom: 0.3rem;
@@ -2784,9 +3007,11 @@ main {
 }
 
 .st-team-name {
-  font-weight: 600;
+  font-family: var(--font-sport);
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.93rem;
 }
 
 .st-pts {
@@ -2870,14 +3095,18 @@ main {
 }
 
 .fixture-team-name {
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-family: var(--font-sport);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-size: 0.93rem;
   color: var(--text);
 }
 
 .fixture-score {
-  font-weight: 700;
-  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
   color: var(--accent);
   min-width: 40px;
   text-align: center;
@@ -3002,6 +3231,18 @@ main {
   padding: 3rem 0 3.5rem;
 }
 
+@media (max-width: 768px) {
+  .hero--compact {
+    padding: 1.75rem 0 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero--compact {
+    padding: 1.25rem 0 1.5rem;
+  }
+}
+
 .hero-editorial-bar {
   display: flex;
   flex-direction: column;
@@ -3062,6 +3303,11 @@ main {
 
 .see-all-link:hover { opacity: 1; }
 
+.section-header--center {
+  justify-content: center;
+  text-align: center;
+}
+
 /* ── Section eyebrow (Latest pill + line) ───────────────────────────────── */
 .section-eyebrow {
   display: flex;
@@ -3092,6 +3338,23 @@ main {
 /* ── Featured Article Card ──────────────────────────────────────────────── */
 .featured-section {
   padding: 3rem 0 0;
+}
+
+/* Reserve space before JS loads the article — prevents CLS */
+#featuredArticle {
+  min-height: 420px;
+}
+
+@media (max-width: 768px) {
+  #featuredArticle {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  #featuredArticle {
+    min-height: 300px;
+  }
 }
 
 .featured-card-skeleton {
@@ -3220,16 +3483,23 @@ main {
   }
 
   .featured-card-img {
-    height: 220px;
+    height: auto;
+    aspect-ratio: 16 / 9;  /* proportional across all mobile widths */
   }
 
   .featured-card-body {
-    padding: 1.5rem;
+    padding: 1.25rem 1.25rem 1.5rem;
     gap: 0.75rem;
   }
 
   .featured-card-excerpt {
     -webkit-line-clamp: 3;
+  }
+}
+
+@media (max-width: 480px) {
+  .featured-card-body {
+    padding: 1rem 1rem 1.25rem;
   }
 }
 
@@ -3288,7 +3558,7 @@ main {
 }
 
 .cover-item h3 {
-  font-family: var(--font-heading);
+  font-family: var(--font-ui);
   font-size: 1rem;
   color: var(--text);
   margin: 0 0 0.5rem;
@@ -3306,7 +3576,17 @@ main {
 }
 
 @media (max-width: 480px) {
+  /* Keep 2-col — stacking 4 items vertically causes scroll fatigue */
+  .covers-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+  .cover-item { padding: 1.25rem 1rem; }
+  .cover-icon-wrap { width: 44px; height: 44px; font-size: 1.1rem; }
+}
+
+@media (max-width: 360px) {
+  /* Very small screens: single column */
   .covers-grid { grid-template-columns: 1fr; }
+  .cover-item { padding: 1.25rem 1.25rem; }
+  .cover-icon-wrap { width: 48px; height: 48px; }
 }
 
 /* ── Explore by League ──────────────────────────────────────────────────── */
@@ -3314,7 +3594,7 @@ main {
   padding: 3.5rem 0 0;
 }
 
-.leagues-section .section-title {
+.leagues-section .section-header {
   margin-bottom: 1.25rem;
 }
 
@@ -3394,7 +3674,7 @@ main {
   padding: 3.5rem 0 4.5rem;
 }
 
-.tools-section .section-title {
+.tools-section .section-header {
   margin-bottom: 1.25rem;
 }
 
@@ -3648,9 +3928,9 @@ main {
 }
 
 .rel-card-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-ui);
   font-size: 0.93rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text);
   line-height: 1.4;
   margin: 0;
@@ -3939,9 +4219,10 @@ main {
 
 .ls-score {
   font-size: 2.75rem;
-  font-weight: 700;
+  font-weight: 400;
   color: var(--text);
-  font-family: var(--font-body);
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
   line-height: 1;
   min-width: 44px;
   text-align: center;
@@ -4053,7 +4334,7 @@ main {
   }
 }
 
-/* === Extra-small screens (320px) === */
+/* === Extra-small screens (320–400px) === */
 @media (max-width: 400px) {
   .container {
     padding: 0 12px;
@@ -4087,8 +4368,231 @@ main {
   .standings-table .st-hide-xs {
     display: none;
   }
-  /* Hero search: reduce right padding to match smaller button */
+  /* Hero search: right-padding accommodates 44px button */
   .search-input {
-    padding-right: 52px;
+    padding-right: 54px;
+  }
+  /* Footer: single column on 320px */
+  .footer-content {
+    grid-template-columns: 1fr;
+  }
+  .footer-section:first-child {
+    grid-column: auto;
   }
 }
+
+/* === World Cup countdown — tighten at very small widths === */
+@media (max-width: 360px) {
+  .wc-bc-num  { font-size: 1.1rem; }
+  .wc-bc-unit { padding: 4px 7px; }
+  .wc-bc-sep  { font-size: 1.1rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 4 — DESKTOP EXPERIENCE REBUILD
+   min-width rules — these never affect mobile viewports
+   Breakpoints: 769  | 1024 | 1280 | 1440 | 1600 | 1920
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 769px+: Hero becomes horizontal (copy left, search right) ─────────── */
+@media (min-width: 769px) {
+  .hero-editorial-bar {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: clamp(1.5rem, 3vw, 3rem);
+    justify-content: space-between;
+  }
+
+  .hero-editorial-copy {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Anchor search to the right; remove the mobile auto-centering margin */
+  .hero-editorial-search {
+    flex: 0 0 min(44%, 460px);
+    margin: 0;
+  }
+}
+
+/* ── 1024px+: Core desktop — spacing, sizing, rhythm ───────────────────── */
+@media (min-width: 1024px) {
+  /* Header: slightly more height, bigger logo */
+  .header-inner { padding: 1.1rem 0; }
+  .logo { font-size: 1.875rem; }
+  .logo-icon { width: 38px; height: 38px; }
+
+  /* Hero: taller, larger headline */
+  .hero--compact { padding: 4rem 0 4.5rem; }
+  .hero-editorial-title { font-size: clamp(2.1rem, 3vw, 2.8rem); }
+
+  /* Featured article: taller, more generous body padding */
+  #featuredArticle       { min-height: 480px; }
+  .featured-card-inner   { min-height: 480px; }
+  .featured-card-body    { padding: 3rem 2.5rem; }
+  .featured-card-title   { font-size: clamp(1.5rem, 2vw, 2rem); }
+  .featured-card-excerpt { font-size: 0.92rem; -webkit-line-clamp: 5; }
+
+  /* Rel-cards: richer thumbnails */
+  .rel-card-thumb  { height: 155px; }
+  .rel-card-title  { font-size: 1rem; }
+
+  /* Section headings */
+  .section-title { font-size: 1.75rem; }
+  .section-sub   { font-size: 0.875rem; }
+
+  /* Section vertical rhythm */
+  .featured-section { padding-top: 3.5rem; }
+  .latest-section   { padding-top: 4.5rem; }
+  .covers-section   { margin-top: 5rem; padding: 5rem 0; }
+  .leagues-section  { padding-top: 4.5rem; }
+  .tools-section    { padding: 4.5rem 0 6rem; }
+
+  /* Tool cards: bigger icons, more padding */
+  .tool-card       { padding: 1.75rem 2rem; }
+  .tool-icon-wrap  { width: 56px; height: 56px; font-size: 1.4rem; }
+  .tool-card-body h3 { font-size: 1.1rem; }
+
+  /* League cards: slightly larger logos */
+  .league-card-logo { width: 44px; height: 44px; }
+
+  /* Cover items: larger icons on desktop */
+  .cover-icon-wrap { width: 60px; height: 60px; font-size: 1.4rem; }
+  .cover-item h3   { font-size: 1.05rem; }
+
+  /* News cards: taller images at desktop */
+  .news-card-img,
+  .news-card-img-placeholder { height: 200px; }
+
+  /* Home news widget thumbnails: proportionally taller */
+  .home-news-grid .news-card-img,
+  .home-news-grid .news-card-img-placeholder { height: 175px; }
+}
+
+/* ── 1280px+: Full-width enhancement ────────────────────────────────────── */
+@media (min-width: 1280px) {
+  /* Featured: editorial scale */
+  #featuredArticle     { min-height: 520px; }
+  .featured-card-inner { min-height: 520px; }
+
+  /* Leagues: all 6 in a single row — horizontal league selector bar */
+  .leagues-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.75rem;
+  }
+
+  /* Cards become vertical (logo stacked above name) */
+  .league-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 1.1rem 1rem 1.1rem 1.5rem;
+  }
+
+  .league-card-info { gap: 0.2rem; }
+}
+
+/* ── 1440px+: Wider container, proportionally larger cards ─────────────── */
+@media (min-width: 1440px) {
+  :root { --container-max: 1360px; }
+
+  #featuredArticle     { min-height: 540px; }
+  .featured-card-inner { min-height: 540px; }
+  .featured-card-body  { padding: 3.5rem 3rem; }
+
+  .rel-card-thumb  { height: 165px; }
+  .league-card-logo { width: 48px; height: 48px; }
+}
+
+/* ── 1600px+: Ultra-wide — expand further, increase type scale ─────────── */
+@media (min-width: 1600px) {
+  :root { --container-max: 1480px; }
+
+  .hero--compact         { padding: 5rem 0 5.5rem; }
+  .hero-editorial-title  { font-size: 3.25rem; }
+
+  #featuredArticle       { min-height: 580px; }
+  .featured-card-inner   { min-height: 580px; }
+  .featured-card-title   { font-size: 2.1rem; }
+  .featured-card-body    { padding: 4rem 3rem; }
+
+  .section-title { font-size: 2rem; }
+  .rel-card-thumb { height: 175px; }
+}
+
+/* ── 1920px+: Maximum scale for 4K / large monitors ────────────────────── */
+@media (min-width: 1920px) {
+  :root { --container-max: 1680px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 5 — MOBILE BOTTOM NAVIGATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#bottom-nav { display: none; }
+
+@media (max-width: 768px) {
+  #bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 8999;
+    background: rgba(7, 20, 40, 0.97);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--glass-border);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 10px 4px;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    min-height: 56px;
+    transition: color var(--transition-fast);
+    position: relative;
+  }
+  .bottom-nav-item:hover { color: var(--text); }
+  .bottom-nav-item.active { color: var(--accent); }
+  .bottom-nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    width: 60%;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 0 0 2px 2px;
+  }
+  .bottom-nav-icon { font-size: 1.15rem; line-height: 1; }
+  .bottom-nav-item.bottom-nav-wc { color: var(--accent); }
+  body { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+  .theme-toggle { bottom: calc(56px + 1rem + env(safe-area-inset-bottom, 0px)); }
+}
+
+.site-header.menu-open ~ #bottom-nav { display: none !important; }
+
+[data-theme="light"] #bottom-nav {
+  background: rgba(255, 255, 255, 0.97);
+  border-top-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .bottom-nav-item { color: #64748B; }
+[data-theme="light"] .bottom-nav-item.active { color: #0EA5E9; }
+[data-theme="light"] .bottom-nav-item.active::before { background: #0EA5E9; }
+[data-theme="light"] .bottom-nav-item.bottom-nav-wc { color: #0EA5E9; }
+[data-theme="light"] .bottom-nav-item:hover { color: #0F172A; }

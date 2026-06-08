@@ -7,6 +7,7 @@ Allow: /
 Allow: /assets/
 Disallow: /p/
 Disallow: /foot-holics-bot/
+Disallow: /data/
 
 # Google bot specific rules
 User-agent: Googlebot

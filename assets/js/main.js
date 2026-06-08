@@ -49,7 +49,10 @@
     mobOverlay.classList.remove('is-open');
     mobCtaBar.classList.remove('is-open');
     siteHeader && siteHeader.classList.remove('menu-open');
-    if (mobileMenuBtn) mobileMenuBtn.innerHTML = '☰';
+    if (mobileMenuBtn) {
+      mobileMenuBtn.innerHTML = '☰';
+      mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    }
     document.body.style.overflow = '';
   }
 
@@ -63,6 +66,7 @@
         mobCtaBar.classList.add('is-open');
         siteHeader && siteHeader.classList.add('menu-open');
         mobileMenuBtn.innerHTML = '✕';
+        mobileMenuBtn.setAttribute('aria-expanded', 'true');
         document.body.style.overflow = 'hidden';
       }
     });
@@ -967,5 +971,49 @@
     document.getElementById('cookieAccept').addEventListener('click', () => dismiss('accepted'));
     document.getElementById('cookieDecline').addEventListener('click', () => dismiss('declined'));
   })();
+
+  // ── Mobile Bottom Navigation ──────────────────────────────────────────────
+  (function () {
+    var p = window.location.pathname;
+    var inArticles = /\/articles\//.test(p);
+    var base = inArticles ? '../' : '';
+
+    function isActive(key) {
+      if (key === 'home')      return p === '/' || (p.indexOf('index.html') !== -1 && !inArticles);
+      if (key === 'articles')  return inArticles;
+      if (key === 'wc')        return p.indexOf('world-cup-2026') !== -1;
+      if (key === 'fixtures')  return p.indexOf('fixtures') !== -1;
+      if (key === 'standings') return p.indexOf('standings') !== -1;
+      return false;
+    }
+
+    var items = [
+      { href: base + 'index.html',          icon: 'fa-house',         label: 'Home',      key: 'home'      },
+      { href: base + 'articles/index.html', icon: 'fa-newspaper',     label: 'Articles',  key: 'articles'  },
+      { href: base + 'world-cup-2026.html', icon: 'fa-trophy',        label: 'World Cup', key: 'wc', wc: true },
+      { href: base + 'fixtures.html',       icon: 'fa-calendar-days', label: 'Fixtures',  key: 'fixtures'  },
+      { href: base + 'standings.html',      icon: 'fa-table-list',    label: 'Standings', key: 'standings' },
+    ];
+
+    var nav = document.createElement('nav');
+    nav.id = 'bottom-nav';
+    nav.setAttribute('aria-label', 'Site navigation');
+
+    items.forEach(function (item) {
+      var active = isActive(item.key);
+      var a = document.createElement('a');
+      a.href = item.href;
+      a.className = 'bottom-nav-item'
+        + (item.wc ? ' bottom-nav-wc' : '')
+        + (active    ? ' active'        : '');
+      if (active) a.setAttribute('aria-current', 'page');
+      a.innerHTML =
+        '<i class="fa-solid ' + item.icon + ' bottom-nav-icon" aria-hidden="true"></i>' +
+        '<span>' + item.label + '</span>';
+      nav.appendChild(a);
+    });
+
+    document.body.appendChild(nav);
+  }());
 
 })();
