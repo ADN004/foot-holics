@@ -1473,8 +1473,8 @@
             </p>
 
             <div class="wc-hero-ctas">
-                <a href="#groups" class="btn btn-primary">View All Groups</a>
-                <a href="#matches" class="btn btn-secondary">Key Fixtures</a>
+                <a href="#" class="btn btn-primary" onclick="event.preventDefault();switchTab('groups')">View All Groups</a>
+                <a href="#" class="btn btn-secondary" onclick="event.preventDefault();switchTab('fixtures')">Key Fixtures</a>
             </div>
         </div>
     </section>
@@ -2598,7 +2598,7 @@
     var curBktRound = 'R32';
     var activeStage = 'ALL', activeGroup = '', teamSearch = '', teamContinent = 'ALL', fixSearch = '';
 
-    function switchTab(tab) {
+    function switchTab(tab, scroll) {
       document.querySelectorAll('.wc-panel').forEach(function(p){ p.classList.remove('active'); });
       document.querySelectorAll('.wc-tab-btn').forEach(function(b){ b.classList.remove('active'); });
       document.getElementById('tab-' + tab).classList.add('active');
@@ -2608,6 +2608,10 @@
       if (tab === 'groups'   && !rendered.groups)   { rendered.groups   = true; renderGroups(); }
       if (tab === 'bracket'  && !rendered.bracket)  { rendered.bracket  = true; renderBracket(); }
       if (tab === 'teams'    && !rendered.teams)    { rendered.teams    = true; renderTeams(); }
+      if (scroll !== false) {
+        var nav = document.querySelector('.wc-tabs-nav-wrap');
+        if (nav) nav.scrollIntoView({behavior:'smooth', block:'start'});
+      }
     }
 
     // ═══════════════════════════════════════
