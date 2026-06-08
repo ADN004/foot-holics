@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Cache-Control', 'no-store, no-cache');
 
         if (isM3U8(ct, targetUrl)) {
             // HLS manifest: rewrite all relative URIs → absolute CDN URIs

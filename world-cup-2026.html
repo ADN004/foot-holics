@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'dark');</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="index, follow">
+    <meta name="description" content="Your complete guide to FIFA World Cup 2026. All 12 groups, 48 teams, 104 matches across USA, Canada and Mexico — June 11 to July 19, 2026.">
+    <meta name="keywords" content="FIFA World Cup 2026, World Cup 2026 groups, World Cup 2026 fixtures, World Cup 2026 teams, World Cup schedule IST, football 2026">
+
+    <link rel="canonical" href="https://footholics.in/world-cup-2026.html">
+
+    <meta property="og:title" content="FIFA World Cup 2026 — Groups, Fixtures & Teams | Foot Holics">
+    <meta property="og:description" content="Complete guide to FIFA World Cup 2026. 48 teams, 12 groups, 104 matches across USA, Canada & Mexico. All kick-off times in IST.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://footholics.in/assets/img/og-image.jpg">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="FIFA World Cup 2026 Guide | Foot Holics">
+    <meta name="twitter:description" content="48 teams. 104 matches. 3 countries. Your complete World Cup 2026 guide.">
+
+    <title>FIFA World Cup 2026 — Complete Guide | Foot Holics</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
+    <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8308140971175602" crossorigin="anonymous"></script>
+
+    <style>
+        /* ── World Cup 2026 Page Styles ── */
+
+        /* Hero */
+        .wc-hero {
+            position: relative;
+            padding: 80px 0 64px;
+            overflow: hidden;
+            text-align: center;
+            background:
+                radial-gradient(ellipse at 50% -10%, rgba(212, 175, 55, 0.22) 0%, transparent 60%),
+                radial-gradient(ellipse at 90% 70%, rgba(125, 227, 227, 0.09) 0%, transparent 50%),
+                radial-gradient(ellipse at 10% 80%, rgba(212, 175, 55, 0.06) 0%, transparent 40%),
+                var(--bg);
+        }
+
+        .wc-hero::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='40' cy='40' r='1.5' fill='%23D4AF37' fill-opacity='0.06'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+
+        .wc-hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(212, 175, 55, 0.12);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            border-radius: 40px;
+            padding: 7px 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 28px;
+        }
+
+        .wc-hero-title {
+            font-family: var(--font-heading);
+            font-size: clamp(2.4rem, 6vw, 4.5rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #F5C518 0%, #D4AF37 45%, #7DE3E3 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            line-height: 1.1;
+        }
+
+        .wc-hero-sub {
+            font-size: clamp(0.95rem, 2vw, 1.15rem);
+            color: var(--muted);
+            margin-bottom: 52px;
+            font-weight: 500;
+        }
+
+        .wc-hero-sub span { color: var(--accent-2); }
+
+        /* Countdown */
+        .wc-live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 55, 55, 0.14);
+            border: 1px solid rgba(255, 55, 55, 0.4);
+            color: #ff6b6b;
+            border-radius: 24px;
+            padding: 7px 16px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 20px;
+        }
+
+        .wc-live-dot {
+            width: 8px;
+            height: 8px;
+            background: #ff4444;
+            border-radius: 50%;
+            animation: wc-pulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes wc-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.7); }
+        }
+
+        .wc-countdown-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .wc-cd-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.28);
+            border-radius: 18px;
+            padding: 20px 28px;
+            min-width: 92px;
+            text-align: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .wc-cd-num {
+            display: block;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: var(--font-heading);
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .wc-cd-lbl {
+            display: block;
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            margin-top: 7px;
+        }
+
+        .wc-cd-sep {
+            font-size: 2.2rem;
+            color: var(--accent);
+            font-weight: 700;
+            margin-top: -12px;
+            opacity: 0.45;
+        }
+
+        .wc-cd-caption {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-bottom: 36px;
+        }
+
+        .wc-cd-caption strong { color: var(--text); }
+
+        .wc-hero-ctas {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Stats bar */
+        .wc-stats-bar {
+            background: var(--panel);
+            border-top: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0;
+        }
+
+        .wc-stats-strip {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        .wc-stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 36px;
+            border-right: 1px solid var(--glass-border);
+        }
+
+        .wc-stat-item:last-child { border-right: none; }
+
+        .wc-stat-num {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: var(--font-heading);
+            line-height: 1;
+        }
+
+        .wc-stat-lbl {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-top: 5px;
+        }
+
+        /* Section wrapper */
+        .wc-section {
+            padding: 72px 0;
+        }
+
+        .wc-section--dark {
+            background: rgba(12, 32, 55, 0.5);
+        }
+
+        .wc-section-hdr {
+            text-align: center;
+            margin-bottom: 52px;
+        }
+
+        .wc-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.22);
+            color: var(--accent);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .wc-section-hdr h2 { margin-bottom: 10px; }
+
+        .wc-section-hdr p {
+            color: var(--muted);
+            max-width: 580px;
+            margin: 0 auto;
+            font-size: 0.95rem;
+        }
+
+        /* Groups grid */
+        .wc-groups-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .wc-group-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .wc-group-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+            border-color: rgba(212, 175, 55, 0.25);
+        }
+
+        .wc-group-hdr {
+            background: linear-gradient(100deg, rgba(212, 175, 55, 0.14) 0%, rgba(15, 42, 68, 0.9) 100%);
+            padding: 11px 16px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .wc-team-row {
+            display: flex;
+            align-items: center;
+            padding: 9px 16px;
+            gap: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            transition: background 0.15s ease;
+        }
+
+        .wc-team-row:first-of-type { border-top: none; }
+
+        .wc-team-row:hover { background: rgba(255, 255, 255, 0.04); }
+
+        .wc-flag {
+            font-size: 1.3rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .wc-tname {
+            flex: 1;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wc-rank {
+            font-size: 0.64rem;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        /* Fixtures grid */
+        .wc-fixtures-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .wc-match-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 22px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .wc-match-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        .wc-match-card.card-must::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #ff4d6d, #ff8fa3);
+        }
+
+        .wc-match-card.card-must { border-color: rgba(255, 77, 109, 0.25); }
+
+        .wc-match-card.card-opening::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-2), #a8f0f0);
+        }
+
+        .wc-match-card.card-opening { border-color: rgba(125, 227, 227, 0.3); }
+
+        .wc-match-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 18px;
+        }
+
+        .badge-must { background: rgba(255,77,109,0.13); color: #ff4d6d; border: 1px solid rgba(255,77,109,0.28); }
+        .badge-opening { background: rgba(125,227,227,0.11); color: var(--accent-2); border: 1px solid rgba(125,227,227,0.28); }
+        .badge-high { background: rgba(212,175,55,0.11); color: var(--accent); border: 1px solid rgba(212,175,55,0.24); }
+
+        .wc-match-teams {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .wc-match-team {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 7px;
+            text-align: center;
+        }
+
+        .wc-match-flag { font-size: 2.4rem; line-height: 1; }
+
+        .wc-match-tname {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .wc-match-vs {
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--muted);
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 5px 9px;
+            flex-shrink: 0;
+        }
+
+        .wc-match-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 0.73rem;
+            color: var(--muted);
+            border-top: 1px solid var(--glass-border);
+            padding-top: 16px;
+        }
+
+        .wc-match-info strong { color: var(--text); }
+
+        /* Favorites grid */
+        .wc-favs-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .wc-fav-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 28px 18px;
+            text-align: center;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .wc-fav-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(212, 175, 55, 0.32);
+        }
+
+        .wc-fav-flag {
+            font-size: 3.2rem;
+            line-height: 1;
+            margin-bottom: 14px;
+            display: block;
+        }
+
+        .wc-fav-name {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .wc-fav-grp {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--accent);
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 10px;
+            padding: 2px 9px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .wc-fav-rank {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .wc-fav-result {
+            font-size: 0.75rem;
+            color: var(--accent-2);
+            font-weight: 600;
+        }
+
+        /* Format cards */
+        .wc-format-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .wc-format-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 28px 22px;
+            text-align: center;
+        }
+
+        .wc-format-icon {
+            font-size: 2.2rem;
+            margin-bottom: 14px;
+            display: block;
+        }
+
+        .wc-format-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .wc-format-desc {
+            font-size: 0.78rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1100px) {
+            .wc-groups-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 900px) {
+            .wc-fixtures-grid { grid-template-columns: repeat(2, 1fr); }
+            .wc-favs-grid { grid-template-columns: repeat(3, 1fr); }
+            .wc-stat-item { padding: 18px 22px; }
+        }
+
+        @media (max-width: 768px) {
+            .wc-groups-grid { grid-template-columns: repeat(2, 1fr); }
+            .wc-hero { padding: 52px 0 48px; }
+            .wc-cd-box { padding: 16px 18px; min-width: 72px; }
+            .wc-cd-num { font-size: 2.2rem; }
+        }
+
+        @media (max-width: 600px) {
+            .wc-fixtures-grid { grid-template-columns: 1fr; }
+            .wc-favs-grid { grid-template-columns: repeat(2, 1fr); }
+            .wc-format-grid { grid-template-columns: 1fr; }
+            .wc-hero-ctas { flex-direction: column; align-items: center; }
+            .wc-stats-strip { flex-wrap: wrap; }
+            .wc-stat-item {
+                width: 50%;
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+            }
+            .wc-stat-item:nth-child(odd) { border-right: 1px solid var(--glass-border); }
+            .wc-stat-item:last-child,
+            .wc-stat-item:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+        }
+
+        @media (max-width: 480px) {
+            .wc-groups-grid { grid-template-columns: 1fr; }
+            .wc-favs-grid { grid-template-columns: 1fr; }
+            .wc-cd-box { padding: 12px 14px; min-width: 60px; }
+            .wc-cd-num { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ═══════════════════════════════════════════════════════
+         HEADER
+    ══════════════════════════════════════════════════════════ -->
+    <header class="site-header">
+        <div class="container">
+            <div class="header-inner">
+                <a href="index.html" class="logo">
+                    <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="logo-icon">
+                    <span>Foot Holics</span>
+                </a>
+
+                <nav class="primary-nav" id="primaryNav">
+                    <a href="index.html">Home</a>
+                    <a href="news.html">News</a>
+                    <a href="articles/index.html">Articles</a>
+                    <a href="standings.html">Standings</a>
+                    <a href="fixtures.html">Fixtures</a>
+                    <a href="world-cup-2026.html" class="active">World Cup</a>
+                    <a href="about.html">About</a>
+                    <a href="contact.html">Contact</a>
+                </nav>
+
+                <div class="cta-group" id="ctaGroup">
+                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+                        <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        WhatsApp
+                    </a>
+                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                        <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                        Telegram
+                    </a>
+                </div>
+
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════
+         HERO
+    ══════════════════════════════════════════════════════════ -->
+    <section class="wc-hero">
+        <div class="container">
+            <div class="wc-hero-eyebrow">⚽ FIFA World Cup 2026</div>
+            <h1 class="wc-hero-title">The World's Greatest<br>Tournament</h1>
+            <p class="wc-hero-sub">
+                <span>USA &nbsp;·&nbsp; Canada &nbsp;·&nbsp; Mexico</span>
+                &nbsp;&nbsp;|&nbsp;&nbsp; June 11 – July 19, 2026
+            </p>
+
+            <div id="wcLiveBadge" style="display:none; margin-bottom:20px;">
+                <div class="wc-live-badge">
+                    <span class="wc-live-dot"></span>
+                    Tournament is Live
+                </div>
+            </div>
+
+            <div class="wc-countdown-wrap" id="wcCountdownWrap">
+                <div class="wc-cd-box">
+                    <span class="wc-cd-num" id="cdDays">00</span>
+                    <span class="wc-cd-lbl">Days</span>
+                </div>
+                <div class="wc-cd-sep">:</div>
+                <div class="wc-cd-box">
+                    <span class="wc-cd-num" id="cdHours">00</span>
+                    <span class="wc-cd-lbl">Hours</span>
+                </div>
+                <div class="wc-cd-sep">:</div>
+                <div class="wc-cd-box">
+                    <span class="wc-cd-num" id="cdMins">00</span>
+                    <span class="wc-cd-lbl">Min</span>
+                </div>
+                <div class="wc-cd-sep">:</div>
+                <div class="wc-cd-box">
+                    <span class="wc-cd-num" id="cdSecs">00</span>
+                    <span class="wc-cd-lbl">Sec</span>
+                </div>
+            </div>
+            <p class="wc-cd-caption" id="cdCaption">
+                <strong>Until Opening Match:</strong> Mexico vs South Africa &nbsp;·&nbsp; Estadio Azteca
+            </p>
+
+            <div class="wc-hero-ctas">
+                <a href="#groups" class="btn btn-primary">View All Groups</a>
+                <a href="#matches" class="btn btn-secondary">Key Fixtures</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         STATS BAR
+    ══════════════════════════════════════════════════════════ -->
+    <div class="wc-stats-bar">
+        <div class="container">
+            <div class="wc-stats-strip">
+                <div class="wc-stat-item">
+                    <span class="wc-stat-num">48</span>
+                    <span class="wc-stat-lbl">Teams</span>
+                </div>
+                <div class="wc-stat-item">
+                    <span class="wc-stat-num">104</span>
+                    <span class="wc-stat-lbl">Matches</span>
+                </div>
+                <div class="wc-stat-item">
+                    <span class="wc-stat-num">3</span>
+                    <span class="wc-stat-lbl">Host Countries</span>
+                </div>
+                <div class="wc-stat-item">
+                    <span class="wc-stat-num">16</span>
+                    <span class="wc-stat-lbl">Stadiums</span>
+                </div>
+                <div class="wc-stat-item">
+                    <span class="wc-stat-num">39</span>
+                    <span class="wc-stat-lbl">Days</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main>
+
+        <!-- ═══════════════════════════════════════════════════════
+             GROUPS
+        ══════════════════════════════════════════════════════════ -->
+        <section id="groups" class="wc-section">
+            <div class="container">
+                <div class="wc-section-hdr">
+                    <div class="wc-eyebrow">Group Stage · June 11 – July 3</div>
+                    <h2>All 12 Groups</h2>
+                    <p>Top 2 from each group plus 8 best third-placed teams advance to the Round of 32</p>
+                </div>
+
+                <div class="wc-groups-grid">
+
+                    <!-- Group A -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group A</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇲🇽</span>
+                            <span class="wc-tname">Mexico</span>
+                            <span class="wc-rank">#15</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇰🇷</span>
+                            <span class="wc-tname">South Korea</span>
+                            <span class="wc-rank">#17</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇨🇿</span>
+                            <span class="wc-tname">Czechia</span>
+                            <span class="wc-rank">#32</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇿🇦</span>
+                            <span class="wc-tname">South Africa</span>
+                            <span class="wc-rank">#40</span>
+                        </div>
+                    </div>
+
+                    <!-- Group B -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group B</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇨🇭</span>
+                            <span class="wc-tname">Switzerland</span>
+                            <span class="wc-rank">#18</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇨🇦</span>
+                            <span class="wc-tname">Canada</span>
+                            <span class="wc-rank">#30</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇶🇦</span>
+                            <span class="wc-tname">Qatar</span>
+                            <span class="wc-rank">#31</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇧🇦</span>
+                            <span class="wc-tname">Bosnia &amp; Herz.</span>
+                            <span class="wc-rank">#36</span>
+                        </div>
+                    </div>
+
+                    <!-- Group C -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group C</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇧🇷</span>
+                            <span class="wc-tname">Brazil</span>
+                            <span class="wc-rank">#5</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇲🇦</span>
+                            <span class="wc-tname">Morocco</span>
+                            <span class="wc-rank">#12</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
+                            <span class="wc-tname">Scotland</span>
+                            <span class="wc-rank">#29</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇭🇹</span>
+                            <span class="wc-tname">Haiti</span>
+                            <span class="wc-rank">#46</span>
+                        </div>
+                    </div>
+
+                    <!-- Group D -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group D</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇺🇸</span>
+                            <span class="wc-tname">United States</span>
+                            <span class="wc-rank">#11</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇹🇷</span>
+                            <span class="wc-tname">Türkiye</span>
+                            <span class="wc-rank">#24</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇦🇺</span>
+                            <span class="wc-tname">Australia</span>
+                            <span class="wc-rank">#27</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇵🇾</span>
+                            <span class="wc-tname">Paraguay</span>
+                            <span class="wc-rank">#39</span>
+                        </div>
+                    </div>
+
+                    <!-- Group E -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group E</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇩🇪</span>
+                            <span class="wc-tname">Germany</span>
+                            <span class="wc-rank">#9</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇪🇨</span>
+                            <span class="wc-tname">Ecuador</span>
+                            <span class="wc-rank">#19</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇨🇮</span>
+                            <span class="wc-tname">Ivory Coast</span>
+                            <span class="wc-rank">#26</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇨🇼</span>
+                            <span class="wc-tname">Curaçao</span>
+                            <span class="wc-rank">#48</span>
+                        </div>
+                    </div>
+
+                    <!-- Group F -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group F</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇳🇱</span>
+                            <span class="wc-tname">Netherlands</span>
+                            <span class="wc-rank">#7</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇯🇵</span>
+                            <span class="wc-tname">Japan</span>
+                            <span class="wc-rank">#16</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇸🇪</span>
+                            <span class="wc-tname">Sweden</span>
+                            <span class="wc-rank">#25</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇹🇳</span>
+                            <span class="wc-tname">Tunisia</span>
+                            <span class="wc-rank">#34</span>
+                        </div>
+                    </div>
+
+                    <!-- Group G -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group G</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇧🇪</span>
+                            <span class="wc-tname">Belgium</span>
+                            <span class="wc-rank">#8</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇮🇷</span>
+                            <span class="wc-tname">Iran</span>
+                            <span class="wc-rank">#28</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇪🇬</span>
+                            <span class="wc-tname">Egypt</span>
+                            <span class="wc-rank">#33</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇳🇿</span>
+                            <span class="wc-tname">New Zealand</span>
+                            <span class="wc-rank">#35</span>
+                        </div>
+                    </div>
+
+                    <!-- Group H -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group H</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇪🇸</span>
+                            <span class="wc-tname">Spain</span>
+                            <span class="wc-rank">#3</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇺🇾</span>
+                            <span class="wc-tname">Uruguay</span>
+                            <span class="wc-rank">#13</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇸🇦</span>
+                            <span class="wc-tname">Saudi Arabia</span>
+                            <span class="wc-rank">#38</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇨🇻</span>
+                            <span class="wc-tname">Cape Verde</span>
+                            <span class="wc-rank">#45</span>
+                        </div>
+                    </div>
+
+                    <!-- Group I -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group I</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇫🇷</span>
+                            <span class="wc-tname">France</span>
+                            <span class="wc-rank">#2</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇸🇳</span>
+                            <span class="wc-tname">Senegal</span>
+                            <span class="wc-rank">#20</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇳🇴</span>
+                            <span class="wc-tname">Norway</span>
+                            <span class="wc-rank">#21</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇮🇶</span>
+                            <span class="wc-tname">Iraq</span>
+                            <span class="wc-rank">#47</span>
+                        </div>
+                    </div>
+
+                    <!-- Group J -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group J</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇦🇷</span>
+                            <span class="wc-tname">Argentina</span>
+                            <span class="wc-rank">#1</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇩🇿</span>
+                            <span class="wc-tname">Algeria</span>
+                            <span class="wc-rank">#22</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇦🇹</span>
+                            <span class="wc-tname">Austria</span>
+                            <span class="wc-rank">#23</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇯🇴</span>
+                            <span class="wc-tname">Jordan</span>
+                            <span class="wc-rank">#43</span>
+                        </div>
+                    </div>
+
+                    <!-- Group K -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group K</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇵🇹</span>
+                            <span class="wc-tname">Portugal</span>
+                            <span class="wc-rank">#6</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇨🇴</span>
+                            <span class="wc-tname">Colombia</span>
+                            <span class="wc-rank">#14</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇨🇩</span>
+                            <span class="wc-tname">DR Congo</span>
+                            <span class="wc-rank">#41</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇺🇿</span>
+                            <span class="wc-tname">Uzbekistan</span>
+                            <span class="wc-rank">#42</span>
+                        </div>
+                    </div>
+
+                    <!-- Group L -->
+                    <div class="wc-group-card">
+                        <div class="wc-group-hdr">Group L</div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+                            <span class="wc-tname">England</span>
+                            <span class="wc-rank">#4</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇭🇷</span>
+                            <span class="wc-tname">Croatia</span>
+                            <span class="wc-rank">#10</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇬🇭</span>
+                            <span class="wc-tname">Ghana</span>
+                            <span class="wc-rank">#58</span>
+                        </div>
+                        <div class="wc-team-row">
+                            <span class="wc-flag">🇵🇦</span>
+                            <span class="wc-tname">Panama</span>
+                            <span class="wc-rank">#66</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════
+             MUST-WATCH FIXTURES
+        ══════════════════════════════════════════════════════════ -->
+        <section id="matches" class="wc-section wc-section--dark">
+            <div class="container">
+                <div class="wc-section-hdr">
+                    <div class="wc-eyebrow">Opening Week · All times in IST</div>
+                    <h2>Must-Watch Fixtures</h2>
+                    <p>The biggest clashes from the first week of the FIFA World Cup 2026</p>
+                </div>
+
+                <div class="wc-fixtures-grid">
+
+                    <!-- Opening match -->
+                    <div class="wc-match-card card-opening">
+                        <div class="wc-match-badge badge-opening">🌟 Opening Match</div>
+                        <div class="wc-match-teams">
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇲🇽</span>
+                                <span class="wc-match-tname">Mexico</span>
+                            </div>
+                            <div class="wc-match-vs">VS</div>
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇿🇦</span>
+                                <span class="wc-match-tname">South Africa</span>
+                            </div>
+                        </div>
+                        <div class="wc-match-info">
+                            <span>📅 <strong>June 12, 2026 &nbsp;·&nbsp; 00:30 IST</strong></span>
+                            <span>🏟️ Estadio Azteca &nbsp;·&nbsp; Mexico City</span>
+                            <span>Group A</span>
+                        </div>
+                    </div>
+
+                    <!-- Brazil vs Morocco -->
+                    <div class="wc-match-card card-must">
+                        <div class="wc-match-badge badge-must">⭐ Must Watch</div>
+                        <div class="wc-match-teams">
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇧🇷</span>
+                                <span class="wc-match-tname">Brazil</span>
+                            </div>
+                            <div class="wc-match-vs">VS</div>
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇲🇦</span>
+                                <span class="wc-match-tname">Morocco</span>
+                            </div>
+                        </div>
+                        <div class="wc-match-info">
+                            <span>📅 <strong>June 14, 2026 &nbsp;·&nbsp; 03:30 IST</strong></span>
+                            <span>🏟️ MetLife Stadium &nbsp;·&nbsp; New Jersey</span>
+                            <span>Group C &nbsp;·&nbsp; #5 vs #12</span>
+                        </div>
+                    </div>
+
+                    <!-- France vs Senegal -->
+                    <div class="wc-match-card card-must">
+                        <div class="wc-match-badge badge-must">⭐ Must Watch</div>
+                        <div class="wc-match-teams">
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇫🇷</span>
+                                <span class="wc-match-tname">France</span>
+                            </div>
+                            <div class="wc-match-vs">VS</div>
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇸🇳</span>
+                                <span class="wc-match-tname">Senegal</span>
+                            </div>
+                        </div>
+                        <div class="wc-match-info">
+                            <span>📅 <strong>June 17, 2026 &nbsp;·&nbsp; 00:30 IST</strong></span>
+                            <span>🏟️ MetLife Stadium &nbsp;·&nbsp; New Jersey</span>
+                            <span>Group I &nbsp;·&nbsp; #2 vs #20</span>
+                        </div>
+                    </div>
+
+                    <!-- Argentina vs Algeria -->
+                    <div class="wc-match-card card-must">
+                        <div class="wc-match-badge badge-must">⭐ Must Watch</div>
+                        <div class="wc-match-teams">
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇦🇷</span>
+                                <span class="wc-match-tname">Argentina</span>
+                            </div>
+                            <div class="wc-match-vs">VS</div>
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇩🇿</span>
+                                <span class="wc-match-tname">Algeria</span>
+                            </div>
+                        </div>
+                        <div class="wc-match-info">
+                            <span>📅 <strong>June 17, 2026 &nbsp;·&nbsp; 06:30 IST</strong></span>
+                            <span>🏟️ Arrowhead Stadium &nbsp;·&nbsp; Kansas City</span>
+                            <span>Group J &nbsp;·&nbsp; #1 vs #22</span>
+                        </div>
+                    </div>
+
+                    <!-- England vs Croatia -->
+                    <div class="wc-match-card card-must">
+                        <div class="wc-match-badge badge-must">⭐ Must Watch</div>
+                        <div class="wc-match-teams">
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+                                <span class="wc-match-tname">England</span>
+                            </div>
+                            <div class="wc-match-vs">VS</div>
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇭🇷</span>
+                                <span class="wc-match-tname">Croatia</span>
+                            </div>
+                        </div>
+                        <div class="wc-match-info">
+                            <span>📅 <strong>June 18, 2026 &nbsp;·&nbsp; 01:30 IST</strong></span>
+                            <span>🏟️ AT&amp;T Stadium &nbsp;·&nbsp; Arlington, TX</span>
+                            <span>Group L &nbsp;·&nbsp; #4 vs #10</span>
+                        </div>
+                    </div>
+
+                    <!-- Germany vs Ivory Coast -->
+                    <div class="wc-match-card">
+                        <div class="wc-match-badge badge-high">🔥 High Stakes</div>
+                        <div class="wc-match-teams">
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇩🇪</span>
+                                <span class="wc-match-tname">Germany</span>
+                            </div>
+                            <div class="wc-match-vs">VS</div>
+                            <div class="wc-match-team">
+                                <span class="wc-match-flag">🇨🇮</span>
+                                <span class="wc-match-tname">Ivory Coast</span>
+                            </div>
+                        </div>
+                        <div class="wc-match-info">
+                            <span>📅 <strong>June 21, 2026 &nbsp;·&nbsp; 01:30 IST</strong></span>
+                            <span>🏟️ BMO Field &nbsp;·&nbsp; Toronto</span>
+                            <span>Group E &nbsp;·&nbsp; #9 vs #26</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════
+             TEAMS TO WATCH
+        ══════════════════════════════════════════════════════════ -->
+        <section class="wc-section">
+            <div class="container">
+                <div class="wc-section-hdr">
+                    <div class="wc-eyebrow">2026 World Cup</div>
+                    <h2>Teams to Watch</h2>
+                    <p>Favorites, contenders and dark horses set to light up the 2026 World Cup</p>
+                </div>
+
+                <div class="wc-favs-grid">
+
+                    <div class="wc-fav-card">
+                        <span class="wc-fav-flag">🇦🇷</span>
+                        <h3 class="wc-fav-name">Argentina</h3>
+                        <span class="wc-fav-grp">Group J</span>
+                        <div class="wc-fav-rank">FIFA #1 &nbsp;·&nbsp; Coach: Scaloni</div>
+                        <div class="wc-fav-result">🏆 Title Defenders — Won 2022</div>
+                    </div>
+
+                    <div class="wc-fav-card">
+                        <span class="wc-fav-flag">🇫🇷</span>
+                        <h3 class="wc-fav-name">France</h3>
+                        <span class="wc-fav-grp">Group I</span>
+                        <div class="wc-fav-rank">FIFA #2 &nbsp;·&nbsp; Coach: Deschamps</div>
+                        <div class="wc-fav-result">🏆 Winners 2018 — Star-Studded</div>
+                    </div>
+
+                    <div class="wc-fav-card">
+                        <span class="wc-fav-flag">🇧🇷</span>
+                        <h3 class="wc-fav-name">Brazil</h3>
+                        <span class="wc-fav-grp">Group C</span>
+                        <div class="wc-fav-rank">FIFA #5 &nbsp;·&nbsp; Coach: Ancelotti</div>
+                        <div class="wc-fav-result">🏆 5× World Champions</div>
+                    </div>
+
+                    <div class="wc-fav-card">
+                        <span class="wc-fav-flag">🇪🇸</span>
+                        <h3 class="wc-fav-name">Spain</h3>
+                        <span class="wc-fav-grp">Group H</span>
+                        <div class="wc-fav-rank">FIFA #3 &nbsp;·&nbsp; Coach: De la Fuente</div>
+                        <div class="wc-fav-result">🏆 Winners 2010 · Euro 2024 Champs</div>
+                    </div>
+
+                    <div class="wc-fav-card">
+                        <span class="wc-fav-flag">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+                        <h3 class="wc-fav-name">England</h3>
+                        <span class="wc-fav-grp">Group L</span>
+                        <div class="wc-fav-rank">FIFA #4 &nbsp;·&nbsp; Coach: Carsley</div>
+                        <div class="wc-fav-result">⚡ Strong Squad — Dark Horses</div>
+                    </div>
+
+                    <div class="wc-fav-card">
+                        <span class="wc-fav-flag">🇩🇪</span>
+                        <h3 class="wc-fav-name">Germany</h3>
+                        <span class="wc-fav-grp">Group E</span>
+                        <div class="wc-fav-rank">FIFA #9 &nbsp;·&nbsp; Coach: Nagelsmann</div>
+                        <div class="wc-fav-result">🏆 4× World Champions — Redemption</div>
+                    </div>
+
+                    <div class="wc-fav-card">
+                        <span class="wc-fav-flag">🇲🇦</span>
+                        <h3 class="wc-fav-name">Morocco</h3>
+                        <span class="wc-fav-grp">Group C</span>
+                        <div class="wc-fav-rank">FIFA #12 &nbsp;·&nbsp; Coach: Regragui</div>
+                        <div class="wc-fav-result">⚡ Dark Horse — 4th Place 2022</div>
+                    </div>
+
+                    <div class="wc-fav-card">
+                        <span class="wc-fav-flag">🇵🇹</span>
+                        <h3 class="wc-fav-name">Portugal</h3>
+                        <span class="wc-fav-grp">Group K</span>
+                        <div class="wc-fav-rank">FIFA #6 &nbsp;·&nbsp; Coach: Martínez</div>
+                        <div class="wc-fav-result">⚡ Ronaldo's Last Stand?</div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════
+             TOURNAMENT FORMAT
+        ══════════════════════════════════════════════════════════ -->
+        <section class="wc-section wc-section--dark">
+            <div class="container">
+                <div class="wc-section-hdr">
+                    <div class="wc-eyebrow">How It Works</div>
+                    <h2>Tournament Format</h2>
+                    <p>For the first time ever, 48 nations compete across three host countries in a historic expanded tournament</p>
+                </div>
+
+                <div class="wc-format-grid">
+                    <div class="wc-format-card">
+                        <span class="wc-format-icon">🏟️</span>
+                        <div class="wc-format-title">Group Stage</div>
+                        <div class="wc-format-desc">
+                            48 teams in 12 groups of 4. June 11 – July 3.<br><br>
+                            Top 2 from each group + 8 best third-placed teams = 32 teams advance.
+                        </div>
+                    </div>
+                    <div class="wc-format-card">
+                        <span class="wc-format-icon">⚔️</span>
+                        <div class="wc-format-title">Knockout Rounds</div>
+                        <div class="wc-format-desc">
+                            Round of 32 → Round of 16 → Quarterfinals → Semifinals. July 4 – 14.<br><br>
+                            Pure elimination — one loss ends the dream.
+                        </div>
+                    </div>
+                    <div class="wc-format-card">
+                        <span class="wc-format-icon">🏆</span>
+                        <div class="wc-format-title">The Final</div>
+                        <div class="wc-format-desc">
+                            July 19, 2026 &nbsp;·&nbsp; MetLife Stadium, New Jersey.<br><br>
+                            The biggest stage in football — watched by over 5 billion people worldwide.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ═══════════════════════════════════════════════════════
+         FOOTER
+    ══════════════════════════════════════════════════════════ -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About Foot Holics</h4>
+                    <p>Original football writing — match reports, league analysis and in-depth coverage from all the competitions you love.</p>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="articles/index.html">Articles</a></li>
+                        <li><a href="news.html">Football News</a></li>
+                        <li><a href="standings.html">Standings</a></li>
+                        <li><a href="fixtures.html">Fixtures</a></li>
+                        <li><a href="world-cup-2026.html">World Cup 2026</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms &amp; Conditions</a></li>
+                        <li><a href="dmca.html">DMCA / Copyright</a></li>
+                        <li><a href="disclaimer.html">Disclaimer</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Connect With Us</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-brands fa-whatsapp" style="margin-right:8px;"></i>WhatsApp Channel
+                        </a></li>
+                        <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-brands fa-telegram" style="margin-right:8px;"></i>Telegram
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2026 Foot Holics. All rights reserved.</p>
+                <p style="margin-top:0.5rem; font-size:0.78rem; color:var(--muted);">
+                    All trademarks belong to their respective owners. Foot Holics is an independent editorial site.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/main.js" defer></script>
+
+    <script>
+    (function () {
+        var FIRST_MATCH = new Date('2026-06-11T19:00:00Z').getTime();
+        var FINAL_DATE  = new Date('2026-07-19T20:00:00Z').getTime();
+
+        function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+
+        function tick() {
+            var now  = Date.now();
+            var diff, isLive = false;
+
+            if (now >= FINAL_DATE) {
+                document.getElementById('wcCountdownWrap').innerHTML =
+                    '<p style="color:var(--accent);font-size:1.4rem;font-weight:700;margin:0 0 16px;">🏆 World Cup 2026 Complete!</p>';
+                document.getElementById('cdCaption').style.display = 'none';
+                return;
+            }
+
+            if (now >= FIRST_MATCH) {
+                diff    = FINAL_DATE - now;
+                isLive  = true;
+                document.getElementById('wcLiveBadge').style.display = 'block';
+                document.getElementById('cdCaption').innerHTML =
+                    '<strong>Until the Final:</strong> MetLife Stadium &nbsp;·&nbsp; July 19, 2026';
+            } else {
+                diff = FIRST_MATCH - now;
+                document.getElementById('wcLiveBadge').style.display = 'none';
+            }
+
+            var days  = Math.floor(diff / 86400000);
+            var hours = Math.floor((diff % 86400000) / 3600000);
+            var mins  = Math.floor((diff % 3600000)  / 60000);
+            var secs  = Math.floor((diff % 60000)    / 1000);
+
+            document.getElementById('cdDays').textContent  = pad(days);
+            document.getElementById('cdHours').textContent = pad(hours);
+            document.getElementById('cdMins').textContent  = pad(mins);
+            document.getElementById('cdSecs').textContent  = pad(secs);
+        }
+
+        tick();
+        setInterval(tick, 1000);
+    })();
+    </script>
+
+</body>
+</html>

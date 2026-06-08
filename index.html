@@ -32,6 +32,144 @@
     <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8308140971175602"
      crossorigin="anonymous"></script>
+
+    <style>
+        /* ── World Cup nav link highlight ── */
+        .nav-wc-link {
+            color: var(--accent) !important;
+            font-weight: 600 !important;
+        }
+
+        /* ── World Cup promo banner ── */
+        .wc-banner {
+            background: linear-gradient(135deg,
+                rgba(212, 175, 55, 0.1) 0%,
+                rgba(15, 42, 68, 0.7) 50%,
+                rgba(125, 227, 227, 0.06) 100%);
+            border-top: 1px solid rgba(212, 175, 55, 0.25);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+            padding: 28px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wc-banner::before {
+            content: '🏆';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 8rem;
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        .wc-banner-inner {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            justify-content: space-between;
+        }
+
+        .wc-banner-left {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .wc-banner-badge {
+            display: inline-block;
+            background: rgba(212, 175, 55, 0.14);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            color: var(--accent);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .wc-banner-title {
+            font-family: var(--font-heading);
+            font-size: clamp(1.3rem, 3vw, 1.8rem);
+            color: var(--text);
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        .wc-banner-countdown {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .wc-bc-unit {
+            display: flex;
+            align-items: baseline;
+            gap: 3px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(212, 175, 55, 0.22);
+            border-radius: 10px;
+            padding: 6px 12px;
+        }
+
+        .wc-bc-num {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: var(--font-heading);
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .wc-bc-lbl {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-left: 4px;
+        }
+
+        .wc-bc-sep {
+            font-size: 1.4rem;
+            color: var(--accent);
+            opacity: 0.5;
+            font-weight: 700;
+        }
+
+        .wc-banner-sub {
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .wc-banner-cta {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .wc-banner-inner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .wc-banner-cta {
+                width: 100%;
+                text-align: center;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .wc-bc-num { font-size: 1.3rem; }
+            .wc-bc-unit { padding: 5px 9px; }
+        }
+    </style>
 </head>
 <body>
 
@@ -52,6 +190,7 @@
                     <a href="articles/index.html">Articles</a>
                     <a href="standings.html">Standings</a>
                     <a href="fixtures.html">Fixtures</a>
+                    <a href="world-cup-2026.html" class="nav-wc-link">🏆 World Cup</a>
                     <a href="about.html">About</a>
                     <a href="contact.html">Contact</a>
                 </nav>
@@ -99,6 +238,45 @@
                     </button>
                     <div class="search-results-dropdown" id="searchDropdown" role="listbox" aria-label="Search results"></div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════
+         WORLD CUP 2026 PROMO BANNER
+    ══════════════════════════════════════════════════════════ -->
+    <section class="wc-banner">
+        <div class="container">
+            <div class="wc-banner-inner">
+                <div class="wc-banner-left">
+                    <span class="wc-banner-badge">🏆 FIFA World Cup 2026</span>
+                    <h2 class="wc-banner-title">The World Cup Starts in</h2>
+                    <div class="wc-banner-countdown" id="wcBannerCountdown">
+                        <div class="wc-bc-unit">
+                            <span class="wc-bc-num" id="bcDays">03</span>
+                            <span class="wc-bc-lbl">Days</span>
+                        </div>
+                        <span class="wc-bc-sep">:</span>
+                        <div class="wc-bc-unit">
+                            <span class="wc-bc-num" id="bcHours">00</span>
+                            <span class="wc-bc-lbl">Hours</span>
+                        </div>
+                        <span class="wc-bc-sep">:</span>
+                        <div class="wc-bc-unit">
+                            <span class="wc-bc-num" id="bcMins">00</span>
+                            <span class="wc-bc-lbl">Min</span>
+                        </div>
+                        <span class="wc-bc-sep">:</span>
+                        <div class="wc-bc-unit">
+                            <span class="wc-bc-num" id="bcSecs">00</span>
+                            <span class="wc-bc-lbl">Sec</span>
+                        </div>
+                    </div>
+                    <p class="wc-banner-sub">48 Teams &nbsp;·&nbsp; 104 Matches &nbsp;·&nbsp; USA, Canada &amp; Mexico &nbsp;·&nbsp; June 11 – July 19</p>
+                </div>
+                <a href="world-cup-2026.html" class="wc-banner-cta btn btn-primary">
+                    Full World Cup Guide &rarr;
+                </a>
             </div>
         </div>
     </section>
@@ -308,6 +486,49 @@
 
     <!-- JavaScript -->
     <script src="assets/js/main.js" defer></script>
+
+    <!-- World Cup Banner Countdown -->
+    <script>
+    (function () {
+        var FIRST_MATCH = new Date('2026-06-11T19:00:00Z').getTime();
+        var FINAL_DATE  = new Date('2026-07-19T20:00:00Z').getTime();
+
+        function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+
+        function tickBanner() {
+            var now  = Date.now();
+            var diff;
+            var title = document.getElementById('wcBannerTitle');
+
+            if (now >= FINAL_DATE) {
+                var wrap = document.getElementById('wcBannerCountdown');
+                if (wrap) wrap.innerHTML = '<span style="color:var(--accent);font-weight:700;">🏆 World Cup 2026 Complete!</span>';
+                return;
+            }
+
+            if (now >= FIRST_MATCH) {
+                diff = FINAL_DATE - now;
+                var el = document.querySelector('.wc-banner-title');
+                if (el) el.textContent = 'Tournament is Live! Final in';
+            } else {
+                diff = FIRST_MATCH - now;
+            }
+
+            var days  = Math.floor(diff / 86400000);
+            var hours = Math.floor((diff % 86400000) / 3600000);
+            var mins  = Math.floor((diff % 3600000)  / 60000);
+            var secs  = Math.floor((diff % 60000)    / 1000);
+
+            document.getElementById('bcDays').textContent  = pad(days);
+            document.getElementById('bcHours').textContent = pad(hours);
+            document.getElementById('bcMins').textContent  = pad(mins);
+            document.getElementById('bcSecs').textContent  = pad(secs);
+        }
+
+        tickBanner();
+        setInterval(tickBanner, 1000);
+    })();
+    </script>
 
     <!-- Homepage Articles Widget -->
     <script>
