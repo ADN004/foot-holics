@@ -573,8 +573,15 @@ p {
    we also guard with a min-width rule for safety.
    ──────────────────────────────────────────────────────────────────────────── */
 
-/* Bump the sticky header above the overlay so the ✕ button stays tappable */
+/* When menu is open, pin the header to the viewport top.
+   position:sticky loses its screen position when body overflow:hidden is applied
+   on mobile browsers — switching to fixed guarantees the header + ✕ button
+   are always visible regardless of how far the user has scrolled. */
 .site-header.menu-open {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 9002;
 }
 
