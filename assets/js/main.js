@@ -113,12 +113,39 @@
   var mobCtaBar  = document.createElement('div');
   mobCtaBar.id   = 'mob-cta-bar';
 
-  // Clone desktop nav links into overlay
+  // Build premium card-style nav items from the desktop primaryNav
+  var NAV_ICON_MAP = {
+    'home':      'fa-house',
+    'news':      'fa-newspaper',
+    'articles':  'fa-pen-nib',
+    'standings': 'fa-table-list',
+    'fixtures':  'fa-calendar-days',
+    'world cup': 'fa-trophy',
+    'about':     'fa-circle-info',
+    'contact':   'fa-envelope',
+  };
+
   if (primaryNav) {
     primaryNav.querySelectorAll('a').forEach(function (link) {
-      var a = link.cloneNode(true);
-      a.addEventListener('click', closeMobileMenu);
-      mobOverlay.appendChild(a);
+      var text    = link.textContent.trim();
+      var iconKey = text.toLowerCase();
+      var icon    = NAV_ICON_MAP[iconKey] || 'fa-circle';
+      var isWC    = link.classList.contains('nav-wc-link');
+
+      var item   = document.createElement('a');
+      item.href  = link.href;
+      item.className = 'mob-nav-item'
+        + (link.classList.contains('active') ? ' active'    : '')
+        + (isWC                              ? ' mob-nav-wc' : '');
+      item.innerHTML =
+        '<div class="mob-nav-icon-box">' +
+          '<i class="fa-solid ' + icon + '" aria-hidden="true"></i>' +
+        '</div>' +
+        '<span class="mob-nav-label">' + text + '</span>' +
+        '<i class="fa-solid fa-chevron-right mob-nav-chevron" aria-hidden="true"></i>';
+
+      item.addEventListener('click', closeMobileMenu);
+      mobOverlay.appendChild(item);
     });
   }
 
@@ -199,7 +226,7 @@
   // Resize: if the viewport grows past the mobile breakpoint, close and
   // release the scroll lock (which would otherwise freeze the page).
   window.addEventListener('resize', function () {
-    if (ModalManager.isOpen('mobile-nav') && window.innerWidth > 768) {
+    if (ModalManager.isOpen('mobile-nav') && window.innerWidth > 1024) {
       closeMobileMenu();
     }
   });

@@ -3603,12 +3603,10 @@ def get_inline_event_template() -> str:
 
                 <nav class="primary-nav" id="primaryNav">
                     <a href="index.html">Home</a>
-                    <a href="news.html">News</a>
+                    <a href="world-cup-2026.html" class="nav-wc-link">World Cup</a>
                     <a href="articles/index.html">Articles</a>
                     <a href="standings.html">Standings</a>
-                    <a href="fixtures.html">Fixtures</a>
-                    <a href="about.html">About</a>
-                    <a href="contact.html">Contact</a>
+                    <a href="news.html">News</a>
                 </nav>
 
                 <div class="cta-group" id="ctaGroup">
@@ -4250,13 +4248,10 @@ def generate_article_html(title: str, slug: str, category: str, excerpt: str, co
                 </a>
                 <nav class="primary-nav" id="primaryNav">
                     <a href="../index.html">Home</a>
-                    <a href="../news.html">News</a>
+                    <a href="../world-cup-2026.html" class="nav-wc-link">World Cup</a>
                     <a href="index.html" class="active">Articles</a>
                     <a href="../standings.html">Standings</a>
-                    <a href="../fixtures.html">Fixtures</a>
-                    <a href="../world-cup-2026.html" class="nav-wc-link">World Cup</a>
-                    <a href="../about.html">About</a>
-                    <a href="../contact.html">Contact</a>
+                    <a href="../news.html">News</a>
                 </nav>
                 <div class="cta-group" id="ctaGroup">
                     <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">WhatsApp</a>
