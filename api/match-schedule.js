@@ -11,13 +11,41 @@
 const API_KEY  = 'b9c4d6e0be048bb79d8cf819e12775af';
 const API_BASE = 'https://v3.football.api-sports.io';
 
-// Lower index = higher priority in sort
+// Lower index = higher priority.
+// IDs 1-30 in API-Football cover major international tournaments and qualifiers
+// (World Cup, UCL, Europa, Conference, EURO, Copa America, AFCON, Nations Leagues, WC Quals, etc.)
 const PRIORITY_IDS = [
-    1, 2, 3, 4, 5, 6,           // World Cup, UCL, Europa, Conference, etc.
-    13, 39, 61, 78, 88, 94,     // PL, Ligue 1, Bundesliga, Eredivisie, PL2
-    135, 140, 143, 203,          // Serie A, La Liga, Copa del Rey, Süper Lig
-    253, 307, 332, 848,          // MLS, Saudi Pro, Argentine Liga, Conference
+    // ── Major international tournaments & WC qualifiers ──
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    11, 12, 13, 14, 15, 16, 17, 18,
+    19, 20, 21, 22, 23, 24, 25,
+    26, 27, 28, 29, 30,
+    // ── Top 5 European club leagues ──
+    39, 140, 135, 78, 61,               // Premier League, La Liga, Serie A, Bundesliga, Ligue 1
+    // ── Domestic cups of top 5 ──
+    43, 45, 73, 137, 65, 81,            // FA Cup, EFL Cup, Copa del Rey, Coppa Italia, Coupe de France, DFB Pokal
+    // ── Other major European leagues ──
+    94, 88, 197, 203, 98,               // Primeira Liga, Eredivisie, Süper Lig, Belgian
+    106, 113, 119, 144, 169, 172, 207,  // Polish, Swedish, Danish, Belgian alt, Scottish, Swiss, Greek
+    218, 235,                           // Russian, Ukrainian
+    // ── Americas ──
+    71, 72, 332, 128, 253, 262,         // Brazilian Série A/B, Argentine Liga, Copa Argentina, MLS, Liga MX
+    // ── Asia / Middle East ──
+    271, 283, 307, 323,                 // J1 League, K League 1, Saudi Pro League, ISL
+    848,
 ];
+
+// Country popularity score for leagues not in PRIORITY_IDS (lower = shown earlier)
+const COUNTRY_RANK = {
+    'World': 0, 'Europe': 1,
+    'England': 2, 'Spain': 3, 'Germany': 4, 'Italy': 5, 'France': 6,
+    'Netherlands': 7, 'Portugal': 8, 'Turkey': 9, 'Belgium': 10,
+    'Scotland': 11, 'Russia': 12, 'Ukraine': 13, 'Greece': 14,
+    'Switzerland': 15, 'Poland': 16, 'Sweden': 17, 'Denmark': 18,
+    'Brazil': 19, 'Argentina': 20, 'Mexico': 21, 'USA': 22,
+    'Japan': 23, 'South Korea': 24, 'Saudi Arabia': 25, 'China': 26,
+    'India': 27, 'Australia': 28,
+};
 
 function istNow() {
     return new Date(Date.now() + 5.5 * 3600_000);
@@ -99,15 +127,18 @@ export default async function handler(req, res) {
             leagueMap[key].matches.push(m);
         }
 
-        // Sort leagues: priority list first, then country → name
+        // Sort leagues: priority list first, then country popularity, then name
         const leagues = Object.values(leagueMap).sort((a, b) => {
             const pa = PRIORITY_IDS.indexOf(a.league.id);
             const pb = PRIORITY_IDS.indexOf(b.league.id);
             if (pa !== -1 && pb !== -1) return pa - pb;
             if (pa !== -1) return -1;
             if (pb !== -1) return 1;
-            const cc = a.league.country.localeCompare(b.league.country);
-            return cc !== 0 ? cc : a.league.name.localeCompare(b.league.name);
+            // Neither in priority list: rank by country popularity
+            const ra = COUNTRY_RANK[a.league.country] ?? 999;
+            const rb = COUNTRY_RANK[b.league.country] ?? 999;
+            if (ra !== rb) return ra - rb;
+            return a.league.name.localeCompare(b.league.name);
         });
 
         // Sort matches within each league by kick-off

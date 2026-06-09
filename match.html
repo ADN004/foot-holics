@@ -219,20 +219,6 @@ function fmtShortDate(isoDate) {
     return new Date(isoDate).toLocaleDateString('en-IN',{ day:'numeric', month:'short', year:'numeric' });
 }
 
-// ── Status pill ─────────────────────────────────────────────
-function statusPill(status) {
-    const { short, elapsed } = status;
-    if (FINISHED_SET.has(short))
-        return `<div class="md-status-pill md-status-pill--ft">${esc(short)}</div>`;
-    if (LIVE_SET.has(short)) {
-        const lbl = short === 'HT' ? 'HT' : `${elapsed}'`;
-        return `<div class="md-status-pill md-status-pill--live"><span class="live-dot"></span>${esc(lbl)}</div>`;
-    }
-    if (['PST','CANC','ABD','SUSP'].includes(short))
-        return `<div class="md-status-pill md-status-pill--other">${esc(short)}</div>`;
-    return `<div class="md-status-pill md-status-pill--upcoming">${fmtTime(date)}</div>`;
-}
-
 // ── Render match header ──────────────────────────────────────
 function renderHeader(data) {
     const f    = data.fixture;
@@ -311,7 +297,7 @@ function eventIcon(type, detail) {
 function renderEvents(events, fixture) {
     const c = document.getElementById('eventsContainer');
     if (!events.length) {
-        c.innerHTML = `<p class="ev-empty">${FINISHED_SET.has(fixture.status.short) ? 'No event data available.' : 'Events will appear here once the match starts.'}</p>`;
+        c.innerHTML = `<p class="ev-empty">${FINISHED_SET.has(fixture.fixture?.status?.short) ? 'No event data available.' : 'Events will appear here once the match starts.'}</p>`;
         return;
     }
 
@@ -685,6 +671,7 @@ document.querySelectorAll('.md-tab').forEach(btn => {
 
     } catch (err) {
         document.getElementById('mdLoading').style.display = 'none';
+        document.getElementById('mdCard').style.display    = 'none';
         document.getElementById('mdError').style.display   = 'block';
         console.error('[match-detail]', err);
     }
