@@ -620,8 +620,7 @@
   var _kfStyle = document.createElement('style');
   _kfStyle.textContent = [
     '@keyframes slideInUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}',
-    '@keyframes slideOutDown{from{transform:translateY(0);opacity:1}to{transform:translateY(100%);opacity:0}}',
-    '@media(max-width:768px){.primary-nav.mobile-open{display:flex!important}.cta-group.mobile-open{display:flex!important}}'
+    '@keyframes slideOutDown{from{transform:translateY(0);opacity:1}to{transform:translateY(100%);opacity:0}}'
   ].join('');
   document.head.appendChild(_kfStyle);
 

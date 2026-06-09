@@ -218,17 +218,6 @@
 
     <script>
     (function () {
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const primaryNav = document.getElementById('primaryNav');
-        const ctaGroup = document.getElementById('ctaGroup');
-        if (mobileMenuBtn) {
-            mobileMenuBtn.addEventListener('click', () => {
-                primaryNav.classList.toggle('mobile-open');
-                ctaGroup.classList.toggle('mobile-open');
-                mobileMenuBtn.innerHTML = primaryNav.classList.contains('mobile-open') ? '&#x2715;' : '&#9776;';
-            });
-        }
-
         // Contact form — Formspree fallback
         const form = document.getElementById('contactForm');
         const status = document.getElementById('formStatus');
