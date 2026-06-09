@@ -71,7 +71,7 @@
 
     <!-- Main Content -->
     <main id="main-content" class="container" style="margin-top:2rem;margin-bottom:4rem;">
-        <div style="display:grid;grid-template-columns:1fr 300px;gap:2rem;align-items:start;">
+        <div class="fixtures-layout">
 
             <!-- Fixtures Column -->
             <section>
@@ -104,6 +104,16 @@
                     </button>
                 </div>
 
+                <!-- World Cup 2026 Fixtures Banner -->
+                <a href="world-cup-2026.html" class="wc-fixtures-banner">
+                    <div class="wc-banner-icon">🏆</div>
+                    <div class="wc-banner-text">
+                        <strong>FIFA World Cup 2026</strong>
+                        <span>Exclusive World Cup fixture schedule &amp; match coverage</span>
+                    </div>
+                    <div class="wc-banner-cta">View Schedule →</div>
+                </a>
+
                 <!-- Fixture list -->
                 <div id="fixturesContainer"></div>
 
@@ -118,7 +128,7 @@
             </section>
 
             <!-- Sidebar -->
-            <aside class="sidebar" style="top:100px;">
+            <aside class="sidebar fixtures-sidebar">
                 <h3 class="sidebar-title">Quick Links</h3>
                 <ul class="sidebar-list">
                     <li><a href="standings.html"><i class="fa-solid fa-list-ol" style="margin-right:6px;color:var(--accent);"></i>League Tables</a></li>
