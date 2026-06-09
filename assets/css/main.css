@@ -208,7 +208,6 @@
 html {
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
-  /* Prevent any element from causing a horizontal scroll bar */
   overflow-x: hidden;
 }
 
@@ -222,6 +221,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'kern' 1, 'liga' 1;
+  /* Stops flex/grid children from pushing past the viewport width */
+  overflow-x: clip;
   /* Ambient glow via pseudo-element below */
   isolation: isolate;
 }
@@ -3301,6 +3302,9 @@ main {
   .fixtures-layout {
     grid-template-columns: 1fr;
   }
+  .fixtures-layout > section {
+    min-width: 0;
+  }
   .fixtures-layout .sidebar {
     display: none;
   }
@@ -4549,21 +4553,22 @@ main {
 
 /* === Responsive tweaks for new sections === */
 @media (max-width: 1024px) {
-  /* Tab nav: horizontally scrollable, no visible scrollbar */
+  /* Tab nav: 2-column grid, no horizontal scroll, buttons wrap cleanly */
   .tab-nav {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding: 4px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .tab-nav::-webkit-scrollbar {
-    display: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    overflow: visible;
+    flex-wrap: unset;
+    padding: 2px 0;
   }
   .tab-btn {
-    flex-shrink: 0;
-    padding: 8px 12px;
-    font-size: 0.8rem;
+    flex-shrink: unset;
+    padding: 10px 8px;
+    font-size: 0.78rem;
+    text-align: center;
+    justify-content: center;
+    width: 100%;
   }
 
   .fixture-card {
