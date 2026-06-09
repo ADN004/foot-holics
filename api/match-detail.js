@@ -59,7 +59,7 @@ export default async function handler(req, res) {
             isLive ? empty : apiFetch(`/fixtures?team=${awayId}&last=5`),
         ]);
 
-        const cacheSec = isFinished ? 86400 : isLive ? 300 : 1800;
+        const cacheSec = isFinished ? 86400 : isLive ? 900 : 1800;
         res.setHeader('Cache-Control', `s-maxage=${cacheSec}, stale-while-revalidate=${Math.floor(cacheSec / 2)}`);
 
         return res.status(200).json({

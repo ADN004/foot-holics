@@ -161,6 +161,58 @@ function escHtml(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── Country flags (national teams) ───────────────────────────
+const COUNTRY_FLAGS = {
+    'Albania':'al','Andorra':'ad','Armenia':'am','Austria':'at','Azerbaijan':'az',
+    'Belarus':'by','Belgium':'be','Bosnia':'ba','Bulgaria':'bg','Croatia':'hr',
+    'Cyprus':'cy','Czech Republic':'cz','Czechia':'cz','Denmark':'dk',
+    'England':'gb-eng','Estonia':'ee','Faroe Islands':'fo','Finland':'fi',
+    'France':'fr','Georgia':'ge','Germany':'de','Gibraltar':'gi','Greece':'gr',
+    'Hungary':'hu','Iceland':'is','Ireland':'ie','Israel':'il','Italy':'it',
+    'Kazakhstan':'kz','Kosovo':'xk','Latvia':'lv','Liechtenstein':'li',
+    'Lithuania':'lt','Luxembourg':'lu','Malta':'mt','Moldova':'md',
+    'Montenegro':'me','Netherlands':'nl','North Macedonia':'mk',
+    'Northern Ireland':'gb-nir','Norway':'no','Poland':'pl','Portugal':'pt',
+    'Romania':'ro','Russia':'ru','San Marino':'sm','Scotland':'gb-sct',
+    'Serbia':'rs','Slovakia':'sk','Slovenia':'si','Spain':'es','Sweden':'se',
+    'Switzerland':'ch','Turkey':'tr','Türkiye':'tr','Ukraine':'ua','Wales':'gb-wls',
+    'Argentina':'ar','Bolivia':'bo','Brazil':'br','Canada':'ca','Chile':'cl',
+    'Colombia':'co','Costa Rica':'cr','Cuba':'cu','Ecuador':'ec',
+    'El Salvador':'sv','Guatemala':'gt','Haiti':'ht','Honduras':'hn',
+    'Jamaica':'jm','Mexico':'mx','Nicaragua':'ni','Panama':'pa',
+    'Paraguay':'py','Peru':'pe','Trinidad and Tobago':'tt','Trinidad & Tobago':'tt',
+    'USA':'us','United States':'us','Uruguay':'uy','Venezuela':'ve',
+    'Algeria':'dz','Angola':'ao','Benin':'bj','Botswana':'bw',
+    'Burkina Faso':'bf','Cameroon':'cm','Cape Verde':'cv','Congo':'cg',
+    'DR Congo':'cd','Egypt':'eg','Equatorial Guinea':'gq','Ethiopia':'et',
+    'Gabon':'ga','Gambia':'gm','Ghana':'gh','Guinea':'gn','Guinea-Bissau':'gw',
+    'Ivory Coast':'ci','Kenya':'ke','Libya':'ly','Madagascar':'mg','Malawi':'mw',
+    'Mali':'ml','Mauritania':'mr','Morocco':'ma','Mozambique':'mz','Namibia':'na',
+    'Niger':'ne','Nigeria':'ng','Rwanda':'rw','Senegal':'sn','Sierra Leone':'sl',
+    'Somalia':'so','South Africa':'za','Sudan':'sd','Tanzania':'tz',
+    'Togo':'tg','Tunisia':'tn','Uganda':'ug','Zambia':'zm','Zimbabwe':'zw',
+    'Afghanistan':'af','Bahrain':'bh','Bangladesh':'bd','China':'cn',
+    'India':'in','Indonesia':'id','Iran':'ir','Iraq':'iq','Japan':'jp',
+    'Jordan':'jo','Kuwait':'kw','Kyrgyzstan':'kg','Lebanon':'lb',
+    'Malaysia':'my','Mongolia':'mn','Myanmar':'mm','Nepal':'np',
+    'North Korea':'kp','Oman':'om','Pakistan':'pk','Palestine':'ps',
+    'Philippines':'ph','Qatar':'qa','Saudi Arabia':'sa','Singapore':'sg',
+    'South Korea':'kr','Sri Lanka':'lk','Syria':'sy','Thailand':'th',
+    'United Arab Emirates':'ae','UAE':'ae','Uzbekistan':'uz','Vietnam':'vn',
+    'Yemen':'ye','Australia':'au','New Zealand':'nz',
+};
+function getFlagUrl(name) {
+    const code = COUNTRY_FLAGS[name];
+    return code ? `https://flagcdn.com/w40/${code}.png` : null;
+}
+function teamImg(name, logoUrl, cls) {
+    const flagUrl = getFlagUrl(name);
+    if (flagUrl) {
+        return `<img class="${cls} mc-is-flag" src="${escHtml(flagUrl)}" alt="${escHtml(name)}" loading="lazy" onerror="this.src='${escHtml(logoUrl)}';this.classList.remove('mc-is-flag')">`;
+    }
+    return `<img class="${cls}" src="${escHtml(logoUrl)}" alt="${escHtml(name)}" loading="lazy" width="26" height="26" onerror="this.style.display='none'">`;
+}
+
 // ── Status badge ─────────────────────────────────────────────
 function statusBadge(status) {
     const { short, elapsed } = status;
@@ -195,7 +247,7 @@ function matchRow(m) {
     return `
     <a class="mc-match-row" href="match.html?id=${m.id}" aria-label="${escHtml(m.home.name)} vs ${escHtml(m.away.name)}">
         <div class="mc-team">
-            <img class="mc-team-logo" src="${escHtml(m.home.logo)}" alt="${escHtml(m.home.name)}" loading="lazy" width="26" height="26" onerror="this.style.display='none'">
+            ${teamImg(m.home.name, m.home.logo, 'mc-team-logo')}
             <span class="mc-team-name">${escHtml(m.home.name)}</span>
         </div>
         <div class="mc-match-mid">
@@ -204,7 +256,7 @@ function matchRow(m) {
         </div>
         <div class="mc-team mc-team--away">
             <span class="mc-team-name">${escHtml(m.away.name)}</span>
-            <img class="mc-team-logo" src="${escHtml(m.away.logo)}" alt="${escHtml(m.away.name)}" loading="lazy" width="26" height="26" onerror="this.style.display='none'">
+            ${teamImg(m.away.name, m.away.logo, 'mc-team-logo')}
         </div>
     </a>`;
 }

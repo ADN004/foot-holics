@@ -219,6 +219,51 @@ function fmtShortDate(isoDate) {
     return new Date(isoDate).toLocaleDateString('en-IN',{ day:'numeric', month:'short', year:'numeric' });
 }
 
+// ── Country flags ────────────────────────────────────────────
+const COUNTRY_FLAGS = {
+    'Albania':'al','Andorra':'ad','Armenia':'am','Austria':'at','Azerbaijan':'az',
+    'Belarus':'by','Belgium':'be','Bosnia':'ba','Bulgaria':'bg','Croatia':'hr',
+    'Cyprus':'cy','Czech Republic':'cz','Czechia':'cz','Denmark':'dk',
+    'England':'gb-eng','Estonia':'ee','Faroe Islands':'fo','Finland':'fi',
+    'France':'fr','Georgia':'ge','Germany':'de','Gibraltar':'gi','Greece':'gr',
+    'Hungary':'hu','Iceland':'is','Ireland':'ie','Israel':'il','Italy':'it',
+    'Kazakhstan':'kz','Kosovo':'xk','Latvia':'lv','Liechtenstein':'li',
+    'Lithuania':'lt','Luxembourg':'lu','Malta':'mt','Moldova':'md',
+    'Montenegro':'me','Netherlands':'nl','North Macedonia':'mk',
+    'Northern Ireland':'gb-nir','Norway':'no','Poland':'pl','Portugal':'pt',
+    'Romania':'ro','Russia':'ru','San Marino':'sm','Scotland':'gb-sct',
+    'Serbia':'rs','Slovakia':'sk','Slovenia':'si','Spain':'es','Sweden':'se',
+    'Switzerland':'ch','Turkey':'tr','Türkiye':'tr','Ukraine':'ua','Wales':'gb-wls',
+    'Argentina':'ar','Bolivia':'bo','Brazil':'br','Canada':'ca','Chile':'cl',
+    'Colombia':'co','Costa Rica':'cr','Cuba':'cu','Ecuador':'ec',
+    'El Salvador':'sv','Guatemala':'gt','Haiti':'ht','Honduras':'hn',
+    'Jamaica':'jm','Mexico':'mx','Nicaragua':'ni','Panama':'pa',
+    'Paraguay':'py','Peru':'pe','Trinidad and Tobago':'tt','Trinidad & Tobago':'tt',
+    'USA':'us','United States':'us','Uruguay':'uy','Venezuela':'ve',
+    'Algeria':'dz','Angola':'ao','Benin':'bj','Botswana':'bw',
+    'Burkina Faso':'bf','Cameroon':'cm','Cape Verde':'cv','Congo':'cg',
+    'DR Congo':'cd','Egypt':'eg','Equatorial Guinea':'gq','Ethiopia':'et',
+    'Gabon':'ga','Gambia':'gm','Ghana':'gh','Guinea':'gn','Guinea-Bissau':'gw',
+    'Ivory Coast':'ci','Kenya':'ke','Libya':'ly','Madagascar':'mg','Malawi':'mw',
+    'Mali':'ml','Mauritania':'mr','Morocco':'ma','Mozambique':'mz','Namibia':'na',
+    'Niger':'ne','Nigeria':'ng','Rwanda':'rw','Senegal':'sn','Sierra Leone':'sl',
+    'Somalia':'so','South Africa':'za','Sudan':'sd','Tanzania':'tz',
+    'Togo':'tg','Tunisia':'tn','Uganda':'ug','Zambia':'zm','Zimbabwe':'zw',
+    'Afghanistan':'af','Bahrain':'bh','Bangladesh':'bd','China':'cn',
+    'India':'in','Indonesia':'id','Iran':'ir','Iraq':'iq','Japan':'jp',
+    'Jordan':'jo','Kuwait':'kw','Kyrgyzstan':'kg','Lebanon':'lb',
+    'Malaysia':'my','Mongolia':'mn','Myanmar':'mm','Nepal':'np',
+    'North Korea':'kp','Oman':'om','Pakistan':'pk','Palestine':'ps',
+    'Philippines':'ph','Qatar':'qa','Saudi Arabia':'sa','Singapore':'sg',
+    'South Korea':'kr','Sri Lanka':'lk','Syria':'sy','Thailand':'th',
+    'United Arab Emirates':'ae','UAE':'ae','Uzbekistan':'uz','Vietnam':'vn',
+    'Yemen':'ye','Australia':'au','New Zealand':'nz',
+};
+function getFlagUrl(name) {
+    const code = COUNTRY_FLAGS[name];
+    return code ? `https://flagcdn.com/w40/${code}.png` : null;
+}
+
 // ── Render match header ──────────────────────────────────────
 function renderHeader(data) {
     const f    = data.fixture;
@@ -226,10 +271,16 @@ function renderHeader(data) {
     const away = data.teams.away;
     const lg   = data.league;
 
-    document.getElementById('homeLogo').src  = home.logo;
-    document.getElementById('homeLogo').alt  = home.name;
-    document.getElementById('awayLogo').src  = away.logo;
-    document.getElementById('awayLogo').alt  = away.name;
+    const homeFlagUrl = getFlagUrl(home.name);
+    const awayFlagUrl = getFlagUrl(away.name);
+    const homeLogoEl  = document.getElementById('homeLogo');
+    const awayLogoEl  = document.getElementById('awayLogo');
+    homeLogoEl.src = homeFlagUrl || home.logo;
+    homeLogoEl.alt = home.name;
+    if (homeFlagUrl) homeLogoEl.classList.add('md-team-flag');
+    awayLogoEl.src = awayFlagUrl || away.logo;
+    awayLogoEl.alt = away.name;
+    if (awayFlagUrl) awayLogoEl.classList.add('md-team-flag');
     document.getElementById('homeName').textContent = home.name;
     document.getElementById('awayName').textContent = away.name;
 
@@ -297,7 +348,15 @@ function eventIcon(type, detail) {
 function renderEvents(events, fixture) {
     const c = document.getElementById('eventsContainer');
     if (!events.length) {
-        c.innerHTML = `<p class="ev-empty">${FINISHED_SET.has(fixture.fixture?.status?.short) ? 'No event data available.' : 'Events will appear here once the match starts.'}</p>`;
+        const st = fixture.fixture?.status?.short;
+        if (FINISHED_SET.has(st)) {
+            c.innerHTML = `<p class="ev-empty">No event data available for this match.</p>`;
+        } else if (LIVE_SET.has(st)) {
+            c.innerHTML = `<p class="ev-empty">Events loading…</p>`;
+        } else {
+            c.innerHTML = renderUpcomingOverview(fixture);
+            if (fixture.fixture?.date) startMatchCountdown(fixture.fixture.date);
+        }
         return;
     }
 
@@ -349,6 +408,57 @@ function renderEvents(events, fixture) {
     });
 
     c.innerHTML = html || `<p class="ev-empty">No events recorded.</p>`;
+}
+
+// ── Upcoming match panel ─────────────────────────────────────
+function renderUpcomingOverview(fixture) {
+    const kickoff = fixture.fixture?.date;
+    const venue   = fixture.fixture?.venue;
+    const lg      = fixture.league;
+
+    const venueHtml = venue?.name ? `
+    <div class="upco-venue-row">
+        <span>📍</span>
+        <span>${esc(venue.name)}${venue.city ? ', ' + esc(venue.city) : ''}</span>
+    </div>` : '';
+
+    const compHtml = lg?.name ? `
+    <div class="upco-comp-row">
+        ${lg.logo ? `<img src="${esc(lg.logo)}" alt="" width="16" height="16" onerror="this.style.display='none'">` : ''}
+        <span>${esc(lg.name)}${lg.round ? ' · ' + esc(lg.round) : ''}</span>
+    </div>` : '';
+
+    const timeHtml = kickoff ? `<div class="upco-kickoff-time">${fmtDate(kickoff)} · ${fmtTime(kickoff)}</div>` : '';
+
+    return `
+    <div class="upco-panel">
+        <div class="upco-countdown-wrap">
+            <div class="upco-pre-label">Kickoff in</div>
+            <div class="upco-timer" id="upcoTimer">–</div>
+            ${timeHtml}
+        </div>
+        ${venueHtml}
+        ${compHtml}
+        <p class="upco-hint">Lineups, events and statistics will appear once the match begins.</p>
+    </div>`;
+}
+
+function startMatchCountdown(isoDate) {
+    const el = document.getElementById('upcoTimer');
+    if (!el) return;
+    function update() {
+        const diff = new Date(isoDate).getTime() - Date.now();
+        if (diff <= 0) { el.textContent = 'Starting soon'; return; }
+        const days = Math.floor(diff / 86400000);
+        const h    = Math.floor((diff % 86400000) / 3600000);
+        const m    = Math.floor((diff % 3600000) / 60000);
+        const s    = Math.floor((diff % 60000) / 1000);
+        if (days > 0) el.textContent = `${days}d ${h}h ${m}m`;
+        else if (h > 0) el.textContent = `${h}h ${m}m ${s}s`;
+        else el.textContent = `${m}m ${s}s`;
+    }
+    update();
+    setInterval(update, 1000);
 }
 
 // ── Render Lineups tab ───────────────────────────────────────
@@ -543,11 +653,11 @@ function renderStats(stats, fixture) {
 }
 
 // ── Render H2H tab ───────────────────────────────────────────
-function formResult(fixture, teamId) {
-    const home = fixture.teams.home;
-    const away = fixture.teams.away;
+function formResult(m, teamId) {
+    const home = m.teams.home;
+    const away = m.teams.away;
     const isHome = home.id === teamId;
-    if (home.winner === null) return 'd';
+    if (home.winner == null && away.winner == null) return 'd';
     if ((isHome && home.winner) || (!isHome && away.winner)) return 'w';
     return 'l';
 }
@@ -557,35 +667,35 @@ function renderH2H(h2h, homeForm, awayForm, fixture) {
     const homeTeam = fixture.teams?.home;
     const awayTeam = fixture.teams?.away;
 
-    // Tally
-    let wins = 0, draws = 0, losses = 0;
-    h2h.forEach(m => {
-        const r = formResult(m, homeTeam?.id);
-        if (r === 'w') wins++;
-        else if (r === 'd') draws++;
-        else losses++;
-    });
+    let html = '';
 
-    let html = `
-    <div class="h2h-tally">
-        <div class="h2h-col">
-            <span class="h2h-big h2h-big--home">${wins}</span>
-            <span class="h2h-lbl">${esc(homeTeam?.name || 'Home')} wins</span>
-        </div>
-        <span class="h2h-vsep">·</span>
-        <div class="h2h-col">
-            <span class="h2h-big">${draws}</span>
-            <span class="h2h-lbl">Draws</span>
-        </div>
-        <span class="h2h-vsep">·</span>
-        <div class="h2h-col">
-            <span class="h2h-big h2h-big--away">${losses}</span>
-            <span class="h2h-lbl">${esc(awayTeam?.name || 'Away')} wins</span>
-        </div>
-    </div>`;
-
-    // H2H history
     if (h2h.length) {
+        // Tally — only shown when we actually have data
+        let wins = 0, draws = 0, losses = 0;
+        h2h.forEach(m => {
+            const r = formResult(m, homeTeam?.id);
+            if (r === 'w') wins++;
+            else if (r === 'd') draws++;
+            else losses++;
+        });
+        html += `
+        <div class="h2h-tally">
+            <div class="h2h-col">
+                <span class="h2h-big h2h-big--home">${wins}</span>
+                <span class="h2h-lbl">${esc(homeTeam?.name || 'Home')} wins</span>
+            </div>
+            <span class="h2h-vsep">·</span>
+            <div class="h2h-col">
+                <span class="h2h-big">${draws}</span>
+                <span class="h2h-lbl">Draws</span>
+            </div>
+            <span class="h2h-vsep">·</span>
+            <div class="h2h-col">
+                <span class="h2h-big h2h-big--away">${losses}</span>
+                <span class="h2h-lbl">${esc(awayTeam?.name || 'Away')} wins</span>
+            </div>
+        </div>`;
+
         html += `<p class="h2h-title">Previous Meetings</p><div class="h2h-list">`;
         h2h.forEach(m => {
             const hg = m.goals?.home ?? '?';
@@ -601,18 +711,22 @@ function renderH2H(h2h, homeForm, awayForm, fixture) {
         });
         html += `</div>`;
     } else {
-        html += `<p style="color:var(--muted);font-size:var(--text-sm);text-align:center;padding:1rem 0;">No previous meetings found.</p>`;
+        html += `<p class="h2h-no-data">No head-to-head records found in the database for these teams.</p>`;
     }
 
-    // Recent form
+    // Recent form blocks (use flag if national team, else club logo)
     function formBlock(matches, team) {
         if (!matches.length) return '';
-        const logo = team?.logo || '';
-        const name = team?.name || '';
-        let b = `<div class="form-block"><div class="form-block-title">${logo ? `<img src="${esc(logo)}" alt="${esc(name)}" width="16" height="16" onerror="this.style.display='none'">` : ''}Recent Form — ${esc(name)}</div><div class="form-list">`;
+        const name     = team?.name || '';
+        const flagUrl  = getFlagUrl(name);
+        const logoUrl  = team?.logo || '';
+        const imgHtml  = flagUrl
+            ? `<img src="${esc(flagUrl)}" alt="${esc(name)}" width="20" height="13" style="border-radius:2px;object-fit:cover;" onerror="this.style.display='none'">`
+            : (logoUrl ? `<img src="${esc(logoUrl)}" alt="${esc(name)}" width="16" height="16" onerror="this.style.display='none'">` : '');
+        let b = `<div class="form-block"><div class="form-block-title">${imgHtml}Recent Form — ${esc(name)}</div><div class="form-list">`;
         matches.forEach(m => {
-            const hg = m.goals?.home ?? '?';
-            const ag = m.goals?.away ?? '?';
+            const hg  = m.goals?.home ?? '?';
+            const ag  = m.goals?.away ?? '?';
             const res = formResult(m, team?.id);
             b += `
             <div class="form-item">
