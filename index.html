@@ -30,6 +30,7 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer"></noscript>
     <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/matches.css">
     <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
     <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8308140971175602"
@@ -188,6 +189,7 @@
                 <nav class="primary-nav" id="primaryNav">
                     <a href="index.html" class="active">Home</a>
                     <a href="world-cup-2026.html" class="nav-wc-link">World Cup</a>
+                    <a href="matches.html">Matches</a>
                     <a href="articles/index.html">Articles</a>
                     <a href="standings.html">Standings</a>
                     <a href="news.html">News</a>
@@ -283,6 +285,57 @@
          MAIN CONTENT
     ══════════════════════════════════════════════════════════ -->
     <main id="main-content">
+
+        <!-- ── TODAY'S MATCHES WIDGET ──────────────────────── -->
+        <section class="home-matches-section">
+            <div class="container">
+                <div class="section-eyebrow">
+                    <span class="eyebrow-pill">Live</span>
+                    <span class="eyebrow-line"></span>
+                </div>
+                <div class="section-header" style="margin-bottom:var(--space-2);">
+                    <div>
+                        <h2 class="section-title">Match Centre</h2>
+                        <p class="section-sub">Results, live scores &amp; upcoming fixtures</p>
+                    </div>
+                    <a href="matches.html" class="see-all-link">All Matches &rarr;</a>
+                </div>
+
+                <div class="hmw-outer">
+                    <!-- Widget header -->
+                    <div class="hmw-head">
+                        <div class="hmw-head-left">
+                            <span class="hmw-head-title">Matches</span>
+                            <span class="hmw-live-chip" id="hmwLiveChip" style="display:none;">
+                                <span class="live-dot"></span> LIVE
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Tab strip -->
+                    <div class="hmw-tabs">
+                        <button class="hmw-tab" data-tab="yesterday">Yesterday</button>
+                        <button class="hmw-tab active" data-tab="today">Today</button>
+                        <button class="hmw-tab" data-tab="tomorrow">Tomorrow</button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="hmw-body" id="hmwBody">
+                        <div class="hmw-loading">
+                            <div class="mc-spinner"></div>
+                            <span>Loading matches…</span>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="hmw-foot">
+                        <a href="matches.html" class="hmw-view-all">
+                            View all matches <span>→</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- ── FEATURED ARTICLE ─────────────────────────────── -->
         <section class="featured-section">
@@ -635,6 +688,118 @@
         }
 
         loadHomepage();
+    })();
+    </script>
+
+    <!-- Homepage Match Widget -->
+    <script>
+    (function () {
+        'use strict';
+
+        const LIVE_SET     = new Set(['1H','HT','2H','ET','BT','P','INT','LIVE']);
+        const FINISHED_SET = new Set(['FT','AET','PEN','AWD','WO']);
+        const MAX_MATCHES  = 12; // cap shown in widget
+
+        function esc(s) {
+            return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+        function fmtTime(isoDate) {
+            return new Date(isoDate).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+        }
+
+        function midCell(m) {
+            const { short, elapsed } = m.status;
+            const hg = m.goals?.home;
+            const ag = m.goals?.away;
+            const hasScore = hg !== null && hg !== undefined;
+            if (FINISHED_SET.has(short) || LIVE_SET.has(short)) {
+                const statusHtml = LIVE_SET.has(short)
+                    ? `<span class="hmw-status hmw-status--live">${short === 'HT' ? 'HT' : elapsed + "'"}</span>`
+                    : `<span class="hmw-status">${esc(short)}</span>`;
+                return `<span class="hmw-score">${hasScore ? hg+' – '+ag : '– –'}</span>${statusHtml}`;
+            }
+            if (['PST','CANC','ABD','SUSP','TBD'].includes(short))
+                return `<span class="hmw-status">${esc(short)}</span>`;
+            return `<span class="hmw-time">${esc(fmtTime(m.date))}</span>`;
+        }
+
+        function hasLive(leagues) {
+            return leagues.some(g => g.matches.some(m => LIVE_SET.has(m.status.short)));
+        }
+
+        function renderWidget(leagues) {
+            const body = document.getElementById('hmwBody');
+            if (!body) return;
+
+            // Flatten and cap
+            let count = 0;
+            let html  = '';
+            for (const g of leagues) {
+                if (count >= MAX_MATCHES) break;
+                const visibleMatches = g.matches.slice(0, MAX_MATCHES - count);
+                html += `
+                <div class="hmw-league-sep">
+                    ${g.league.logo ? `<img src="${esc(g.league.logo)}" alt="${esc(g.league.name)}" width="15" height="15" loading="lazy" onerror="this.style.display='none'">` : ''}
+                    <span>${esc(g.league.name)}</span>
+                </div>`;
+                visibleMatches.forEach(m => {
+                    html += `
+                    <a class="hmw-match" href="match.html?id=${m.id}">
+                        <div class="hmw-team">
+                            <img class="hmw-tlogo" src="${esc(m.home.logo)}" alt="${esc(m.home.name)}" width="20" height="20" loading="lazy" onerror="this.style.display='none'">
+                            <span class="hmw-tname">${esc(m.home.name)}</span>
+                        </div>
+                        <div class="hmw-mid">${midCell(m)}</div>
+                        <div class="hmw-team hmw-team--away">
+                            <span class="hmw-tname">${esc(m.away.name)}</span>
+                            <img class="hmw-tlogo" src="${esc(m.away.logo)}" alt="${esc(m.away.name)}" width="20" height="20" loading="lazy" onerror="this.style.display='none'">
+                        </div>
+                    </a>`;
+                });
+                count += visibleMatches.length;
+            }
+
+            body.innerHTML = html || `<p class="hmw-empty">No matches for this day.</p>`;
+
+            const liveChip = document.getElementById('hmwLiveChip');
+            if (liveChip) liveChip.style.display = hasLive(leagues) ? 'flex' : 'none';
+        }
+
+        const cache = {};
+        let activeTab = 'today';
+
+        async function loadWidgetTab(tab) {
+            const body = document.getElementById('hmwBody');
+            if (!body) return;
+
+            if (!cache[tab]) {
+                body.innerHTML = `<div class="hmw-loading"><div class="mc-spinner"></div><span>Loading…</span></div>`;
+            }
+
+            try {
+                if (!cache[tab]) {
+                    const r = await fetch('/api/match-schedule?tab=' + tab);
+                    if (!r.ok) throw new Error();
+                    cache[tab] = await r.json();
+                }
+                renderWidget(cache[tab].leagues);
+            } catch (e) {
+                body.innerHTML = `<p class="hmw-empty">Could not load matches.</p>`;
+            }
+        }
+
+        // Tab wiring
+        document.querySelectorAll('.hmw-tab').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (btn.dataset.tab === activeTab) return;
+                document.querySelectorAll('.hmw-tab').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                activeTab = btn.dataset.tab;
+                loadWidgetTab(activeTab);
+            });
+        });
+
+        loadWidgetTab('today');
     })();
     </script>
 
