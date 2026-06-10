@@ -813,83 +813,9 @@
     }());
   }
 
-  // ============================================================
-  // AD MANAGEMENT SYSTEM (Adsterra interstitial)
-  // Fixed: header CTA buttons (.btn-primary/.btn-secondary inside
-  // .site-header) are now excluded from the interstitial selector,
-  // so only content-area links and match links trigger it.
-  // ============================================================
-  var AdManager = {
-    config: { storageKey: 'footholics_ad_clicks' },
-
-    init: function () { this.attachListeners(); },
-
-    getClickCount: function (href) {
-      return (JSON.parse(localStorage.getItem(this.config.storageKey) || '{}')[href]) || 0;
-    },
-
-    incrementClickCount: function (href) {
-      var clicks = JSON.parse(localStorage.getItem(this.config.storageKey) || '{}');
-      clicks[href] = (clicks[href] || 0) + 1;
-      localStorage.setItem(this.config.storageKey, JSON.stringify(clicks));
-    },
-
-    resetClickCount: function (href) {
-      var clicks = JSON.parse(localStorage.getItem(this.config.storageKey) || '{}');
-      clicks[href] = 0;
-      localStorage.setItem(this.config.storageKey, JSON.stringify(clicks));
-    },
-
-    handleAdClick: function (e, link) {
-      var href = link.getAttribute('href');
-      if (!href || href.startsWith('#') || href === 'index.html') return;
-      var count = this.getClickCount(href);
-      if (count === 0) {
-        e.preventDefault();
-        this.showInterstitialAd();
-        this.incrementClickCount(href);
-        this._showNote('Please wait... Ad loading');
-      } else {
-        this.resetClickCount(href);
-        this._showNote('Redirecting...');
-      }
-    },
-
-    attachListeners: function () {
-      // Target only match links and content-area CTAs.
-      // Explicitly exclude .site-header to avoid intercepting the
-      // WhatsApp / Telegram community buttons in the header.
-      var self = this;
-      var links = document.querySelectorAll(
-        '.match-link, main .btn-primary, main .btn-secondary, .hero .btn-primary, .hero .btn-secondary'
-      );
-      links.forEach(function (link) {
-        var href = link.getAttribute('href');
-        if (href && !href.startsWith('#') && href.indexOf('mailto:') === -1) {
-          link.addEventListener('click', function (e) { self.handleAdClick(e, link); });
-        }
-      });
-    },
-
-    showInterstitialAd: function () {
-      var slot = document.getElementById('interstitial-ad-slot');
-      if (slot && typeof window.adsterraInters !== 'undefined') window.adsterraInters.show();
-    },
-
-    _showNote: function (msg) {
-      var note = document.createElement('div');
-      note.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(0,0,0,.8);color:#fff;padding:12px 20px;border-radius:8px;z-index:10000;font-size:14px;backdrop-filter:blur(10px);';
-      note.textContent = msg;
-      document.body.appendChild(note);
-      setTimeout(function () { if (note.parentNode) note.remove(); }, 2000);
-    }
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { AdManager.init(); });
-  } else {
-    AdManager.init();
-  }
+  // One-time cleanup: purge click-count state left behind by the removed
+  // ad-interstitial system from returning visitors' browsers.
+  localStorage.removeItem('footholics_ad_clicks');
 
   // ============================================================
   // COOKIE CONSENT BANNER
