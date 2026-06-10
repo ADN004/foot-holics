@@ -1186,3 +1186,88 @@
     font-family: var(--font-ui);
     font-size: var(--text-sm);
 }
+
+/* ============================================================
+   LIGHT MODE OVERRIDES
+   All hardcoded rgba(255,255,255,…) values are invisible or
+   wrong on light backgrounds — replace with dark equivalents.
+   ============================================================ */
+
+[data-theme="light"] .mc-spinner {
+    border-color: rgba(0,0,0,0.10);
+    border-top-color: var(--accent);
+}
+[data-theme="light"] .mc-date-bar {
+    background: #FFFFFF;
+    border-color: rgba(0,0,0,0.08);
+}
+[data-theme="light"] .mc-date-tab:hover {
+    background: rgba(0,0,0,0.04);
+}
+[data-theme="light"] .mc-league-block {
+    background: #FFFFFF;
+    border-color: rgba(0,0,0,0.08);
+    box-shadow: 0 1px 4px rgba(15,10,5,0.06);
+}
+[data-theme="light"] .mc-league-header {
+    background: rgba(0,0,0,0.025);
+    border-bottom-color: rgba(0,0,0,0.07);
+}
+[data-theme="light"] .mc-match-row {
+    border-bottom-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .mc-match-row:hover {
+    background: rgba(184,150,46,0.05);
+}
+
+/* Match detail page — events, lineups, stats, form */
+[data-theme="light"] .ev-item {
+    border-bottom-color: rgba(0,0,0,0.07);
+}
+[data-theme="light"] .lu-coach {
+    background: rgba(0,0,0,0.025);
+}
+[data-theme="light"] .lu-player:hover {
+    background: rgba(0,0,0,0.04);
+}
+[data-theme="light"] .lu-pos-pill {
+    background: rgba(0,0,0,0.08);
+    color: var(--muted);
+}
+[data-theme="light"] .stat-row {
+    border-bottom-color: rgba(0,0,0,0.07);
+}
+[data-theme="light"] .stat-bars {
+    background: rgba(0,0,0,0.08);
+}
+[data-theme="light"] .form-item {
+    background: rgba(0,0,0,0.02);
+    border-color: rgba(0,0,0,0.07);
+}
+[data-theme="light"] .upco-venue-row {
+    background: rgba(0,0,0,0.025);
+}
+
+/* Homepage match widget */
+[data-theme="light"] .hmw-outer {
+    background: #FFFFFF;
+    border-color: rgba(0,0,0,0.08);
+    box-shadow: 0 2px 12px rgba(15,10,5,0.07);
+}
+[data-theme="light"] .hmw-head {
+    border-bottom-color: rgba(0,0,0,0.07);
+}
+[data-theme="light"] .hmw-tabs {
+    background: rgba(0,0,0,0.02);
+    border-bottom-color: rgba(0,0,0,0.07);
+}
+[data-theme="light"] .hmw-league-sep {
+    background: rgba(0,0,0,0.025);
+    border-bottom-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .hmw-match {
+    border-bottom-color: rgba(0,0,0,0.06);
+}
+[data-theme="light"] .hmw-match:hover {
+    background: rgba(184,150,46,0.05);
+}

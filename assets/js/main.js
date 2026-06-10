@@ -116,6 +116,7 @@
   // Build premium card-style nav items from the desktop primaryNav
   var NAV_ICON_MAP = {
     'home':      'fa-house',
+    'matches':   'fa-futbol',
     'news':      'fa-newspaper',
     'articles':  'fa-pen-nib',
     'standings': 'fa-table-list',

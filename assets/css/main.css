@@ -2315,9 +2315,11 @@ body {
 /* ── Token Overrides ────────────────────────────────────────────────────── */
 [data-theme="light"] {
   /* Surfaces */
-  --bg:    #F5F3EF;
-  --panel: #FFFFFF;
-  --glass: rgba(255,255,255,0.78);
+  --bg:        #F5F3EF;
+  --panel:     #FFFFFF;
+  --glass:     rgba(255,255,255,0.78);
+  --surface-1: #FFFFFF;
+  --surface-2: rgba(0,0,0,0.03);
 
   /* Glass edges */
   --glass-border:    rgba(0,0,0,0.07);
