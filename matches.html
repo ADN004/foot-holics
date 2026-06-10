@@ -264,7 +264,7 @@ function matchRow(m) {
 // ── Render all leagues ────────────────────────────────────────
 function renderLeagues(leagues) {
     if (!leagues.length) {
-        return `<div class="mc-state"><div class="mc-state-icon">📭</div><p class="mc-state-msg">No matches found for this day.</p></div>`;
+        return `<div class="mc-state"><div class="mc-state-icon"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i></div><p class="mc-state-msg">No matches found for this day.</p></div>`;
     }
     return leagues.map(g => `
         <div class="mc-league-block">

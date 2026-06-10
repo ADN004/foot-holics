@@ -77,7 +77,7 @@
 
         <!-- Competition bar -->
         <div class="md-comp-bar" id="compBar" style="display:none;">
-            <img class="md-comp-logo" id="compLogo" src="" alt="" width="20" height="20" onerror="this.style.display='none'">
+            <img class="md-comp-logo" id="compLogo" alt="" width="20" height="20">
             <span class="md-comp-name" id="compName"></span>
             <span class="md-comp-sep">·</span>
             <span class="md-comp-round" id="compRound"></span>
@@ -102,7 +102,7 @@
             <!-- Header -->
             <div class="md-match-card" id="matchCard">
                 <div class="md-team">
-                    <img class="md-team-logo" id="homeLogo" src="" alt="" width="76" height="76" onerror="this.style.display='none'">
+                    <img class="md-team-logo" id="homeLogo" alt="" width="76" height="76">
                     <span class="md-team-name" id="homeName"></span>
                 </div>
                 <div class="md-score-block">
@@ -115,7 +115,7 @@
                     <div class="md-match-meta" id="matchMeta"></div>
                 </div>
                 <div class="md-team">
-                    <img class="md-team-logo" id="awayLogo" src="" alt="" width="76" height="76" onerror="this.style.display='none'">
+                    <img class="md-team-logo" id="awayLogo" alt="" width="76" height="76">
                     <span class="md-team-name" id="awayName"></span>
                 </div>
             </div>
@@ -275,12 +275,26 @@ function renderHeader(data) {
     const awayFlagUrl = getFlagUrl(away.name);
     const homeLogoEl  = document.getElementById('homeLogo');
     const awayLogoEl  = document.getElementById('awayLogo');
-    homeLogoEl.src = homeFlagUrl || home.logo;
-    homeLogoEl.alt = home.name;
-    if (homeFlagUrl) homeLogoEl.classList.add('md-team-flag');
-    awayLogoEl.src = awayFlagUrl || away.logo;
-    awayLogoEl.alt = away.name;
-    if (awayFlagUrl) awayLogoEl.classList.add('md-team-flag');
+
+    function loadTeamLogo(el, flagUrl, apiLogo, name, isFlag) {
+        el.alt = name;
+        const primary   = flagUrl || apiLogo;
+        const fallback  = flagUrl ? apiLogo : null;
+        if (!primary) { el.style.display = 'none'; return; }
+        if (isFlag) el.classList.add('md-team-flag');
+        el.onerror = function () {
+            if (fallback && el.src !== fallback) {
+                el.classList.remove('md-team-flag');
+                el.src = fallback;
+            } else {
+                el.style.display = 'none';
+            }
+        };
+        el.src = primary;
+    }
+
+    loadTeamLogo(homeLogoEl, homeFlagUrl, home.logo, home.name, !!homeFlagUrl);
+    loadTeamLogo(awayLogoEl, awayFlagUrl, away.logo, away.name, !!awayFlagUrl);
     document.getElementById('homeName').textContent = home.name;
     document.getElementById('awayName').textContent = away.name;
 
@@ -301,7 +315,13 @@ function renderHeader(data) {
     document.getElementById('matchMeta').innerHTML  = `${esc(fmtDate(f.date))}${f.venue?.name ? `&nbsp;·&nbsp;${esc(f.venue.name)}` : ''}`;
 
     // Competition bar
-    document.getElementById('compLogo').src         = lg.logo || '';
+    const compLogoEl = document.getElementById('compLogo');
+    if (lg.logo) {
+        compLogoEl.onerror = () => { compLogoEl.style.display = 'none'; };
+        compLogoEl.src = lg.logo;
+    } else {
+        compLogoEl.style.display = 'none';
+    }
     document.getElementById('compName').textContent = lg.name;
     document.getElementById('compRound').textContent = lg.round || '';
     document.getElementById('compBar').style.display = 'flex';
