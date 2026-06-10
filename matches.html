@@ -289,6 +289,7 @@ async function loadTab(tab) {
     // Show loading only if not cached
     if (!dataCache[tab]) {
         content.innerHTML = `<div class="mc-state"><div class="mc-spinner"></div><span style="color:var(--muted);font-family:var(--font-ui);font-size:var(--text-sm);">Loading matches…</span></div>`;
+
     }
 
     try {
@@ -307,7 +308,7 @@ async function loadTab(tab) {
         content.innerHTML = renderLeagues(leagues);
 
     } catch (err) {
-        content.innerHTML = `<div class="mc-state"><div class="mc-state-icon">⚠️</div><p class="mc-state-msg">Could not load matches. Please try again.</p></div>`;
+        content.innerHTML = `<div class="mc-state"><div class="mc-state-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></div><p class="mc-state-msg">Could not load matches. Please try again.</p></div>`;
         console.error('[mc]', err);
     }
 }
@@ -336,12 +337,22 @@ document.querySelectorAll('.mc-date-tab').forEach(btn => {
     });
 });
 
+// ── Prefetch: cache only, never render ───────────────────────
+async function prefetchTab(tab) {
+    if (dataCache[tab]) return;
+    try {
+        const r = await fetch(`/api/match-schedule?tab=${tab}`);
+        if (!r.ok) return;
+        dataCache[tab] = await r.json();
+        countCache[tab] = dataCache[tab].total;
+        updateCountBadges();
+    } catch (_) {}
+}
+
 // ── Boot ──────────────────────────────────────────────────────
 loadTab('today');
-
-// Pre-fetch adjacent tabs after initial load
-setTimeout(() => loadTab('yesterday'), 2000);
-setTimeout(() => loadTab('tomorrow'),  3000);
+setTimeout(() => prefetchTab('yesterday'), 2000);
+setTimeout(() => prefetchTab('tomorrow'),  3000);
 </script>
 </body>
 </html>

@@ -196,7 +196,7 @@
                 <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="news-feature" style="text-decoration:none;">
                     ${article.image
                         ? `<img src="${article.image}" alt="${escHtml(article.headline)}" class="news-feature-img" loading="eager" onerror="this.parentElement.querySelector('.news-feature-body').style.borderRadius='var(--radius-lg)';this.remove();">`
-                        : `<div class="news-card-img-placeholder" style="height:100%;min-height:220px;">⚽</div>`
+                        : `<div class="news-card-img-placeholder" style="height:100%;min-height:220px;"><i class="fa-solid fa-futbol" aria-hidden="true"></i></div>`
                     }
                     <div class="news-feature-body">
                         <div class="news-feature-cat">${escHtml(article.category)}</div>
@@ -218,8 +218,8 @@
             grid.innerHTML = articles.map(a => `
                 <a href="${a.url}" target="_blank" rel="noopener noreferrer" class="news-card" style="text-decoration:none;">
                     ${a.image
-                        ? `<img src="${a.image}" alt="${escHtml(a.headline)}" class="news-card-img" loading="lazy" onerror="this.outerHTML='<div class=\\'news-card-img-placeholder\\'>⚽</div>'">`
-                        : `<div class="news-card-img-placeholder">⚽</div>`
+                        ? `<img src="${a.image}" alt="${escHtml(a.headline)}" class="news-card-img" loading="lazy" onerror="this.outerHTML='<div class=\\'news-card-img-placeholder\\'><i class="fa-solid fa-futbol" aria-hidden="true"></i></div>'">`
+                        : `<div class="news-card-img-placeholder"><i class="fa-solid fa-futbol" aria-hidden="true"></i></div>`
                     }
                     <div class="news-card-body">
                         <div class="news-card-meta">
