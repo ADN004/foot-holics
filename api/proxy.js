@@ -82,19 +82,26 @@ export default async function handler(req, res) {
 
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-        res.setHeader('Cache-Control', 'no-store, no-cache');
 
         if (isM3U8(ct, targetUrl)) {
             // HLS manifest: rewrite all relative URIs → absolute CDN URIs
-            // This prevents HLS.js from resolving segments against our proxy URL
+            // This prevents HLS.js from resolving segments against our proxy URL.
+            // Manifests update every few seconds on a live stream, so never cache.
             const text = await upstream.text();
             const rewritten = rewriteM3U8(text, upstream.url || targetUrl);
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            res.setHeader('Cache-Control', 'no-store, no-cache');
             return res.status(upstream.status).send(rewritten);
         } else {
-            // Binary segment / key / other — stream through as-is
+            // Binary segment / key / other — stream through as-is.
+            // A live HLS segment is immutable once published (each has a unique
+            // URL), so it is safe to cache at the edge. This is the critical
+            // scale fix: many concurrent viewers of the same match share ONE
+            // origin fetch per segment instead of each re-fetching through the
+            // function. s-maxage caches on Vercel's edge CDN.
             const body = await upstream.arrayBuffer();
             res.setHeader('Content-Type', ct);
+            res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=60');
             return res.status(upstream.status).send(Buffer.from(body));
         }
     } catch (err) {
