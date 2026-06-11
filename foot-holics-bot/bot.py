@@ -650,6 +650,8 @@ def generate_live_html(data: dict) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="monetag" content="4d7372eaeef870ded80928fe202a33e8">
+    <script src="https://quge5.com/88/tag.min.js" data-zone="248733" async data-cfasync="false"></script>
     <meta name="robots" content="noindex, nofollow">
     <meta name="description" content="Watch {data['home_team']} vs {data['away_team']} live — {data['league']} on {date_obj.strftime('%B %d, %Y')}. Multiple stream links available.">
     <meta property="og:title" content="{data['match_name']} — Watch Live Stream">
@@ -1782,6 +1784,10 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
                 deleted_files.append("✓ Removed from live.footholics.in")
             except Exception as e:
                 failed_operations.append(f"✗ Live file: {str(e)}")
+        else:
+            failed_operations.append(f"✗ Live file not found: {filename} — delete it manually from foot-holics-live")
+    else:
+        failed_operations.append("✗ foot-holics-live folder not found — live page NOT deleted")
 
     # Remove from events.json
     if remove_match_from_events_json(filename):
