@@ -154,6 +154,29 @@ def encode_stream_url(url: str) -> str:
     return encoded_str
 
 
+def parse_stream_key(raw: str):
+    """Split an optional inline DRM key off a stream URL.
+
+    Lets an operator paste a protected stream with the key inline, so no
+    extra Telegram prompt is needed:
+        https://cdn/stream.mpd#ck=KEYID:KEY       → ClearKey DRM
+        https://cdn/stream.mpd#wv=https://lic...   → Widevine license URL
+    (a literal '|ck='/'|wv=' separator is accepted too).
+    Returns (clean_url, ck, wv). No marker → (raw, "", "").
+    """
+    if not raw:
+        return raw, "", ""
+    for marker in ("#ck=", "|ck=", "#wv=", "|wv="):
+        idx = raw.find(marker)
+        if idx != -1:
+            val  = raw[idx + len(marker):].strip()
+            base = raw[:idx].strip()
+            if "ck=" in marker:
+                return base, val, ""
+            return base, "", val
+    return raw, "", ""
+
+
 def detect_stream_type(url: str) -> str:
     """
     Detect stream type based on URL extension.
@@ -197,7 +220,7 @@ def detect_player_type(url: str) -> str:
         'hls' for m3u8/HLS streams
         'iframe' for external pages (php, embed, etc.)
         'direct' for other video files (mp4, webm …)
-        'unknown' otherwise — universal-player.html will auto-detect
+        'unknown' otherwise — player.html will auto-detect
     """
     if not url or url == "#":
         return "unknown"
@@ -225,7 +248,7 @@ def detect_player_type(url: str) -> str:
 
 
 def get_type_param(url: str) -> str:
-    """Map detected player type to universal-player.html &type= hint."""
+    """Map detected player type to player.html &type= hint."""
     t = detect_player_type(url)
     if t == "iframe":
         return "iframe"
@@ -236,9 +259,9 @@ def get_type_param(url: str) -> str:
     return ""  # let the player auto-detect
 
 
-def get_player_url(url: str, base_url: str = "https://live.footholics.in", title: str = "", thumb: str = "") -> str:
+def get_player_url(url: str, base_url: str = "https://live.footholics.in", title: str = "", thumb: str = "", ck: str = "", wv: str = "") -> str:
     """
-    Generate a universal-player.html URL for any stream type.
+    Generate a player.html URL for any stream type.
     Handles HLS, MP4, DASH, iframes, YouTube, Twitch and unknown streams.
 
     Args:
@@ -254,15 +277,25 @@ def get_player_url(url: str, base_url: str = "https://live.footholics.in", title
         return "#"
 
     # Already a player URL — don't double-wrap
-    if "universal-player.html" in url or "player.html" in url or "iframe-player.html" in url:
+    if "player.html" in url:
         return url
 
+    # Pull an inline DRM key off the URL (e.g. ...mpd#ck=KEYID:KEY); explicit
+    # ck/wv kwargs take precedence over an inline marker.
+    url, _ck, _wv = parse_stream_key(url)
+    ck = ck or _ck
+    wv = wv or _wv
+
     encoded_url = base64.b64encode(url.encode()).decode()
-    type_hint = get_type_param(url)
+    type_hint = "shaka" if (ck or wv) else get_type_param(url)
 
     params = f"get={encoded_url}"
     if type_hint:
         params += f"&type={type_hint}"
+    if ck:
+        params += f"&ck={quote(ck)}"
+    if wv:
+        params += f"&wv={quote(wv)}"
     if title:
         params += f"&title={quote(title)}"
     if thumb:
@@ -286,7 +319,7 @@ def wrap_m3u8_with_proxy(url: str) -> str:
         return url
 
     # Check if it's already wrapped with a player or proxy
-    if "universal-player.html" in url or "player.html" in url or "iframe-player.html" in url:
+    if "player.html" in url:
         return url
     if "aeriswispx.github.io" in url or "mpdhls" in url:
         return url
@@ -608,13 +641,19 @@ def generate_live_html(data: dict) -> str:
 
     # Build player URLs pointing to live.footholics.in/player.html
     player_urls = []
-    for url in stream_urls[:4]:
+    for raw_url in stream_urls[:4]:
+        url, _ck, _wv = parse_stream_key(raw_url)
         if url and url != "#" and not url.startswith("https://t.me/"):
             encoded_url = base64.b64encode(url.encode()).decode()
-            type_hint = get_type_param(url)
+            # A DRM key forces the Shaka player path; otherwise auto-detect.
+            type_hint = "shaka" if (_ck or _wv) else get_type_param(url)
             params = f"get={encoded_url}"
             if type_hint:
                 params += f"&type={type_hint}"
+            if _ck:
+                params += f"&ck={quote(_ck)}"
+            if _wv:
+                params += f"&wv={quote(_wv)}"
             if encoded_title:
                 params += f"&title={encoded_title}"
             if encoded_thumb:
@@ -2476,192 +2515,8 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
     match_file = os.path.join(root_dir, filename)
 
     try:
-        # Update main-site HTML if it exists (legacy; new matches only live on live subdomain)
-        if os.path.exists(match_file):
-            with open(match_file, "r", encoding="utf-8") as f:
-                html_content = f.read()
-        else:
-            html_content = None
-
-        # Update HTML content (only if main-site file exists)
-        if html_content is not None and "current_title" in context.user_data:
-            html_content = re.sub(
-                r'<h1 class="event-title">.*?</h1>',
-                f'<h1 class="event-title">{context.user_data["current_title"]}</h1>',
-                html_content
-            )
-            html_content = re.sub(
-                r'<title>.*?</title>',
-                f'<title>{context.user_data["current_title"]} - {context.user_data.get("current_league", "Football")} Live Stream | Foot Holics</title>',
-                html_content
-            )
-
-            # Extract team names and update logos
-            title = context.user_data["current_title"]
-            if " vs " in title.lower():
-                teams = re.split(r"\s+vs\s+", title, flags=re.IGNORECASE)
-                if len(teams) == 2:
-                    home_team = teams[0].strip()
-                    away_team = teams[1].strip()
-                    league_slug = context.user_data.get("current_league_slug", "others")
-
-                    # Fetch team logos
-                    home_logo = find_team_logo(home_team, league_slug)
-                    away_logo = find_team_logo(away_team, league_slug)
-
-                    # Update home team logo in HTML
-                    html_content = re.sub(
-                        r'(<img src=")([^"]*?)(" alt="[^"]*?" class="team-logo"[^>]*?>)',
-                        f'\\1{home_logo}\\3',
-                        html_content,
-                        count=1
-                    )
-
-                    # Update away team logo in HTML (second occurrence)
-                    # Find all team logo img tags and replace the second one
-                    def replace_second_logo(match_obj):
-                        replace_second_logo.counter += 1
-                        if replace_second_logo.counter == 2:
-                            return f'{match_obj.group(1)}{away_logo}{match_obj.group(3)}'
-                        return match_obj.group(0)
-
-                    replace_second_logo.counter = 0
-                    html_content = re.sub(
-                        r'(<img src=")([^"]*?)(" alt="[^"]*?" class="team-logo"[^>]*?>)',
-                        replace_second_logo,
-                        html_content
-                    )
-
-        if html_content is not None and "current_date" in context.user_data:
-            utc_t = context.user_data.get("current_utc_time", context.user_data["current_time"])
-            html_content = re.sub(
-                r'<span>(.*?) at (.*?) (?:GMT|IST.*?)</span>',
-                f'<span>{context.user_data["current_date"]} at {context.user_data["current_time"]} IST ({utc_t} UTC)</span>',
-                html_content
-            )
-
-        if html_content is not None and "current_league" in context.user_data:
-            # Update league badge
-            old_league_pattern = r'<span class="league-badge .*?">(.*?)</span>'
-            html_content = re.sub(
-                old_league_pattern,
-                f'<span class="league-badge {context.user_data.get("current_league_slug", "others")}">{context.user_data["current_league"]}</span>',
-                html_content
-            )
-
-            # Refresh team logos with new league context
-            # Extract team names from title
-            title_match = re.search(r'<h1 class="event-title">(.*?)</h1>', html_content)
-            if title_match:
-                title = title_match.group(1)
-                if " vs " in title.lower():
-                    teams = re.split(r"\s+vs\s+", title, flags=re.IGNORECASE)
-                    if len(teams) == 2:
-                        home_team = teams[0].strip()
-                        away_team = teams[1].strip()
-                        league_slug = context.user_data.get("current_league_slug", "others")
-
-                        # Fetch team logos with new league context
-                        home_logo = find_team_logo(home_team, league_slug)
-                        away_logo = find_team_logo(away_team, league_slug)
-
-                        # Update home team logo in HTML
-                        html_content = re.sub(
-                            r'(<img src=")([^"]*?)(" alt="[^"]*?" class="team-logo"[^>]*?>)',
-                            f'\\1{home_logo}\\3',
-                            html_content,
-                            count=1
-                        )
-
-                        # Update away team logo in HTML (second occurrence)
-                        def replace_second_logo(match_obj):
-                            replace_second_logo.counter += 1
-                            if replace_second_logo.counter == 2:
-                                return f'{match_obj.group(1)}{away_logo}{match_obj.group(3)}'
-                            return match_obj.group(0)
-
-                        replace_second_logo.counter = 0
-                        html_content = re.sub(
-                            r'(<img src=")([^"]*?)(" alt="[^"]*?" class="team-logo"[^>]*?>)',
-                            replace_second_logo,
-                            html_content
-                        )
-
-        if html_content is not None and "current_stadium" in context.user_data:
-            html_content = re.sub(
-                r'(<path d="M21 10.*?</svg>\s*<span>).*?(</span>)',
-                f'\\1{context.user_data["current_stadium"]}\\2',
-                html_content,
-                flags=re.DOTALL
-            )
-
-        if html_content is not None and "current_preview" in context.user_data:
-            html_content = re.sub(
-                r'(<h2[^>]*>Match Preview</h2>\s*<p>).*?(</p>)',
-                f'\\1{context.user_data["current_preview"]}\\2',
-                html_content,
-                flags=re.DOTALL
-            )
-
-        # Thumbnail update: replace &thumb= in all 4 player hrefs
-        if html_content is not None and "current_thumbnail" in context.user_data:
-            new_thumb = context.user_data["current_thumbnail"]
-            enc_new_thumb = quote(new_thumb)
-            # Remove existing &thumb=... then append new one to every player href
-            def _update_thumb(m):
-                href = m.group(0)
-                href = re.sub(r'&thumb=[^"&]*', '', href)   # strip old thumb
-                href = href.rstrip('"') + f'&thumb={enc_new_thumb}"'
-                return href
-            html_content = re.sub(
-                r'href="universal-player\.html\?[^"]*"(?=\s[^>]*class="stream-link-card")',
-                _update_thumb,
-                html_content
-            )
-
-        if html_content is not None and "current_stream_links" in context.user_data:
-            stream_links = context.user_data["current_stream_links"]
-            match_title  = context.user_data.get("current_title", "")
-            enc_title    = quote(match_title) if match_title else ""
-
-            # Preserve existing thumbnail from HTML (or use updated one)
-            existing_thumb = context.user_data.get("current_thumbnail", "")
-            if not existing_thumb:
-                _t = re.search(r'[?&]thumb=([^"&]*)', html_content)
-                existing_thumb = _t.group(1) if _t else ""
-
-            # Pre-build all 4 player URLs
-            player_urls_upd = []
-            for _url in (list(stream_links) + ["#"] * 4)[:4]:
-                if _url and _url != "#" and not _url.startswith("https://t.me/"):
-                    _enc  = base64.b64encode(_url.encode()).decode()
-                    _hint = get_type_param(_url)
-                    _p    = f"get={_enc}"
-                    if _hint:         _p += f"&type={_hint}"
-                    if enc_title:     _p += f"&title={enc_title}"
-                    if existing_thumb: _p += f"&thumb={existing_thumb}"
-                    player_urls_upd.append(f"universal-player.html?{_p}")
-                else:
-                    player_urls_upd.append("#")
-
-            # Single-pass positional replacement using the stream-link-card class
-            # as the anchor — matches ALL 4 stream hrefs including empty href="#" ones.
-            # Lookahead ensures we only touch stream link anchors, nothing else.
-            _href_pat = r'href="[^"]*"(?=\s[^>]*class="stream-link-card")'
-            _pos = [0]
-            def _repl(m):
-                i = _pos[0]; _pos[0] += 1
-                return f'href="{player_urls_upd[i]}"' if i < 4 else m.group(0)
-            html_content = re.sub(_href_pat, _repl, html_content)
-
-        # Write updated HTML (only if main-site file existed)
-        if html_content is not None:
-            with open(match_file, "w", encoding="utf-8") as f:
-                f.write(html_content)
-            gen_file = os.path.join(root_dir, "foot-holics-bot", "generated", "html_files", filename)
-            if os.path.exists(gen_file):
-                with open(gen_file, "w", encoding="utf-8") as f:
-                    f.write(html_content)
+        # (Legacy main-domain match-page editing removed — matches live only
+        #  on the live subdomain, regenerated below via generate_live_html.)
 
         # Update events.json
         events_path = os.path.join(root_dir, "data", "events.json")
@@ -3158,7 +3013,9 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     await update.message.reply_text("⏳ Generating code files... Please wait.")
 
     try:
-        html_code = generate_html(context.user_data)
+        # The live subdomain page is the only match page actually served.
+        # Generate it once and reuse it for the local archive + operator copy.
+        live_html_code = generate_live_html(context.user_data)
         json_code = generate_json(context.user_data)
         card_code = generate_card(context.user_data)
 
@@ -3178,7 +3035,7 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         os.makedirs(gen_cards, exist_ok=True)
 
         with open(os.path.join(gen_html, f"{filename_base}.html"), "w", encoding="utf-8") as f:
-            f.write(html_code)
+            f.write(live_html_code)
 
         with open(os.path.join(gen_json, f"{filename_base}.json"), "w", encoding="utf-8") as f:
             f.write(json_code)
@@ -3199,15 +3056,14 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         else:
             integration_results.append("⚠️ Could not add to events.json")
 
-        # 2. Generate and copy live subdomain page (matches live on live.footholics.in only)
-        live_html_code = generate_live_html(context.user_data)
+        # 2. Copy live subdomain page (matches live on live.footholics.in only)
         if copy_html_to_live(html_filename, live_html_code):
             integration_results.append("✅ Live page copied to foot-holics-live/")
         else:
             integration_results.append("⚠️ Could not copy live page (foot-holics-live/ not found)")
 
         # Send results as files
-        await send_generated_files(update, context, html_code, json_code, card_code, filename_base, integration_results)
+        await send_generated_files(update, context, live_html_code, json_code, card_code, filename_base, integration_results)
 
     except Exception as e:
         await update.message.reply_text(f"❌ Error generating code: {str(e)}")
@@ -3216,92 +3072,6 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     # Show main menu again
     await show_main_menu(update, context, edit_message=False)
     return MAIN_MENU
-
-
-def generate_html(data: Dict[str, Any]) -> str:
-    """Generate complete HTML event file."""
-    # Prepare data
-    date_obj = data["datetime_obj"]
-    home_slug = slugify(data["home_team"])
-    away_slug = slugify(data["away_team"])
-    filename = f"{data['date']}-{home_slug}-vs-{away_slug}.html"
-
-    # Generate ISO date for JSON-LD
-    iso_date = date_obj.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    # URL encode match name for social sharing
-    match_name_encoded = quote(data["match_name"])
-
-    # Use template
-    html = get_inline_event_template()
-
-    # Auto-find team logos
-    home_logo = find_team_logo(data["home_team"], data["league_slug"])
-    away_logo = find_team_logo(data["away_team"], data["league_slug"])
-
-    # Generate player URLs with smart routing based on stream type
-    stream_urls = data.get("stream_urls", ["#", "#", "#", "#"])
-    player_urls = []
-
-    # Build universal-player.html URLs for each stream with type hint + match title + thumbnail
-    encoded_title = quote(data.get("match_name", ""))
-    # Thumbnail: use explicit thumb from data, else the site-wide default image
-    thumb_src = data.get("thumbnail", "") or "assets/img/default-player-thumb.jpg"
-    encoded_thumb = quote(thumb_src)
-
-    for i in range(4):
-        url = stream_urls[i] if i < len(stream_urls) else "#"
-
-        if url and url != "#" and not url.startswith("https://t.me/"):
-            encoded_url = base64.b64encode(url.encode()).decode()
-            type_hint = get_type_param(url)
-            params = f"get={encoded_url}"
-            if type_hint:
-                params += f"&type={type_hint}"
-            if encoded_title:
-                params += f"&title={encoded_title}"
-            if encoded_thumb:
-                params += f"&thumb={encoded_thumb}"
-            player_url = f"https://live.footholics.in/player.html?{params}"
-        else:
-            player_url = "#"
-
-        player_urls.append(player_url)
-
-    # Ensure we have exactly 4 URLs
-    while len(player_urls) < 4:
-        player_urls.append("#")
-
-    # Replace placeholders
-    html = html.replace("{{MATCH_NAME}}", data["match_name"])
-    html = html.replace("{{HOME_TEAM}}", data["home_team"])
-    html = html.replace("{{AWAY_TEAM}}", data["away_team"])
-    html = html.replace("{{HOME_TEAM_LOGO}}", home_logo)
-    html = html.replace("{{AWAY_TEAM_LOGO}}", away_logo)
-    html = html.replace("{{DATE}}", date_obj.strftime("%B %d, %Y"))
-    html = html.replace("{{DATE_SHORT}}", date_obj.strftime("%b %d, %Y"))
-    html = html.replace("{{ISO_DATE}}", iso_date)
-    html = html.replace("{{TIME}}", data["time"])
-    html = html.replace("{{UTC_TIME}}", data.get("utc_time", date_obj.strftime("%H:%M")))
-    html = html.replace("{{LEAGUE}}", data["league"])
-    html = html.replace("{{LEAGUE_SLUG}}", data["league_slug"])
-    html = html.replace("{{STADIUM}}", data["stadium"])
-    html = html.replace("{{PREVIEW}}", data["preview"])
-    html = html.replace("{{IMAGE_FILE}}", data["image_file"])
-    html = html.replace("{{FILE_NAME}}", filename)
-    match_slug = filename.replace(".html", "")
-    html = html.replace("{{MATCH_SLUG}}", match_slug)
-    html = html.replace("{{SLUG}}", f"{home_slug}-vs-{away_slug}")
-    html = html.replace("{{MATCH_NAME_ENCODED}}", match_name_encoded)
-    html = html.replace("{{BROADCAST_ROWS}}", get_broadcaster_table(data["league_slug"]))
-
-    # Replace stream URLs with branded player links
-    html = html.replace("{{STREAM_URL_1}}", player_urls[0])
-    html = html.replace("{{STREAM_URL_2}}", player_urls[1])
-    html = html.replace("{{STREAM_URL_3}}", player_urls[2])
-    html = html.replace("{{STREAM_URL_4}}", player_urls[3])
-
-    return html
 
 
 def generate_json(data: Dict[str, Any]) -> str:
