@@ -651,7 +651,8 @@ def generate_live_html(data: dict) -> str:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="monetag" content="4d7372eaeef870ded80928fe202a33e8">
-    <script src="https://quge5.com/88/tag.min.js" data-zone="248733" async data-cfasync="false"></script>
+    <script src="https://quge5.com/88/tag.min.js" data-zone="248733" async data-cfasync="false" onerror="window.__fhAdScriptFailed=1"></script>
+    <script src="/assets/js/live-core.js" defer></script>
     <meta name="robots" content="noindex, nofollow">
     <meta name="description" content="Watch {data['home_team']} vs {data['away_team']} live — {data['league']} on {date_obj.strftime('%B %d, %Y')}. Multiple stream links available.">
     <meta property="og:title" content="{data['match_name']} — Watch Live Stream">
