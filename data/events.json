@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "event-1781202602517",
+    "date": "2026-06-12",
+    "time": "00:30",
+    "slug": "2026-06-12-mexico-vs-south-africa",
+    "title": "Mexico vs South Africa",
+    "homeTeam": "Mexico",
+    "awayTeam": "South Africa",
+    "homeLogo": "https://footholics.in/assets/img/logos/teams/wc/mexico.png",
+    "awayLogo": "https://footholics.in/assets/img/logos/teams/wc/south-africa.png",
+    "league": "World Cup 2026",
+    "leagueSlug": "wc",
+    "stadium": "Mexico City Stadium",
+    "poster": "assets/img/2026-06-12-mexico-vs-south-africa-poster.jpg",
+    "excerpt": "The wait is over! Host nation 🇲🇽 Mexico begins its World Cup 2026 campaign against 🇿🇦 South Africa in the tournament's opening match. With a packed Es...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzIuc3BvcnR0c29ubGluZS5jbGljay9jaGFubmVscy9wdC9zcG9ydHR2MS5waHA=&type=iframe"
+      },
+      {
+        "name": "Stream 2",
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzIuc3BvcnR0c29ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDEucGhw&type=iframe"
+      },
+      {
+        "name": "Stream 3",
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzIuc3BvcnR0c29ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDIucGhw&type=iframe"
+      },
+      {
+        "name": "Stream 4",
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly93dzIuc3BvcnR0c29ubGluZS5jbGljay9jaGFubmVscy9oZC9oZDMucGhw&type=iframe"
+      }
+    ],
+    "streams": 4
+  }
+]
