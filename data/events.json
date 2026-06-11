@@ -1,5 +1,41 @@
 [
   {
+    "id": "event-1781220913881",
+    "date": "2026-06-12",
+    "time": "07:30",
+    "slug": "2026-06-12-south-korea-vs-czecia",
+    "title": "South Korea vs Czecia",
+    "homeTeam": "South Korea",
+    "awayTeam": "Czecia",
+    "homeLogo": "https://footholics.in/assets/img/logos/teams/wc/south-korea.png",
+    "awayLogo": "https://footholics.in/assets/img/logos/teams/wc/missing.png",
+    "league": "World Cup 2026",
+    "leagueSlug": "wc",
+    "stadium": "Estadio Guadalajara",
+    "poster": "assets/img/2026-06-12-south-korea-vs-czecia-poster.jpg",
+    "excerpt": "South Korea and Czechia face off in an exciting Group Stage clash as both sides look to begin their World Cup journey on a winning note. South Korea w...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "#"
+      },
+      {
+        "name": "Stream 2",
+        "url": "#"
+      },
+      {
+        "name": "Stream 3",
+        "url": "#"
+      },
+      {
+        "name": "Stream 4",
+        "url": "#"
+      }
+    ],
+    "streams": 0
+  },
+  {
     "id": "event-1781202602517",
     "date": "2026-06-12",
     "time": "00:30",
