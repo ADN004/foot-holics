@@ -1,5 +1,41 @@
 [
   {
+    "id": "event-1781289627405",
+    "date": "2026-06-13",
+    "time": "00:30",
+    "slug": "2026-06-13-canada-vs-bosnia-and-herzegovina",
+    "title": "Canada vs Bosnia and Herzegovina",
+    "homeTeam": "Canada",
+    "awayTeam": "Bosnia and Herzegovina",
+    "homeLogo": "https://footholics.in/assets/img/logos/teams/wc/canada.png",
+    "awayLogo": "https://footholics.in/assets/img/logos/teams/wc/missing.png",
+    "league": "World Cup 2026",
+    "leagueSlug": "wc",
+    "stadium": "Toronto Stadium",
+    "poster": "assets/img/2026-06-13-canada-vs-bosnia-and-herzegovina-poster.jpg",
+    "excerpt": "Canada takes on Bosnia and Herzegovina in a thrilling World Cup clash as both teams look to make an early statement in the tournament. Canada's youthf...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4UIgdcVz0ILUVCQB9GUxxmH1wNIUgpT1NdU19bHS9fVx8mSQtLXERXWFVXCDx4PA0pBBYfc2ZkDEw4XE9IfSohUlcfUV5AFiUUVVI5EC1FGx9fV1IMLgMXFyIC&type=shaka&ck=~BS0TU1IBBhNKLkYMSWFWfx0LB1QDGRktFAlKYwQpRwYKBQRFTnhAWExkA34XB1MEBhlKchAJHDdRfxQHBQMAQkk"
+      },
+      {
+        "name": "Stream 2",
+        "url": "#"
+      },
+      {
+        "name": "Stream 3",
+        "url": "#"
+      },
+      {
+        "name": "Stream 4",
+        "url": "#"
+      }
+    ],
+    "streams": 1
+  },
+  {
     "id": "event-1781220913881",
     "date": "2026-06-12",
     "time": "07:30",
