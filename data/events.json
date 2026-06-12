@@ -1,5 +1,41 @@
 [
   {
+    "id": "event-1781296148697",
+    "date": "2026-06-13",
+    "time": "06:30",
+    "slug": "2026-06-13-usa-vs-paraguay",
+    "title": "USA vs Paraguay",
+    "homeTeam": "USA",
+    "awayTeam": "Paraguay",
+    "homeLogo": "https://footholics.in/assets/img/logos/teams/wc/usa.png",
+    "awayLogo": "https://footholics.in/assets/img/logos/teams/wc/paraguay.png",
+    "league": "World Cup 2026",
+    "leagueSlug": "wc",
+    "stadium": "Los Angeles Stadium",
+    "poster": "assets/img/2026-06-13-usa-vs-paraguay-poster.jpg",
+    "excerpt": "The USA faces Paraguay in an exciting World Cup showdown as both teams aim to start their campaign on a high. Backed by home support, the Americans wi...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Stream 1",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4UIgdcVz0ILUVCQB9GUxxmH1wNIUgpT1NdU19bHS9fVx8mSQtLXERXWFVXCDx4PA0pBBYfc2ZkDEw4XE9IfSohUlcfUV5AFiUUVVI5EC1FGx9fV1IMLgMXFyIC&type=shaka&ck=~BS0TU1IBBhNKLkYMSWFWfx0LB1QDGRktFAlKYwQpRwYKBQRFTnhAWExkA34XB1MEBhlKchAJHDdRfxQHBQMAQkk"
+      },
+      {
+        "name": "Stream 2",
+        "url": "#"
+      },
+      {
+        "name": "Stream 3",
+        "url": "#"
+      },
+      {
+        "name": "Stream 4",
+        "url": "#"
+      }
+    ],
+    "streams": 1
+  },
+  {
     "id": "event-1781289627405",
     "date": "2026-06-13",
     "time": "00:30",
