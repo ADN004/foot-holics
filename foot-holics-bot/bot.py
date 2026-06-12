@@ -14,7 +14,7 @@ import base64
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 from dotenv import load_dotenv
 from io import BytesIO
 import html as _html
@@ -177,6 +177,38 @@ def parse_stream_key(raw: str):
     return raw, "", ""
 
 
+def unwrap_stream_url(url: str, _depth: int = 0) -> str:
+    """If a pasted link is itself a player/wrapper carrying the real stream in a
+    ?get= parameter, return the inner raw stream so it plays in OUR player
+    natively instead of nesting another site's player in an iframe.
+
+        https://x.com/isl/player.html?get=https://cdn/live.m3u8 → https://cdn/live.m3u8
+        https://x.com/mpdhls?get=<base64 of m3u8>               → https://cdn/...m3u8
+
+    Recurses through nested wrappers (depth-capped). Non-wrapper links and
+    ?get=<numeric id> style links are returned unchanged.
+    """
+    if not url or _depth > 3:
+        return url
+    try:
+        m = re.search(r'[?&]get=(.+)$', url)
+        if not m:
+            return url
+        inner = unquote(m.group(1)).strip()
+        if inner.startswith(("http://", "https://")):
+            return unwrap_stream_url(inner, _depth + 1)
+        # get= value may be base64 of the real URL (friend's mpdhls style)
+        try:
+            decoded = base64.b64decode(inner + "===").decode("utf-8")
+            if decoded.startswith(("http://", "https://")):
+                return unwrap_stream_url(decoded, _depth + 1)
+        except Exception:
+            pass
+        return url
+    except Exception:
+        return url
+
+
 def detect_stream_type(url: str) -> str:
     """
     Detect stream type based on URL extension.
@@ -281,6 +313,10 @@ def get_player_url(url: str, base_url: str = "https://live.footholics.in", title
     """
     if not url or url == "#" or url.startswith("https://t.me/"):
         return "#"
+
+    # Unwrap a wrapper carrying the real stream in ?get= so we play it natively
+    # (leaves our own player.html URLs untouched — they fall through unchanged).
+    url = unwrap_stream_url(url)
 
     # Already a player URL — don't double-wrap
     if "player.html" in url:
@@ -649,6 +685,9 @@ def generate_live_html(data: dict) -> str:
     player_urls = []
     for raw_url in stream_urls[:4]:
         url, _ck, _wv = parse_stream_key(raw_url)
+        # If it's a wrapper carrying the real stream in ?get=, unwrap it so it
+        # plays in our native player instead of nesting another site's player.
+        url = unwrap_stream_url(url)
         if url and url != "#" and not url.startswith("https://t.me/"):
             encoded_url = base64.b64encode(url.encode()).decode()
             # A DRM key forces the Shaka player path; otherwise auto-detect.
