@@ -243,8 +243,14 @@ def detect_player_type(url: str) -> str:
     if any(ext in url_lower for ext in video_extensions):
         return "direct"
 
-    # Default to HLS player (it handles most streams)
-    return "hls"
+    # A web page (e.g. someone else's player/embed page) is NOT a raw stream —
+    # play it in an iframe, never as HLS.
+    if '.html' in url_lower or '.htm' in url_lower or '.aspx' in url_lower:
+        return "iframe"
+
+    # Truly unknown — let player.html auto-detect (tries HLS → native → iframe
+    # fallback) instead of forcing HLS on a page that isn't a stream.
+    return "unknown"
 
 
 def get_type_param(url: str) -> str:
