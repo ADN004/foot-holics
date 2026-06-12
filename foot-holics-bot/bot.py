@@ -144,14 +144,56 @@ LEAGUES = {
 }
 
 
+# ── Stream-link obfuscation ──────────────────────────────────────────────
+# Competitors were lifting the plain base64 ?get= value straight off our pages
+# and decoding the raw stream URL in one step. We XOR the URL with a key before
+# url-safe base64 so a naive base64-decode yields garbage. This is a deterrent,
+# NOT real security: the key ships inside player.html and the real URL is still
+# visible to anyone capturing network traffic — it only stops lazy copy-paste
+# scraping. player.html decodes this and falls back to plain base64 so older
+# links and external wrappers keep working. Keep _LINK_KEY in sync with the
+# char-code key in player.html (_LK).
+_LINK_KEY = "fH$2026!xKq9zR"
+
+
+def _obf_encode(url: str) -> str:
+    """XOR-with-key then url-safe base64 (padding stripped)."""
+    raw = url.encode("utf-8")
+    k = _LINK_KEY.encode("utf-8")
+    xored = bytes(b ^ k[i % len(k)] for i, b in enumerate(raw))
+    return base64.urlsafe_b64encode(xored).decode("ascii").rstrip("=")
+
+
+def _obf_decode(enc: str) -> str:
+    """Reverse _obf_encode. Falls back to plain base64 for legacy/external
+    links. Returns '' if neither yields an http(s) URL."""
+    if not enc:
+        return ""
+    pad = "=" * (-len(enc) % 4)
+    # New scheme: url-safe base64 + XOR
+    try:
+        data = base64.urlsafe_b64decode(enc + pad)
+        k = _LINK_KEY.encode("utf-8")
+        out = bytes(b ^ k[i % len(k)] for i, b in enumerate(data)).decode("utf-8", "ignore")
+        if out.startswith(("http://", "https://")):
+            return out
+    except Exception:
+        pass
+    # Legacy / external wrapper: plain standard base64, no XOR
+    try:
+        out = base64.b64decode(enc + pad).decode("utf-8", "ignore")
+        if out.startswith(("http://", "https://")):
+            return out
+    except Exception:
+        pass
+    return ""
+
+
 def encode_stream_url(url: str) -> str:
-    """Encode stream URL to base64 for the branded player."""
+    """Encode stream URL for the branded player (XOR + url-safe base64)."""
     if not url or url == "#" or url.startswith("https://t.me/"):
         return "#"
-    # Encode the URL to base64
-    encoded_bytes = base64.b64encode(url.encode('utf-8'))
-    encoded_str = encoded_bytes.decode('utf-8')
-    return encoded_str
+    return _obf_encode(url)
 
 
 def parse_stream_key(raw: str):
@@ -197,13 +239,11 @@ def unwrap_stream_url(url: str, _depth: int = 0) -> str:
         inner = unquote(m.group(1)).strip()
         if inner.startswith(("http://", "https://")):
             return unwrap_stream_url(inner, _depth + 1)
-        # get= value may be base64 of the real URL (friend's mpdhls style)
-        try:
-            decoded = base64.b64decode(inner + "===").decode("utf-8")
-            if decoded.startswith(("http://", "https://")):
-                return unwrap_stream_url(decoded, _depth + 1)
-        except Exception:
-            pass
+        # get= value may be encoded — our XOR scheme or plain base64 (friend's
+        # mpdhls style). _obf_decode tries both.
+        decoded = _obf_decode(inner)
+        if decoded.startswith(("http://", "https://")):
+            return unwrap_stream_url(decoded, _depth + 1)
         return url
     except Exception:
         return url
@@ -328,16 +368,16 @@ def get_player_url(url: str, base_url: str = "https://live.footholics.in", title
     ck = ck or _ck
     wv = wv or _wv
 
-    encoded_url = base64.b64encode(url.encode()).decode()
+    encoded_url = _obf_encode(url)
     type_hint = "shaka" if (ck or wv) else get_type_param(url)
 
     params = f"get={encoded_url}"
     if type_hint:
         params += f"&type={type_hint}"
     if ck:
-        params += f"&ck={quote(ck)}"
+        params += f"&ck={quote('~' + _obf_encode(ck))}"
     if wv:
-        params += f"&wv={quote(wv)}"
+        params += f"&wv={quote('~' + _obf_encode(wv))}"
     if title:
         params += f"&title={quote(title)}"
     if thumb:
@@ -689,16 +729,16 @@ def generate_live_html(data: dict) -> str:
         # plays in our native player instead of nesting another site's player.
         url = unwrap_stream_url(url)
         if url and url != "#" and not url.startswith("https://t.me/"):
-            encoded_url = base64.b64encode(url.encode()).decode()
+            encoded_url = _obf_encode(url)
             # A DRM key forces the Shaka player path; otherwise auto-detect.
             type_hint = "shaka" if (_ck or _wv) else get_type_param(url)
             params = f"get={encoded_url}"
             if type_hint:
                 params += f"&type={type_hint}"
             if _ck:
-                params += f"&ck={quote(_ck)}"
+                params += f"&ck={quote('~' + _obf_encode(_ck))}"
             if _wv:
-                params += f"&wv={quote(_wv)}"
+                params += f"&wv={quote('~' + _obf_encode(_wv))}"
             if encoded_title:
                 params += f"&title={encoded_title}"
             if encoded_thumb:
@@ -2010,10 +2050,9 @@ async def update_match_handler(update: Update, context: ContextTypes.DEFAULT_TYP
             _qs = _pq(_up(bc_url).query)
             _enc = _qs.get("get", [""])[0]
             if _enc:
-                try:
-                    stream_links[i] = base64.b64decode(_enc).decode("utf-8")
-                except Exception:
-                    pass
+                _dec = _obf_decode(_enc)
+                if _dec:
+                    stream_links[i] = _dec
         elif bc_url and bc_url != "#":
             stream_links[i] = bc_url
     context.user_data["current_stream_links"] = stream_links
@@ -2627,10 +2666,8 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     elif "player.html?get=" in _bc_url:
                         _qs = _parse_qs(_urlparse(_bc_url).query)
                         _enc = _qs.get("get", [""])[0]
-                        try:
-                            _raw_streams.append(_b64.b64decode(_enc).decode("utf-8"))
-                        except Exception:
-                            _raw_streams.append("#")
+                        _dec = _obf_decode(_enc)
+                        _raw_streams.append(_dec if _dec else "#")
                     else:
                         _raw_streams.append(_bc_url)
                 # If stream links were explicitly updated this session, prefer those
