@@ -18,22 +18,22 @@
     "broadcast": [
       {
         "name": "Stream 1",
-        "url": "#"
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly9sb3JkYXRvbWljLmdpdGh1Yi5pby91ZWZhL3RlbGVtdW5kby5odG1s&type=hls"
       },
       {
         "name": "Stream 2",
-        "url": "#"
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly9wYXJpYmlyZGZseWdhbWUuYmxvZ3Nwb3QuY29tLz9iNHg9aHR0cHM6Ly9zb2NjZXJiYWxsLnN0L3JhbXBhZ2VzL3NlYXJjaDEv&type=hls"
       },
       {
         "name": "Stream 3",
-        "url": "#"
+        "url": "https://live.footholics.in/player.html?get=aHR0cHM6Ly9jcmljc2ZyZWUuY2ZkL2xpdmUvc3RyZWFtLTM1MC5waHA=&type=iframe"
       },
       {
         "name": "Stream 4",
-        "url": "#"
+        "url": "https://helloxsports.in/isl/player.html?get=https://live.666666.zip/live/4460938.m3u8"
       }
     ],
-    "streams": 0
+    "streams": 4
   },
   {
     "id": "event-1781202602517",
