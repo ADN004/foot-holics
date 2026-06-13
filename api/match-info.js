@@ -17,6 +17,7 @@ const LEAGUE_MAP = {
     'conference-league': { id: 848, season: 2025 },
     'premier-league':    { id: 39,  season: 2025 },
     'la-liga':           { id: 140, season: 2025 },
+    'laliga':            { id: 140, season: 2025 }, // the bot writes "laliga"
     'serie-a':           { id: 135, season: 2025 },
     'bundesliga':        { id: 78,  season: 2025 },
     'ligue-1':           { id: 61,  season: 2025 },
@@ -62,23 +63,35 @@ export default async function handler(req, res) {
 
         if (!event) return res.status(404).json({ error: 'Match not found' });
 
-        const league = LEAGUE_MAP[event.leagueSlug];
-        if (!league) {
-            // League not mapped — return empty but still cache for 6h
-            res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=3600');
-            return res.status(200).json({ fixtureId: null, homeTeamId: null, awayTeamId: null, h2h: null });
-        }
+        // events.json stores IST dates/times, so align api-football's date filter
+        // to IST — otherwise late-night/early-morning matches land on the wrong UTC day.
+        const TZ = 'Asia/Kolkata';
+        const matchTeams = f =>
+            teamMatch(f.teams.home.name, event.homeTeam) &&
+            teamMatch(f.teams.away.name, event.awayTeam);
 
         // ── Find the fixture ─────────────────────────────────────────
-        const fd = await apiFetch(
-            `/fixtures?date=${event.date}&league=${league.id}&season=${league.season}`
-        );
-        const fixture = (fd.response || []).find(f =>
-            teamMatch(f.teams.home.name, event.homeTeam) &&
-            teamMatch(f.teams.away.name, event.awayTeam)
-        );
+        // 1) If the league is mapped, query it directly (cheapest, most precise).
+        // 2) Otherwise — or if that finds nothing — fall back to a date-wide search
+        //    across ALL competitions and match on team names. This covers World Cup,
+        //    Nationals, friendlies, "Others", and any league not in LEAGUE_MAP.
+        const league = LEAGUE_MAP[event.leagueSlug];
+        let fixture = null;
+
+        if (league) {
+            const fd = await apiFetch(
+                `/fixtures?date=${event.date}&league=${league.id}&season=${league.season}&timezone=${TZ}`
+            );
+            fixture = (fd.response || []).find(matchTeams) || null;
+        }
 
         if (!fixture) {
+            const fd = await apiFetch(`/fixtures?date=${event.date}&timezone=${TZ}`);
+            fixture = (fd.response || []).find(matchTeams) || null;
+        }
+
+        if (!fixture) {
+            // No api-football fixture for this match (date/team mismatch or not covered)
             res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=600');
             return res.status(200).json({ fixtureId: null, homeTeamId: null, awayTeamId: null, h2h: null });
         }
