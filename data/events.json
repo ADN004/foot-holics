@@ -1,5 +1,45 @@
 [
   {
+    "id": "event-1781384449553",
+    "date": "2026-06-14",
+    "time": "03:30",
+    "slug": "2026-06-14-brazil-vs-morocco",
+    "title": "Brazil vs Morocco",
+    "homeTeam": "Brazil",
+    "awayTeam": "Morocco",
+    "homeLogo": "https://footholics.in/assets/img/logos/teams/wc/brazil.png",
+    "awayLogo": "https://footholics.in/assets/img/logos/teams/wc/morocco.png",
+    "league": "World Cup 2026",
+    "leagueSlug": "wc",
+    "stadium": "New York New Jersey Stadium",
+    "poster": "assets/img/2026-06-14-brazil-vs-morocco-poster.jpg",
+    "excerpt": "Five-time champions Brazil begin their quest for glory against a fearless Morocco side ready to prove their giant-killing credentials. Samba flair mee...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Telemundo FHD",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4UIgdcVz0ILUVCQB9GUxxmH1wNIUgpT1NdU19bHS9fVx8mSQtLXERXWFVXCDx4PA0pBBYfc2ZkDEw4XE9IfSohUlcfUV5AFiUUVVI5EC1FGx9fV1IMLgMXFyIC&type=shaka&ck=~BS0TU1IBBhNKLkYMSWFWfx0LB1QDGRktFAlKYwQpRwYKBQRFTnhAWExkA34XB1MEBhlKchAJHDdRfxQHBQMAQkk"
+      },
+      {
+        "name": "English HD",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4LPh9dEyADK1BVXx9aSA4uX0kZfAUsShxSW0JGCioHUA4rSCtLXx9BQEIQL0ANVTYSIApfQFY&type=shaka&ck=~X38WBQEDB0dPLxNbSTBWcB1WAwJSEx4pEA1PYVN9RgcKAg4ZHnJJX01mUC4VUAQFAkdJeRJdHGJTKxJTB1APEBk"
+      },
+      {
+        "name": "Caze TV | Brazil",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZEgElA0keMwg5Fh1fR0IODnpeAUs0AnxHAAYHDhVIf0VdSDBXKRVRUwdUEkotEAAbNFZnR1deURhMCC8&type=shaka&ck=~VXwQBQVXUkAackgIGzZTLR0ABQYOQB0pFQ5LYlJ5FFMKBwYQGnlBABkxBSwXAANTVRFIKRcMGzFXfUYGAARVQ0w"
+      },
+      {
+        "name": "DAZN HD | Dekstop | iOS",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4eIxUPSjQWOwlQSR9ZUR0lAlYPIAMrQl5ZShhEACYQQVQlCTpPV0JBGEUdPV5QFDYDMApfA0cO&type=hls"
+      },
+      {
+        "name": "Hindi HD",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4LPh9dEyADK1BVXx9aSA4uX0kZfAUsShxSW0JGCioHUA4rSCtLXx9BQEIQL0ABVTYSIApfQFY&type=shaka&ck=~VnkTAQcEUEVML0IMSjMEeUZWCQZSFxwqQwBLYlYqQlYKAVITHH5BD0xjACsdVgUCBRgcckkKHzFUeEFQB1AHFUo"
+      }
+    ],
+    "streams": 5
+  },
+  {
     "id": "event-1781374958372",
     "date": "2026-06-14",
     "time": "00:30",
