@@ -553,66 +553,6 @@
     document.documentElement.style.setProperty('scroll-behavior', 'auto');
   }
 
-  // ============================================================
-  // PLAYER PAGE — Countdown timer
-  // ============================================================
-  if (window.location.pathname.indexOf('/p/') !== -1) {
-    var alertEl = document.querySelector('.player-alert');
-    if (alertEl) {
-      var _countdown = 20;
-      var _cInterval = setInterval(function () {
-        _countdown--;
-        var p = alertEl.querySelector('p');
-        if (!p) { clearInterval(_cInterval); return; }
-        if (_countdown > 0) {
-          p.innerHTML = '⏳ Please wait <strong>' + _countdown + ' seconds</strong> for the stream to load properly...';
-        } else {
-          p.innerHTML = '✅ Stream should be loaded! If not, try a different link or refresh.';
-          alertEl.style.background = 'rgba(16,185,129,0.2)';
-          alertEl.style.borderColor = 'rgba(16,185,129,0.5)';
-          clearInterval(_cInterval);
-        }
-      }, 1000);
-    }
-  }
-
-  // ============================================================
-  // LEAGUE FILTER (Homepage sidebar)
-  // Fixed: no longer relies on deprecated global `event` object.
-  // ============================================================
-  window.filterLeague = function (league) {
-    var matchCards   = document.querySelectorAll('.match-card');
-    var sidebarLinks = document.querySelectorAll('.sidebar-list a');
-
-    sidebarLinks.forEach(function (link) { link.classList.remove('active'); });
-
-    // Safely access the clicked element without the deprecated global event
-    try {
-      /* global event */
-      if (typeof event !== 'undefined' && event && event.target) {
-        var clicked = event.target.closest('a');
-        if (clicked) clicked.classList.add('active');
-      }
-    } catch (_) {}
-
-    matchCards.forEach(function (card) {
-      if (league === 'all') {
-        card.style.display = 'block';
-        card.classList.add('animate-fade-in');
-      } else {
-        var badge = card.querySelector('.league-badge');
-        if (badge) {
-          var show = badge.className.indexOf(league) !== -1;
-          card.style.display = show ? 'block' : 'none';
-          if (show) card.classList.add('animate-fade-in');
-        }
-      }
-    });
-
-    var grid = document.getElementById('matchesGrid');
-    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   window.scrollToTop = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   // ============================================================
@@ -652,11 +592,11 @@
         '</div>',
         '<h2 class="telegram-popup-title">Join Our Telegram Channel!</h2>',
         '<p class="telegram-popup-description">',
-          'Get instant notifications for live matches, exclusive streaming links, and match highlights directly in Telegram.',
+          'Get instant notifications for live matches, news, and match highlights directly in Telegram.',
         '</p>',
         '<div class="telegram-popup-benefits"><ul>',
           '<li>Real-time match alerts</li>',
-          '<li>Premium streaming links</li>',
+          '<li>Breaking football news</li>',
           '<li>Exclusive match highlights</li>',
           '<li>Live score updates</li>',
           '<li>Community discussions</li>',

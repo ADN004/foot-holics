@@ -6,11 +6,5 @@
         { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/TEMPLATE-event.html",
-      "destination": "/not-found"
-    }
   ]
 }

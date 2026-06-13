@@ -61,6 +61,9 @@ def is_authorized(user_id: int) -> bool:
 # India Standard Time (UTC+5:30)
 IST = timezone(timedelta(hours=5, minutes=30))
 
+# Maximum number of streaming links supported per match.
+MAX_STREAM_LINKS = 15
+
 # Conversation states
 (
     MAIN_MENU,
@@ -75,8 +78,6 @@ IST = timezone(timedelta(hours=5, minutes=30))
     UPDATE_SELECT,
     UPDATE_FIELD_CHOICE,
     UPDATE_FIELD_INPUT,
-    UPDATE_STREAM_LINKS,
-    GENERATE_CARD_INPUT,
     UPDATE_STREAM_SELECT,  # New state for button-based stream link selection
     UPDATE_STREAM_INPUT,   # New state for individual stream link input
     ARTICLE_TITLE,
@@ -92,7 +93,7 @@ IST = timezone(timedelta(hours=5, minutes=30))
     DELETE_ARTICLE_SELECT,
     DELETE_ARTICLE_CONFIRM,
     SET_GIT_CREDS,
-) = range(29)
+) = range(27)
 
 # League data with emojis and colors
 LEAGUES = {
@@ -189,11 +190,19 @@ def _obf_decode(enc: str) -> str:
     return ""
 
 
-def encode_stream_url(url: str) -> str:
-    """Encode stream URL for the branded player (XOR + url-safe base64)."""
-    if not url or url == "#" or url.startswith("https://t.me/"):
-        return "#"
-    return _obf_encode(url)
+def _obf_decode_key(enc: str) -> str:
+    """Reverse _obf_encode for non-URL values (e.g. a DRM ClearKey `KEYID:KEY`).
+    Unlike _obf_decode it does not require the result to be an http(s) URL, so it
+    must only be used where the plaintext is known to be a key/license value."""
+    if not enc:
+        return ""
+    pad = "=" * (-len(enc) % 4)
+    try:
+        data = base64.urlsafe_b64decode(enc + pad)
+        k = _LINK_KEY.encode("utf-8")
+        return bytes(b ^ k[i % len(k)] for i, b in enumerate(data)).decode("utf-8", "ignore")
+    except Exception:
+        return ""
 
 
 def parse_stream_key(raw: str):
@@ -247,33 +256,6 @@ def unwrap_stream_url(url: str, _depth: int = 0) -> str:
         return url
     except Exception:
         return url
-
-
-def detect_stream_type(url: str) -> str:
-    """
-    Detect stream type based on URL extension.
-    Returns: 'hls' for m3u8 streams, 'video' for other video formats, 'unknown' otherwise.
-    """
-    if not url or url == "#":
-        return "unknown"
-    
-    url_lower = url.lower()
-    
-    # Check for HLS/m3u8 streams
-    if '.m3u8' in url_lower or 'm3u8' in url_lower:
-        return "hls"
-    
-    # Check for other video formats (MP4, WebM, etc.)
-    video_extensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.flv', '.m4v']
-    if any(ext in url_lower for ext in video_extensions):
-        return "video"
-    
-    # Check for streaming protocols
-    if 'rtmp://' in url_lower or 'rtsp://' in url_lower:
-        return "stream"
-    
-    # Default to unknown (player.html will try to auto-detect)
-    return "unknown"
 
 
 def slugify(text: str) -> str:
@@ -408,6 +390,103 @@ def wrap_m3u8_with_proxy(url: str) -> str:
 
     # Use the new smart player routing
     return get_player_url(url, "https://live.footholics.in")
+
+
+# A broadcast entry whose "name" matches this is using the auto default label
+# (no operator-set custom label), so the live page falls back to stream_link_meta.
+_DEFAULT_STREAM_NAME = re.compile(r"^Stream \d+$")
+
+# Separator for typing a custom label inline with a URL, e.g.
+#   https://cdn/live.m3u8 >> Sky Sports HD | English
+# Chosen because " >> " never appears in a real URL or DRM marker.
+_LABEL_SEP = " >> "
+
+
+def parse_link_label(raw: str) -> tuple:
+    """Split an optional inline label off a stream URL.
+
+        https://cdn/live.m3u8 >> Sky Sports HD   → ("https://cdn/live.m3u8", "Sky Sports HD")
+        https://cdn/live.m3u8                     → ("https://cdn/live.m3u8", "")
+
+    The URL part still carries any DRM marker (#ck=/#wv=) for parse_stream_key.
+    """
+    if not raw:
+        return raw, ""
+    idx = raw.find(_LABEL_SEP)
+    if idx == -1:
+        return raw.strip(), ""
+    return raw[:idx].strip(), raw[idx + len(_LABEL_SEP):].strip()
+
+
+def decode_player_url(player_url: str) -> str:
+    """Reverse get_player_url: turn a saved `player.html?get=…` link back into the
+    raw stream URL, re-attaching any DRM key inline (`#ck=`/`#wv=`) so that a later
+    re-wrap on save preserves it. Without this, editing a DRM-protected match and
+    saving would drop its decryption key.
+
+    Non-player URLs and undecodable links are returned unchanged / empty.
+    """
+    if not player_url or player_url == "#":
+        return player_url
+    if "player.html?get=" not in player_url:
+        return player_url
+    from urllib.parse import urlparse, parse_qs
+    qs = parse_qs(urlparse(player_url).query)
+    enc = qs.get("get", [""])[0]
+    raw = _obf_decode(enc) if enc else ""
+    if not raw:
+        return ""
+    # Recover the DRM key if present (stored as quote('~' + _obf_encode(key))).
+    for marker, qkey in (("#ck=", "ck"), ("#wv=", "wv")):
+        val = qs.get(qkey, [""])[0]
+        if not val:
+            continue
+        val = _obf_decode_key(val[1:]) if val.startswith("~") else val
+        if val:
+            return raw + marker + val
+    return raw
+
+
+def build_broadcast(stream_urls: list, stream_labels: list = None) -> list:
+    """Build the events.json `broadcast` array from raw stream URLs.
+
+    Produces one {"name": ..., "url": ...} entry per slot, wrapping each live URL
+    with the branded player. `name` holds the operator's custom label if set,
+    otherwise the auto "Stream N" default (which the live page turns into a preset
+    description). Trailing empty ("#") slots are trimmed so we don't persist a long
+    tail of blanks, but interior gaps are preserved. Supports up to
+    MAX_STREAM_LINKS links.
+    """
+    stream_labels = stream_labels or []
+    trimmed = list(stream_urls[:MAX_STREAM_LINKS])
+    while trimmed and (not trimmed[-1] or trimmed[-1] == "#"):
+        trimmed.pop()
+    broadcast = []
+    for i, url in enumerate(trimmed):
+        label = stream_labels[i].strip() if i < len(stream_labels) and stream_labels[i] else ""
+        broadcast.append({
+            "name": label or f"Stream {i + 1}",
+            "url": wrap_m3u8_with_proxy(url) if (url and url != "#") else "#",
+        })
+    return broadcast
+
+
+def stream_link_meta(index: int, label: str = "") -> tuple:
+    """Return (sub-label, quality-badge) for the stream link at `index` (0-based).
+
+    If `label` is provided (an operator-set custom name/channel/language) it is
+    used as the sub-label verbatim. Otherwise the first four links keep their
+    bespoke descriptions and any additional links (5–15) fall back to a generic
+    backup label.
+    """
+    presets = [
+        ("HD | English | Desktop/Mobile", "HD"),
+        ("HD | Multi-language", "HD"),
+        ("SD | Mobile Optimized", "SD"),
+        ("HD | Backup", "HD"),
+    ]
+    default_sub, qual = presets[index] if index < len(presets) else ("HD | Backup", "HD")
+    return (label.strip() or default_sub, qual) if label else (default_sub, qual)
 
 
 def find_team_logo(team_name: str, league_slug: str = None) -> str:
@@ -656,31 +735,6 @@ BROADCASTER_MAP = {
 }
 
 
-def get_broadcaster_table(league_slug: str) -> str:
-    """Return HTML rows for broadcast table based on league."""
-    bc = BROADCASTER_MAP.get(league_slug, {"uk": "Check local listings", "us": "Check local listings", "in": "Check local listings"})
-    return f"""<tr>
-                        <td>🇬🇧 United Kingdom</td>
-                        <td>{bc['uk']}</td>
-                        <td>HD, subscription required</td>
-                    </tr>
-                    <tr>
-                        <td>🇺🇸 United States</td>
-                        <td>{bc['us']}</td>
-                        <td>Streaming available</td>
-                    </tr>
-                    <tr>
-                        <td>🇮🇳 India</td>
-                        <td>{bc['in']}</td>
-                        <td>Hindi &amp; English commentary</td>
-                    </tr>
-                    <tr>
-                        <td>🌍 International</td>
-                        <td>Various (check local listings)</td>
-                        <td>Contact your provider</td>
-                    </tr>"""
-
-
 def get_broadcaster_table_compact(league_slug: str) -> str:
     """Return compact HTML rows for the live page broadcast table (2-col)."""
     bc = BROADCASTER_MAP.get(league_slug, {"uk": "Check local listings", "us": "Check local listings", "in": "Check local listings"})
@@ -717,13 +771,14 @@ def generate_live_html(data: dict) -> str:
         away_logo = f"https://footholics.in/{away_logo.lstrip('/')}"
 
     stream_urls = data.get("stream_urls", [])
+    stream_labels = data.get("stream_labels", [])
     encoded_title = quote(data.get("match_name", ""))
     thumb_src = data.get("thumbnail", "") or ""
     encoded_thumb = quote(thumb_src) if thumb_src else ""
 
     # Build player URLs pointing to live.footholics.in/player.html
     player_urls = []
-    for raw_url in stream_urls[:4]:
+    for raw_url in stream_urls[:MAX_STREAM_LINKS]:
         url, _ck, _wv = parse_stream_key(raw_url)
         # If it's a wrapper carrying the real stream in ?get=, unwrap it so it
         # plays in our native player instead of nesting another site's player.
@@ -747,12 +802,13 @@ def generate_live_html(data: dict) -> str:
         else:
             player_urls.append(None)
 
-    # Build stream link buttons HTML
-    labels = ["Link 1 — HD | English | Desktop/Mobile", "Link 2 — HD | Multi-language", "Link 3 — SD | Mobile Optimized", "Link 4 — HD | Backup"]
-    qualities = ["HD", "HD", "SD", "HD"]
+    # Build stream link buttons HTML (supports up to MAX_STREAM_LINKS links)
     stream_buttons_html = ""
-    for i, (pu, label, qual) in enumerate(zip(player_urls, labels, qualities)):
+    for i, pu in enumerate(player_urls):
         if pu:
+            custom_label = stream_labels[i] if i < len(stream_labels) else ""
+            sub, qual = stream_link_meta(i, custom_label)
+            sub = _html.escape(sub)  # operator-supplied text → safe for HTML
             stream_buttons_html += f"""
             <a href="{pu}" class="stream-link-btn">
                 <div class="stream-play-icon">
@@ -760,7 +816,7 @@ def generate_live_html(data: dict) -> str:
                 </div>
                 <div class="stream-link-info">
                     <span class="stream-link-label">Link {i+1}</span>
-                    <span class="stream-link-sub">{label.split(' — ')[1] if ' — ' in label else label}</span>
+                    <span class="stream-link-sub">{sub}</span>
                 </div>
                 <span class="stream-quality-badge">{qual}</span>
             </a>"""
@@ -1018,60 +1074,6 @@ def list_match_files() -> list:
         return []
 
 
-def remove_match_from_index(filename: str) -> bool:
-    """Remove match card from index.html."""
-    try:
-        root_dir = get_project_root()
-        index_path = os.path.join(root_dir, "index.html")
-
-        if not os.path.exists(index_path):
-            return False
-
-        with open(index_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        target_href = f'href="{filename}"'
-        href_pos = content.find(target_href)
-        if href_pos == -1:
-            return False
-
-        # Walk backwards from the href to find the opening <article tag.
-        # Using rfind(0, href_pos) guarantees we get the article that CONTAINS
-        # this href, never a preceding unrelated article.
-        article_start = content.rfind("<article", 0, href_pos)
-        if article_start == -1:
-            return False
-
-        # Include the optional <!-- Match Card --> comment if it immediately
-        # precedes the article (only whitespace between them).
-        comment = "<!-- Match Card -->"
-        comment_pos = content.rfind(comment, 0, article_start)
-        if comment_pos != -1 and content[comment_pos + len(comment):article_start].strip() == "":
-            remove_start = comment_pos
-        else:
-            remove_start = article_start
-
-        # Walk forward from the href to find the closing tag.
-        article_end = content.find("</article>", href_pos)
-        if article_end == -1:
-            return False
-        article_end += len("</article>")
-
-        # Consume one trailing newline so we don't leave a blank line.
-        if article_end < len(content) and content[article_end] == "\n":
-            article_end += 1
-
-        new_content = content[:remove_start] + content[article_end:]
-
-        with open(index_path, "w", encoding="utf-8") as f:
-            f.write(new_content)
-
-        return True
-    except Exception as e:
-        logger.error(f"Error removing from index.html: {e}", exc_info=True)
-        return False
-
-
 def remove_match_from_events_json(filename: str) -> bool:
     """Remove match entry from events.json."""
     try:
@@ -1111,21 +1113,6 @@ def remove_match_from_events_json(filename: str) -> bool:
         return False
 
 
-def copy_html_to_root(filename: str, html_content: str) -> bool:
-    """Copy HTML file to project root."""
-    try:
-        root_dir = get_project_root()
-        target_path = os.path.join(root_dir, filename)
-
-        with open(target_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-
-        return True
-    except Exception as e:
-        logger.error(f"Error copying HTML to root: {e}", exc_info=True)
-        return False
-
-
 def add_to_events_json(json_entry: str) -> bool:
     """Add new match entry to the top of events.json."""
     try:
@@ -1152,110 +1139,6 @@ def add_to_events_json(json_entry: str) -> bool:
         return True
     except Exception as e:
         logger.error(f"Error adding to events.json: {e}", exc_info=True)
-        return False
-
-
-def add_card_to_index(card_html: str) -> bool:
-    """Add match card to the top of matches grid in index.html."""
-    try:
-        root_dir = get_project_root()
-        index_path = os.path.join(root_dir, "index.html")
-
-        if not os.path.exists(index_path):
-            return False
-
-        with open(index_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Find the matches grid section
-        # Look for the first <article class="glass-card match-card"> or the grid container
-        # Pattern: Find the matches grid div and insert after its opening tag
-
-        # Try to find existing match cards
-        match_card_pattern = r'(<article class="glass-card match-card">)'
-
-        if re.search(match_card_pattern, content):
-            # Insert before the first match card
-            new_content = re.sub(
-                match_card_pattern,
-                f'{card_html}\n\n                    \\1',
-                content,
-                count=1
-            )
-        else:
-            # Try to find the matches grid container
-            grid_pattern = r'(<div[^>]*class="[^"]*matches-grid[^"]*"[^>]*>)'
-
-            if re.search(grid_pattern, content):
-                # Insert after the grid opening tag
-                new_content = re.sub(
-                    grid_pattern,
-                    f'\\1\n{card_html}\n',
-                    content,
-                    count=1
-                )
-            else:
-                logger.error("Could not find matches grid in index.html")
-                return False
-
-        # Write back
-        with open(index_path, "w", encoding="utf-8") as f:
-            f.write(new_content)
-
-        return True
-    except Exception as e:
-        logger.error(f"Error adding card to index.html: {e}", exc_info=True)
-        return False
-
-
-def add_to_sitemap(filename: str, date: str = None) -> bool:
-    """Add a match to sitemap.xml."""
-    try:
-        root_dir = get_project_root()
-        sitemap_path = os.path.join(root_dir, "sitemap.xml")
-
-        if not os.path.exists(sitemap_path):
-            return False
-
-        with open(sitemap_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Use current date if not provided
-        if not date:
-            date = datetime.now().strftime("%Y-%m-%d")
-
-        # Create new URL entry
-        new_url = f"""    <url>
-        <loc>https://footholics.in/{filename}</loc>
-        <lastmod>{date}</lastmod>
-        <changefreq>daily</changefreq>
-        <priority>0.9</priority>
-    </url>
-
-"""
-
-        # Find the Event Detail Pages section and add after the comment
-        pattern = r'(<!-- Event Detail Pages -->\n)'
-
-        if re.search(pattern, content):
-            new_content = re.sub(
-                pattern,
-                f'\\1{new_url}',
-                content,
-                count=1
-            )
-
-            # Write back
-            with open(sitemap_path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-
-            return True
-        else:
-            logger.error("Could not find Event Detail Pages section in sitemap.xml")
-            return False
-
-    except Exception as e:
-        logger.error(f"Error adding to sitemap.xml: {e}", exc_info=True)
         return False
 
 
@@ -1321,9 +1204,6 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, edi
             InlineKeyboardButton("🗑️ Delete Match", callback_data="menu_delete"),
         ],
         [
-            InlineKeyboardButton("🎨 Generate Card", callback_data="menu_card"),
-        ],
-        [
             InlineKeyboardButton("📊 Match Stats", callback_data="menu_stats"),
         ],
         [
@@ -1356,7 +1236,6 @@ Welcome! Choose an operation:
 📋 **List Matches** - View all match files
 ✏️ **Update Match** - Edit existing match
 🗑️ **Delete Match** - Remove a match (auto cleanup!)
-🎨 **Generate Card** - Create match card HTML
 📊 **Match Stats** - View statistics
 ✍️ **Publish Article** - Write and publish an editorial
 ✏️ **Edit Article** - Edit a published article
@@ -1490,26 +1369,6 @@ async def main_menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return UPDATE_SELECT
-
-    elif action == "card":
-        matches = list_match_files()
-        if not matches:
-            await query.edit_message_text(
-                "🎨 **No matches found!**\n\n"
-                "No match HTML files found to generate cards for.",
-                parse_mode="Markdown"
-            )
-            await show_main_menu(update, context, edit_message=False)
-            return MAIN_MENU
-
-        await query.edit_message_text(
-            "🎨 **Generate Match Card**\n\n"
-            "Please send the match filename to generate a card for:\n\n"
-            "Example: `2025-10-26-brentford-vs-liverpool.html`\n\n"
-            "_Type /cancel to go back_",
-            parse_mode="Markdown"
-        )
-        return GENERATE_CARD_INPUT
 
     elif action == "stats":
         matches = list_match_files()
@@ -1734,113 +1593,6 @@ async def receive_git_creds(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return MAIN_MENU
 
 
-async def generate_card_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle generate card file input."""
-    filename = update.message.text.strip()
-
-    root_dir = get_project_root()
-    match_file = os.path.join(root_dir, filename)
-
-    if not os.path.exists(match_file):
-        await update.message.reply_text(
-            f"❌ File not found: `{filename}`\n\n"
-            "Please enter a valid filename.",
-            parse_mode="Markdown"
-        )
-        return GENERATE_CARD_INPUT
-
-    await update.message.reply_text("⏳ Generating card... Please wait.")
-
-    try:
-        # Read the match HTML
-        with open(match_file, "r", encoding="utf-8") as f:
-            html_content = f.read()
-
-        # Extract match details from HTML
-        match_name = re.search(r'<h1 class="event-title">(.*?)</h1>', html_content)
-        league = re.search(r'<span class="league-badge (.*?)">(.*?)</span>', html_content)
-        date = re.search(r'<span>(.*? at .*? GMT)</span>', html_content)
-        stadium = re.search(r'<svg.*?</svg>\s*<span>(.*?)</span>(?!.*at.*GMT)', html_content, re.DOTALL)
-        poster = re.search(r'<img src="(assets/img/.*?\.jpg)".*?class="event-hero-bg"', html_content)
-
-        if not all([match_name, league, date]):
-            await update.message.reply_text("❌ Could not extract match details from HTML.")
-            await show_main_menu(update, context, edit_message=False)
-            return MAIN_MENU
-
-        # Parse details
-        match_title = match_name.group(1)
-        league_slug = league.group(1)
-        league_name = league.group(2)
-        date_time = date.group(1)
-        stadium_name = stadium.group(1) if stadium else "Stadium TBD"
-        poster_img = poster.group(1) if poster else "assets/img/match-poster.jpg"
-
-        # Generate card
-        card_html = f"""                    <!-- Match Card -->
-                    <article class="glass-card match-card">
-                        <img src="{poster_img}" alt="{match_title}" class="match-poster" loading="lazy">
-                        <div class="match-header">
-                            <h3 class="match-title">{match_title}</h3>
-                            <span class="league-badge {league_slug}">{league_name}</span>
-                        </div>
-                        <div class="match-meta">
-                            <div class="match-meta-item">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                </svg>
-                                <span>{date_time}</span>
-                            </div>
-                            <div class="match-meta-item">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                <span>{stadium_name}</span>
-                            </div>
-                        </div>
-                        <p class="match-excerpt">
-                            {match_title} live streaming links. Watch the match with HD quality streams.
-                        </p>
-                        <a href="{filename}" class="match-link">
-                            Read More & Watch Live
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
-                        </a>
-                    </article>"""
-
-        # Create file
-        card_filename = filename.replace(".html", "-card.txt")
-
-        # Send as document
-        card_bytes = BytesIO(card_html.encode('utf-8'))
-        card_bytes.name = card_filename
-
-        await update.message.reply_document(
-            document=card_bytes,
-            filename=card_filename,
-            caption=f"✅ **Card Generated!**\n\n"
-                    f"Match: {match_title}\n\n"
-                    f"**Instructions:**\n"
-                    f"1. Open `index.html`\n"
-                    f"2. Find the matches grid (around line 123)\n"
-                    f"3. Paste this card at the TOP of the grid\n"
-                    f"4. Save and commit!",
-            parse_mode="Markdown"
-        )
-
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error generating card: {str(e)}")
-
-    await show_main_menu(update, context, edit_message=False)
-    return MAIN_MENU
-
-
 async def delete_match_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle match deletion."""
     query = update.callback_query
@@ -1925,16 +1677,6 @@ async def confirm_delete_handler(update: Update, context: ContextTypes.DEFAULT_T
         deleted_files.append("✓ Removed from sitemap.xml")
     else:
         failed_operations.append("✗ Could not remove from sitemap.xml (may not exist)")
-
-    # Delete card file
-    card_filename = filename.replace(".html", "-card.html")
-    card_file = os.path.join(root_dir, "foot-holics-bot", "generated", "cards", card_filename)
-    if os.path.exists(card_file):
-        try:
-            os.remove(card_file)
-            deleted_files.append(f"✓ Card: {card_filename}")
-        except Exception as e:
-            failed_operations.append(f"✗ Card file: {str(e)}")
 
     # Delete generated HTML
     gen_file = os.path.join(root_dir, "foot-holics-bot", "generated", "html_files", filename)
@@ -2041,21 +1783,27 @@ async def update_match_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["current_stadium"] = event.get("stadium", "")
     context.user_data["current_preview"] = event.get("excerpt", "")
 
-    # Decode raw stream URLs from broadcast entries
-    stream_links = ["#", "#", "#", "#"]
-    from urllib.parse import urlparse as _up, parse_qs as _pq
-    for i, bc in enumerate(event.get("broadcast", [])[:4]):
+    # Decode raw stream URLs from broadcast entries into a COMPACT list
+    # (no "#" placeholders) so links stay gapless — deleting one renumbers
+    # the rest automatically. A parallel labels list carries any custom
+    # name/channel/language stored in the broadcast "name" field.
+    stream_links = []
+    stream_labels = []
+    for bc in event.get("broadcast", [])[:MAX_STREAM_LINKS]:
         bc_url = bc.get("url", "#")
+        if not bc_url or bc_url == "#":
+            continue
         if "player.html?get=" in bc_url:
-            _qs = _pq(_up(bc_url).query)
-            _enc = _qs.get("get", [""])[0]
-            if _enc:
-                _dec = _obf_decode(_enc)
-                if _dec:
-                    stream_links[i] = _dec
-        elif bc_url and bc_url != "#":
-            stream_links[i] = bc_url
+            _dec = decode_player_url(bc_url)  # recovers the URL + any DRM key
+            if not _dec:
+                continue
+            stream_links.append(_dec)
+        else:
+            stream_links.append(bc_url)
+        _name = bc.get("name", "")
+        stream_labels.append("" if _DEFAULT_STREAM_NAME.match(_name or "") else _name)
     context.user_data["current_stream_links"] = stream_links
+    context.user_data["current_stream_labels"] = stream_labels
 
     # Show update options
     keyboard = [
@@ -2197,42 +1945,50 @@ async def update_field_choice_handler(update: Update, context: ContextTypes.DEFA
 
     elif field == "streams":
         # Show button-based stream link selection UI
-        stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
-
-        # Build buttons showing link status
-        keyboard = []
-        for i in range(4):
-            link = stream_links[i] if i < len(stream_links) else "#"
-            if link and link != "#":
-                # Show truncated URL for filled links
-                display_url = link[:35] + "..." if len(link) > 35 else link
-                status = f"✅ Link {i+1}: {display_url}"
-            else:
-                status = f"⬜ Link {i+1}: (empty)"
-            keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
-
-        keyboard.append([InlineKeyboardButton("💾 Save Changes", callback_data="update_save")])
-        keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="stream_done")])
-        keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
-
-        # Count active links
-        active_count = len([l for l in stream_links if l and l != "#"])
-
-        await query.edit_message_text(
-            f"🔗 **Update Streaming Links**\n\n"
-            f"📊 Active streams: {active_count}/4\n\n"
-            f"Select a link to view/edit:\n"
-            f"_(Click any link to update it, then Save)_",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        links, labels = _sync_stream_labels(context)
+        text, markup = build_stream_links_view(links, labels)
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=markup)
         return UPDATE_STREAM_SELECT
 
     return UPDATE_FIELD_CHOICE
 
 
+def _sync_stream_labels(context: ContextTypes.DEFAULT_TYPE) -> tuple:
+    """Return (links, labels) for the match being edited, with the labels list
+    padded/trimmed so it always stays the same length as the links list."""
+    links = context.user_data.setdefault("current_stream_links", [])
+    labels = context.user_data.setdefault("current_stream_labels", [])
+    if len(labels) < len(links):
+        labels.extend([""] * (len(links) - len(labels)))
+    elif len(labels) > len(links):
+        del labels[len(links):]
+    return links, labels
+
+
+def _link_edit_view(index: int, url: str, label: str):
+    """Text + keyboard for the single-link edit screen."""
+    url_display = url if len(url) <= 50 else url[:50] + "..."
+    label_line = f"`{label}`" if label else "_(default — auto description)_"
+    label_btn = "🏷️ Change Label" if label else "🏷️ Set Label"
+    text = (
+        f"🔗 **Edit Link {index + 1}**\n\n"
+        f"📍 **URL:**\n`{url_display}`\n"
+        f"🏷️ **Label shown under the link:** {label_line}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📝 Paste a new URL to replace it, or use the buttons below.\n"
+        f"_Deleting renumbers the links after it so there are no gaps._"
+    )
+    keyboard = [
+        [InlineKeyboardButton(label_btn, callback_data=f"stream_label_{index}")],
+        [InlineKeyboardButton("🗑️ Delete this link", callback_data=f"stream_del_{index}")],
+        [InlineKeyboardButton("« Back to Links", callback_data="stream_back")],
+    ]
+    return text, InlineKeyboardMarkup(keyboard)
+
+
 async def stream_link_select_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle stream link button selection."""
+    """Handle stream link button selection — edit an existing link, add a new one,
+    or start editing a link's label."""
     query = update.callback_query
     await query.answer()
 
@@ -2243,48 +1999,62 @@ async def stream_link_select_handler(update: Update, context: ContextTypes.DEFAU
         # Return to main update menu
         return await show_update_field_menu(update, context)
 
-    # Extract link index from callback data (stream_link_0, stream_link_1, etc.)
-    link_index = int(query.data.replace("stream_link_", ""))
-    context.user_data["editing_stream_index"] = link_index
+    links, labels = _sync_stream_labels(context)
 
-    stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
-    current_link = stream_links[link_index] if link_index < len(stream_links) else "#"
-
-    # Build keyboard with options
-    keyboard = [
-        [InlineKeyboardButton("🗑️ Clear this link", callback_data=f"stream_clear_{link_index}")],
-        [InlineKeyboardButton("« Back to Links", callback_data="stream_back")]
-    ]
-
-    if current_link and current_link != "#":
-        link_display = current_link if len(current_link) <= 50 else current_link[:50] + "..."
+    if query.data == "stream_add":
+        # Adding a brand-new link → its index is the current end of the list.
+        if len(links) >= MAX_STREAM_LINKS:
+            # Cap reached (the Add button is normally hidden at the cap).
+            return await show_stream_links_menu(update, context)
+        context.user_data["editing_stream_index"] = len(links)
+        context.user_data["editing_stream_field"] = "url"
         await query.edit_message_text(
-            f"🔗 **Edit Link {link_index + 1}**\n\n"
-            f"📍 **Current URL:**\n`{link_display}`\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📝 **To replace this link:**\n"
-            f"Simply paste the new URL below.\n\n"
-            f"_Your new link will replace the current one._",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    else:
-        await query.edit_message_text(
-            f"🔗 **Edit Link {link_index + 1}**\n\n"
-            f"📍 **Current status:** Empty\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📝 **To add a stream:**\n"
-            f"Paste the stream URL below.\n\n"
+            f"🔗 **Add Link {len(links) + 1}**\n\n"
+            f"📝 Paste the stream URL below.\n\n"
+            f"_Optional: add a label after the URL like_\n"
+            f"`https://…/live.m3u8 >> Sky Sports HD | English`\n\n"
             f"_Supports: m3u8, embed pages, direct video links_",
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("« Back to Links", callback_data="stream_back")]
+            ])
         )
+        return UPDATE_STREAM_INPUT
 
+    if query.data.startswith("stream_label_"):
+        # Start editing the label (sub-text shown under the link)
+        link_index = int(query.data.replace("stream_label_", ""))
+        context.user_data["editing_stream_index"] = link_index
+        context.user_data["editing_stream_field"] = "label"
+        current_label = labels[link_index] if link_index < len(labels) else ""
+        cur_line = f"`{current_label}`" if current_label else "_(default)_"
+        await query.edit_message_text(
+            f"🏷️ **Label for Link {link_index + 1}**\n\n"
+            f"Current: {cur_line}\n\n"
+            f"Send the text to show under this link — e.g. a channel name, "
+            f"language or quality:\n"
+            f"`Star Sports 1 | Hindi`\n\n"
+            f"_Send_ `-` _to reset it back to the default description._",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("« Back to Links", callback_data="stream_back")]
+            ])
+        )
+        return UPDATE_STREAM_INPUT
+
+    # Editing an existing link's URL
+    link_index = int(query.data.replace("stream_link_", ""))
+    context.user_data["editing_stream_index"] = link_index
+    context.user_data["editing_stream_field"] = "url"
+    current_link = links[link_index] if link_index < len(links) else ""
+    current_label = labels[link_index] if link_index < len(labels) else ""
+    text, markup = _link_edit_view(link_index, current_link, current_label)
+    await query.edit_message_text(text, parse_mode="Markdown", reply_markup=markup)
     return UPDATE_STREAM_INPUT
 
 
 async def stream_link_action_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle stream link clear/back actions."""
+    """Handle stream link delete/back actions."""
     query = update.callback_query
     await query.answer()
 
@@ -2297,122 +2067,132 @@ async def stream_link_action_handler(update: Update, context: ContextTypes.DEFAU
         context.user_data["update_field"] = "streams"
         return await show_stream_links_menu(update, context)
 
-    if query.data.startswith("stream_clear_"):
-        # Clear the specified link
-        link_index = int(query.data.replace("stream_clear_", ""))
-        stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
-        if link_index < len(stream_links):
-            stream_links[link_index] = "#"
-            context.user_data["current_stream_links"] = stream_links
-
-        await query.answer(f"✅ Link {link_index + 1} cleared!")
-        # Return to stream links menu
+    if query.data.startswith("stream_del_"):
+        # Delete the link (and its label) and close the gap — later links shift up.
+        link_index = int(query.data.replace("stream_del_", ""))
+        links, labels = _sync_stream_labels(context)
+        if 0 <= link_index < len(links):
+            links.pop(link_index)
+            labels.pop(link_index)
         return await show_stream_links_menu(update, context)
 
     return UPDATE_STREAM_SELECT
 
 
 async def stream_link_input_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle new stream link URL input."""
+    """Handle text input while editing streams — either a URL (replace/append) or a
+    custom label, depending on which the operator chose."""
     text = update.message.text.strip()
     link_index = context.user_data.get("editing_stream_index", 0)
+    field = context.user_data.get("editing_stream_field", "url")
+    links, labels = _sync_stream_labels(context)
 
-    # Validate URL (basic check)
-    if not text.startswith(("http://", "https://")):
+    # ── Editing a label ──────────────────────────────────────────────────
+    if field == "label":
+        if 0 <= link_index < len(labels):
+            labels[link_index] = "" if text in ("-", "—", "default", "reset") else text
+        await update.message.reply_text(
+            f"✅ **Link {link_index + 1} label updated!**\n\n_Returning to links menu..._",
+            parse_mode="Markdown"
+        )
+        return await show_stream_links_menu_after_input(update, context)
+
+    # ── Editing / adding a URL (optional inline `>> label`) ───────────────
+    url, inline_label = parse_link_label(text)
+    if not url.startswith(("http://", "https://")):
         await update.message.reply_text(
             "❌ Invalid URL! Must start with http:// or https://\n\n"
             "Please paste a valid stream URL:"
         )
         return UPDATE_STREAM_INPUT
 
-    # Update the stream link
-    stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
-    while len(stream_links) < 4:
-        stream_links.append("#")
-    stream_links[link_index] = text
-    context.user_data["current_stream_links"] = stream_links
+    if link_index >= len(links):
+        # Appending a new link — respect the cap.
+        if len(links) >= MAX_STREAM_LINKS:
+            await update.message.reply_text(
+                f"⚠️ Maximum {MAX_STREAM_LINKS} links reached. Delete one before adding another."
+            )
+            return await show_stream_links_menu_after_input(update, context)
+        links.append(url)
+        labels.append(inline_label)
+        link_index = len(links) - 1
+    else:
+        links[link_index] = url
+        if inline_label:
+            labels[link_index] = inline_label
 
     # Detect player type for feedback
-    player_type = detect_player_type(text)
+    player_type = detect_player_type(url)
     type_labels = {"hls": "HLS", "iframe": "iFrame/Embed", "direct": "Direct Video"}
     stream_kind = type_labels.get(player_type, "Auto-detect")
-    player_info = f"🎬 Universal Player ({stream_kind})"
+    label_note = f"\n🏷️ Label: {labels[link_index]}" if labels[link_index] else ""
 
     await update.message.reply_text(
-        f"✅ **Link {link_index + 1} Updated!**\n\n"
-        f"🔗 URL saved successfully\n"
-        f"{player_info} will be used\n\n"
+        f"✅ **Link {link_index + 1} saved!**\n\n"
+        f"🎬 Universal Player ({stream_kind}) will be used{label_note}\n\n"
         f"_Returning to links menu..._",
         parse_mode="Markdown"
     )
 
-    # Return to stream links menu
     return await show_stream_links_menu_after_input(update, context)
+
+
+def build_stream_links_view(stream_links: list, stream_labels: list = None):
+    """Build (text, InlineKeyboardMarkup) for the stream-links editing menu.
+
+    `stream_links` is a COMPACT list of active URLs (no placeholders); `stream_labels`
+    is the parallel list of optional custom labels. Each link gets an edit button +
+    a quick 🗑️ delete button, and an ➕ Add Link button is offered until
+    MAX_STREAM_LINKS is reached.
+    """
+    stream_labels = stream_labels or []
+    keyboard = []
+    for i, link in enumerate(stream_links):
+        label = stream_labels[i] if i < len(stream_labels) else ""
+        # Show the operator's own label when set, otherwise a URL snippet.
+        shown = label or (link[:30] + "..." if len(link) > 30 else link)
+        keyboard.append([
+            InlineKeyboardButton(f"✏️ Link {i+1}: {shown}", callback_data=f"stream_link_{i}"),
+            InlineKeyboardButton("🗑️", callback_data=f"stream_del_{i}"),
+        ])
+
+    if len(stream_links) < MAX_STREAM_LINKS:
+        keyboard.append([InlineKeyboardButton(
+            f"➕ Add Link {len(stream_links) + 1}", callback_data="stream_add"
+        )])
+
+    keyboard.append([InlineKeyboardButton("💾 Save Changes", callback_data="update_save")])
+    keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="stream_done")])
+    keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
+
+    count = len(stream_links)
+    if count:
+        body = "Tap a link to change its URL or label, 🗑️ to delete, or ➕ to add another."
+    else:
+        body = "No links yet — tap ➕ Add Link to add your first stream."
+    text = (
+        f"🔗 **Update Streaming Links**\n\n"
+        f"📊 Active streams: {count}/{MAX_STREAM_LINKS}\n\n"
+        f"{body}"
+    )
+    return text, InlineKeyboardMarkup(keyboard)
 
 
 async def show_stream_links_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Show the stream links menu (used after actions)."""
     query = update.callback_query
 
-    stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
-
-    # Build buttons showing link status
-    keyboard = []
-    for i in range(4):
-        link = stream_links[i] if i < len(stream_links) else "#"
-        if link and link != "#":
-            display_url = link[:35] + "..." if len(link) > 35 else link
-            status = f"✅ Link {i+1}: {display_url}"
-        else:
-            status = f"⬜ Link {i+1}: (empty)"
-        keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
-
-    keyboard.append([InlineKeyboardButton("💾 Save Changes", callback_data="update_save")])
-    keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="stream_done")])
-    keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
-
-    active_count = len([l for l in stream_links if l and l != "#"])
-
-    await query.edit_message_text(
-        f"🔗 **Update Streaming Links**\n\n"
-        f"📊 Active streams: {active_count}/4\n\n"
-        f"Select a link to view/edit:\n"
-        f"_(Click any link to update it, then Save)_",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    links, labels = _sync_stream_labels(context)
+    text, markup = build_stream_links_view(links, labels)
+    await query.edit_message_text(text, parse_mode="Markdown", reply_markup=markup)
     return UPDATE_STREAM_SELECT
 
 
 async def show_stream_links_menu_after_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Show the stream links menu after text input (sends new message)."""
-    stream_links = context.user_data.get("current_stream_links", ["#", "#", "#", "#"])
-
-    # Build buttons showing link status
-    keyboard = []
-    for i in range(4):
-        link = stream_links[i] if i < len(stream_links) else "#"
-        if link and link != "#":
-            display_url = link[:35] + "..." if len(link) > 35 else link
-            status = f"✅ Link {i+1}: {display_url}"
-        else:
-            status = f"⬜ Link {i+1}: (empty)"
-        keyboard.append([InlineKeyboardButton(status, callback_data=f"stream_link_{i}")])
-
-    keyboard.append([InlineKeyboardButton("💾 Save Changes", callback_data="update_save")])
-    keyboard.append([InlineKeyboardButton("« Back to Menu", callback_data="stream_done")])
-    keyboard.append([InlineKeyboardButton("« Cancel", callback_data="menu_back")])
-
-    active_count = len([l for l in stream_links if l and l != "#"])
-
-    await update.message.reply_text(
-        f"🔗 **Update Streaming Links**\n\n"
-        f"📊 Active streams: {active_count}/4\n\n"
-        f"Select a link to view/edit:\n"
-        f"_(Click any link to update it, then Save)_",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    links, labels = _sync_stream_labels(context)
+    text, markup = build_stream_links_view(links, labels)
+    await update.message.reply_text(text, parse_mode="Markdown", reply_markup=markup)
     return UPDATE_STREAM_SELECT
 
 
@@ -2619,14 +2399,11 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     if "current_stadium" in context.user_data:
                         event["stadium"] = context.user_data["current_stadium"]
                     if "current_stream_links" in context.user_data:
-                        # Update all 4 streaming links (wrap m3u8 with proxy)
+                        # Update all streaming links (wrap m3u8 with proxy);
+                        # custom labels ride along in the broadcast "name" field.
                         stream_links = context.user_data["current_stream_links"]
-                        event["broadcast"] = [
-                            {"name": "Stream 1", "url": wrap_m3u8_with_proxy(stream_links[0]) if len(stream_links) > 0 else "#"},
-                            {"name": "Stream 2", "url": wrap_m3u8_with_proxy(stream_links[1]) if len(stream_links) > 1 else "#"},
-                            {"name": "Stream 3", "url": wrap_m3u8_with_proxy(stream_links[2]) if len(stream_links) > 2 else "#"},
-                            {"name": "Stream 4", "url": wrap_m3u8_with_proxy(stream_links[3]) if len(stream_links) > 3 else "#"},
-                        ]
+                        stream_labels = context.user_data.get("current_stream_labels", [])
+                        event["broadcast"] = build_broadcast(stream_links, stream_labels)
                         event["streams"] = len([url for url in stream_links if url and url != "#" and not url.startswith("https://t.me/")])
                     break
 
@@ -2648,8 +2425,6 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
         _live_updated = False
         try:
             import datetime as _dt
-            import base64 as _b64
-            from urllib.parse import urlparse as _urlparse, parse_qs as _parse_qs
             _fn_no_ext = filename.replace(".html", "")
             _updated_ev = None
             for _ev in events:
@@ -2657,22 +2432,24 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     _updated_ev = _ev
                     break
             if _updated_ev:
-                # Decode raw stream URLs from broadcast entries
+                # Decode raw stream URLs + custom labels from broadcast entries
                 _raw_streams = []
+                _raw_labels = []
                 for _bc in _updated_ev.get("broadcast", []):
                     _bc_url = _bc.get("url", "#")
                     if not _bc_url or _bc_url == "#":
                         _raw_streams.append("#")
                     elif "player.html?get=" in _bc_url:
-                        _qs = _parse_qs(_urlparse(_bc_url).query)
-                        _enc = _qs.get("get", [""])[0]
-                        _dec = _obf_decode(_enc)
+                        _dec = decode_player_url(_bc_url)  # recovers URL + DRM key
                         _raw_streams.append(_dec if _dec else "#")
                     else:
                         _raw_streams.append(_bc_url)
+                    _nm = _bc.get("name", "")
+                    _raw_labels.append("" if _DEFAULT_STREAM_NAME.match(_nm or "") else _nm)
                 # If stream links were explicitly updated this session, prefer those
                 if "current_stream_links" in context.user_data:
                     _raw_streams = list(context.user_data["current_stream_links"])
+                    _raw_labels = list(context.user_data.get("current_stream_labels", []))
                 _date_str = _updated_ev.get("date", "")
                 _time_str = _updated_ev.get("time", "00:00")
                 try:
@@ -2693,6 +2470,7 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     "match_name": _updated_ev.get("title", f"{_home} vs {_away}"),
                     "thumbnail": _updated_ev.get("poster", ""),
                     "stream_urls": _raw_streams,
+                    "stream_labels": _raw_labels,
                     "image_file": "og-image.jpg",
                     "preview": _updated_ev.get("excerpt", ""),
                 }
@@ -2760,52 +2538,6 @@ async def save_match_updates(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data.clear()
     context.user_data.update(_keep)
     return MAIN_MENU
-
-
-def generate_updated_card(data: dict, filename: str, poster_path: str = "assets/img/match-poster.jpg") -> str:
-    """Generate updated card HTML."""
-    card_html = f"""                    <!-- Match Card -->
-                    <article class="glass-card match-card">
-                        <img src="{poster_path}" alt="{data.get('current_title', 'Match')}" class="match-poster" loading="lazy">
-                        <div class="match-header">
-                            <h3 class="match-title">{data.get('current_title', 'Match')}</h3>
-                            <span class="league-badge {data.get('current_league_slug', 'others')}">{data.get('current_league', 'Football')}</span>
-                        </div>
-                        <div class="match-meta">
-                            <div class="match-meta-item">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                </svg>
-                                <span>{data.get('current_date', 'TBD')}</span>
-                            </div>
-                            <div class="match-meta-item">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                <span>{data.get('current_time', 'TBD')} GMT</span>
-                            </div>
-                            <div class="match-meta-item">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                <span>{data.get('current_stadium', 'Stadium TBD')}</span>
-                            </div>
-                        </div>
-                        <p class="match-excerpt">{(lambda p: p[:150] + '...' if len(p) > 150 else p)(data.get('current_preview', 'Match preview'))}</p>
-                        <a href="{filename}" class="match-link">
-                            Read More & Watch Live
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
-                        </a>
-                    </article>"""
-    return card_html
 
 
 async def match_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -2966,10 +2698,11 @@ async def preview(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
         f"✅ Preview saved!\n\n"
         f"🎥 **Step 6/7:** Please send stream URLs (one per line):\n\n"
-        f"You can send 1-4 URLs. Each URL should be on a separate line.\n\n"
-        f"Example:\n"
-        f"`https://example.com/stream1\n"
-        f"https://example.com/stream2`\n\n"
+        f"You can send 1-{MAX_STREAM_LINKS} URLs. Each URL should be on a separate line.\n\n"
+        f"_Optional:_ add a label after a URL with ` >> ` to set the text shown "
+        f"under that link (channel / language / quality):\n"
+        f"`https://example.com/stream1 >> Sky Sports HD | English\n"
+        f"https://example.com/stream2 >> Star Sports 1 | Hindi`\n\n"
         f"Send `skip` if you want to add URLs later.",
         parse_mode="Markdown"
     )
@@ -2982,11 +2715,17 @@ async def stream_urls(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     if text.lower() == "skip":
         context.user_data["stream_urls"] = []
+        context.user_data["stream_labels"] = []
     else:
-        # Split by newlines and validate URLs
-        urls = [url.strip() for url in text.split("\n") if url.strip()]
+        # Split by newlines; each line is "URL" or "URL >> custom label".
+        lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
+        urls, labels = [], []
+        for ln in lines:
+            _u, _lbl = parse_link_label(ln)
+            urls.append(_u)
+            labels.append(_lbl)
 
-        # Basic URL validation
+        # Basic URL validation (on the URL part only)
         url_pattern = re.compile(
             r'^https?://'  # http:// or https://
             r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain
@@ -3004,13 +2743,15 @@ async def stream_urls(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             )
             return STREAM_URLS
 
-        if len(urls) > 4:
+        if len(urls) > MAX_STREAM_LINKS:
             await update.message.reply_text(
-                "⚠️ Maximum 4 URLs allowed. I'll use the first 4 URLs."
+                f"⚠️ Maximum {MAX_STREAM_LINKS} URLs allowed. I'll use the first {MAX_STREAM_LINKS} URLs."
             )
-            urls = urls[:4]
+            urls = urls[:MAX_STREAM_LINKS]
+            labels = labels[:MAX_STREAM_LINKS]
 
         context.user_data["stream_urls"] = urls
+        context.user_data["stream_labels"] = labels
 
     # Generate suggested image filename
     home_slug = slugify(context.user_data["home_team"])
@@ -3099,7 +2840,6 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         # Generate it once and reuse it for the local archive + operator copy.
         live_html_code = generate_live_html(context.user_data)
         json_code = generate_json(context.user_data)
-        card_code = generate_card(context.user_data)
 
         # Save generated files
         date_slug = context.user_data["date"]
@@ -3111,19 +2851,14 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         bot_dir = os.path.dirname(os.path.abspath(__file__))
         gen_html = os.path.join(bot_dir, "generated", "html_files")
         gen_json = os.path.join(bot_dir, "generated", "json_entries")
-        gen_cards = os.path.join(bot_dir, "generated", "cards")
         os.makedirs(gen_html, exist_ok=True)
         os.makedirs(gen_json, exist_ok=True)
-        os.makedirs(gen_cards, exist_ok=True)
 
         with open(os.path.join(gen_html, f"{filename_base}.html"), "w", encoding="utf-8") as f:
             f.write(live_html_code)
 
         with open(os.path.join(gen_json, f"{filename_base}.json"), "w", encoding="utf-8") as f:
             f.write(json_code)
-
-        with open(os.path.join(gen_cards, f"{filename_base}-card.html"), "w", encoding="utf-8") as f:
-            f.write(card_code)
 
         # AUTO-INTEGRATE: Copy files and update index/events
         await update.message.reply_text("⏳ Auto-integrating into your website... Please wait.")
@@ -3145,7 +2880,7 @@ async def poster_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             integration_results.append("⚠️ Could not copy live page (foot-holics-live/ not found)")
 
         # Send results as files
-        await send_generated_files(update, context, live_html_code, json_code, card_code, filename_base, integration_results)
+        await send_generated_files(update, context, live_html_code, json_code, filename_base, integration_results)
 
     except Exception as e:
         await update.message.reply_text(f"❌ Error generating code: {str(e)}")
@@ -3187,41 +2922,11 @@ def generate_json(data: Dict[str, Any]) -> str:
         "poster": f"assets/img/{data['image_file']}",
         "excerpt": excerpt,
         "status": "upcoming",
-        "broadcast": [
-            {"name": "Stream 1", "url": wrap_m3u8_with_proxy(data["stream_urls"][0]) if len(data["stream_urls"]) > 0 else "#"},
-            {"name": "Stream 2", "url": wrap_m3u8_with_proxy(data["stream_urls"][1]) if len(data["stream_urls"]) > 1 else "#"},
-            {"name": "Stream 3", "url": wrap_m3u8_with_proxy(data["stream_urls"][2]) if len(data["stream_urls"]) > 2 else "#"},
-            {"name": "Stream 4", "url": wrap_m3u8_with_proxy(data["stream_urls"][3]) if len(data["stream_urls"]) > 3 else "#"},
-        ],
+        "broadcast": build_broadcast(data["stream_urls"], data.get("stream_labels")),
         "streams": len([url for url in data["stream_urls"] if url and url != "#" and not url.startswith("https://t.me/")])
     }
 
     return json.dumps(event_data, indent=2)
-
-
-def generate_card(data: Dict[str, Any]) -> str:
-    """Generate homepage card HTML."""
-    template = get_inline_card_template()
-
-    date_obj = data["datetime_obj"]
-    home_slug = slugify(data["home_team"])
-    away_slug = slugify(data["away_team"])
-    filename = f"{data['date']}-{home_slug}-vs-{away_slug}.html"
-
-    # Create excerpt
-    excerpt = data["preview"][:150] + "..." if len(data["preview"]) > 150 else data["preview"]
-
-    card = template.replace("{{MATCH_NAME}}", data["match_name"])
-    card = card.replace("{{IMAGE_FILE}}", data["image_file"])
-    card = card.replace("{{LEAGUE}}", data["league"])
-    card = card.replace("{{LEAGUE_SLUG}}", data["league_slug"])
-    card = card.replace("{{DATE_SHORT}}", date_obj.strftime("%b %d, %Y"))
-    card = card.replace("{{TIME}}", data["time"])
-    card = card.replace("{{STADIUM}}", data["stadium"])
-    card = card.replace("{{EXCERPT}}", excerpt)
-    card = card.replace("{{FILE_NAME}}", filename)
-
-    return card
 
 
 async def send_generated_files(
@@ -3229,7 +2934,6 @@ async def send_generated_files(
     context: ContextTypes.DEFAULT_TYPE,
     html_code: str,
     json_code: str,
-    card_code: str,
     filename_base: str,
     integration_results: list = None
 ) -> None:
@@ -3320,637 +3024,6 @@ async def send_generated_files(
         await update.message.reply_text(instructions, parse_mode="Markdown")
     except Exception:
         await update.message.reply_text(instructions.replace("*", "").replace("`", "").replace("_", ""))
-
-
-def get_inline_event_template() -> str:
-    """Return inline HTML template."""
-    return """<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="index, follow">
-    <meta name="description" content="{{MATCH_NAME}} \u2014 {{LEAGUE}} match preview, official broadcast channels, live score and kickoff time on {{DATE}} at {{STADIUM}}.">
-    <meta name="keywords" content="{{MATCH_NAME}}, {{HOME_TEAM}} vs {{AWAY_TEAM}}, {{LEAGUE}} preview, football match, kickoff time, {{STADIUM}}, {{HOME_TEAM}}, {{AWAY_TEAM}}, football today">
-
-    <!-- Open Graph -->
-    <meta property="og:title" content="{{MATCH_NAME}} \u2014 {{LEAGUE}} Match Preview">
-    <meta property="og:description" content="{{LEAGUE}} match preview: {{HOME_TEAM}} vs {{AWAY_TEAM}} on {{DATE}}. Kickoff time, broadcast info and live score.">
-    <meta property="og:type" content="article">
-    <meta property="og:image" content="assets/img/{{IMAGE_FILE}}">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{MATCH_NAME}} \u2014 {{LEAGUE}} Match Preview">
-    <meta name="twitter:description" content="{{LEAGUE}} preview: {{HOME_TEAM}} vs {{AWAY_TEAM}} on {{DATE}}. Kickoff time and broadcast info.">
-
-    <title>{{MATCH_NAME}} \u2014 {{LEAGUE}} Match Preview | Foot Holics</title>
-
-    <!-- Canonical -->
-    <link rel="canonical" href="https://footholics.in/{{FILE_NAME}}">
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-    <!-- Stylesheet -->
-    <link rel="stylesheet" href="assets/css/main.css">
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="assets/img/logos/site/logo.png">
-    <link rel="apple-touch-icon" href="assets/img/logos/site/logo.png">
-
-    <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SportsEvent",
-      "name": "{{MATCH_NAME}}",
-      "description": "{{MATCH_NAME}} \u2014 {{LEAGUE}} match preview on Foot Holics. Kickoff time, official broadcast channels, live score and editorial coverage.",
-      "startDate": "{{ISO_DATE}}",
-      "location": {
-        "@type": "Place",
-        "name": "{{STADIUM}}",
-        "address": {
-          "@type": "PostalAddress"
-        }
-      },
-      "homeTeam": {
-        "@type": "SportsTeam",
-        "name": "{{HOME_TEAM}}",
-        "sport": "Football"
-      },
-      "awayTeam": {
-        "@type": "SportsTeam",
-        "name": "{{AWAY_TEAM}}",
-        "sport": "Football"
-      },
-      "sport": "Football",
-      "competitor": [
-        {
-          "@type": "SportsTeam",
-          "name": "{{HOME_TEAM}}"
-        },
-        {
-          "@type": "SportsTeam",
-          "name": "{{AWAY_TEAM}}"
-        }
-      ],
-      "organizer": {
-        "@type": "SportsOrganization",
-        "name": "{{LEAGUE}}"
-      },
-      "eventStatus": "https://schema.org/EventScheduled",
-      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-      "isAccessibleForFree": true,
-      "url": "https://footholics.in/{{FILENAME}}"
-    }
-    </script>
-
-    <!-- Organization Schema for Foot Holics -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Foot Holics",
-      "url": "https://footholics.in",
-      "logo": "https://footholics.in/assets/img/logos/site/logo.png",
-      "description": "Premium football media platform covering match previews, standings, fixtures and the latest football news from around the world",
-      "sameAs": [
-        "https://t.me/+XyKdBR9chQpjM2I9",
-        "https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T"
-      ]
-    }
-    </script>
-
-    <!-- BreadcrumbList Schema -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://footholics.in/"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "{{LEAGUE}}",
-          "item": "https://footholics.in/#leagues"
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": "{{MATCH_NAME}}",
-          "item": "https://footholics.in/{{FILENAME}}"
-        }
-      ]
-    }
-    </script>
-</head>
-<body>
-    <!-- Header -->
-    <header class="site-header">
-        <div class="container">
-            <div class="header-inner">
-                <a href="index.html" class="logo">
-                    <img src="assets/img/logos/site/logo.png" alt="Foot Holics Logo" class="logo-icon">
-                    <span>Foot Holics</span>
-                </a>
-
-                <nav class="primary-nav" id="primaryNav">
-                    <a href="index.html">Home</a>
-                    <a href="world-cup-2026.html" class="nav-wc-link">World Cup</a>
-                    <a href="articles/index.html">Articles</a>
-                    <a href="standings.html">Standings</a>
-                    <a href="news.html">News</a>
-                </nav>
-
-                <div class="cta-group" id="ctaGroup">
-                    <a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
-                        <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                        </svg>
-                        WhatsApp
-                    </a>
-                    <a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
-                        <svg class="btn-icon" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                        </svg>
-                        Telegram
-                    </a>
-                </div>
-
-                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Breadcrumbs -->
-    <div class="container" style="margin-top: 2rem;">
-        <nav class="breadcrumbs" aria-label="Breadcrumb">
-            <a href="index.html">Home</a>
-            <span class="breadcrumb-separator">›</span>
-            <a href="/#leagues">{{LEAGUE}}</a>
-            <span class="breadcrumb-separator">›</span>
-            <span>{{MATCH_NAME}}</span>
-        </nav>
-    </div>
-
-    <!-- Event Hero -->
-    <div class="container" style="margin-top: 2rem;">
-        <div class="event-hero">
-            <img src="assets/img/{{IMAGE_FILE}}" alt="{{MATCH_NAME}}" class="event-hero-bg">
-            <div class="event-hero-content animate-fade-in">
-                <h1 class="event-title">{{MATCH_NAME}}</h1>
-                <div class="event-meta-row">
-                    <span class="league-badge {{LEAGUE_SLUG}}">{{LEAGUE}}</span>
-                    <div class="match-meta-item">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        <span>{{DATE}} at {{TIME}} IST ({{UTC_TIME}} UTC)</span>
-                    </div>
-                    <div class="match-meta-item">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        <span>{{STADIUM}}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <main class="container" style="margin-top: 3rem;">
-        <!-- Teams Block -->
-        <div class="teams-block">
-            <div class="team">
-                <img src="{{HOME_TEAM_LOGO}}" alt="{{HOME_TEAM}}" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: contain; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="team-crest" style="background: linear-gradient(135deg, #D4AF37 0%, #FFD700 100%); display: none;">⚽</div>
-                <h2 class="team-name">{{HOME_TEAM}}</h2>
-                <p class="text-muted">Home</p>
-            </div>
-            <div class="vs">VS</div>
-            <div class="team">
-                <img src="{{AWAY_TEAM_LOGO}}" alt="{{AWAY_TEAM}}" class="team-logo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: contain; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="team-crest" style="background: linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%); display: none;">⚽</div>
-                <h2 class="team-name">{{AWAY_TEAM}}</h2>
-                <p class="text-muted">Away</p>
-            </div>
-        </div>
-
-        <!-- Live Score Widget -->
-        <div id="liveScoreWidget"
-             class="live-score-widget"
-             data-home="{{HOME_TEAM}}"
-             data-away="{{AWAY_TEAM}}"
-             data-league="{{LEAGUE_SLUG}}"
-             data-date="{{DATE_ISO}}"
-             data-home-logo="{{HOME_TEAM_LOGO}}"
-             data-away-logo="{{AWAY_TEAM_LOGO}}">
-            <div class="ls-status-bar upcoming-status">
-                <span>&#9200;</span> <span>Loading score...</span>
-            </div>
-            <div class="ls-scoreboard">
-                <div class="ls-team-col">
-                    <span class="ls-team-name">{{HOME_TEAM}}</span>
-                </div>
-                <div class="ls-score-col">
-                    <div class="ls-countdown" id="lsCountdown">--:--:--</div>
-                </div>
-                <div class="ls-team-col">
-                    <span class="ls-team-name">{{AWAY_TEAM}}</span>
-                </div>
-            </div>
-            <p class="ls-powered">Live data via ESPN</p>
-        </div>
-
-        <!-- Match Preview -->
-        <section class="glass-card mb-4">
-            <h2 style="color: var(--accent); margin-bottom: 1rem;">Match Preview</h2>
-            <p>{{PREVIEW}}</p>
-        </section>
-
-        <!-- Broadcast Channels -->
-        <section class="glass-card mb-4">
-            <h2 style="color: var(--accent); margin-bottom: 1rem;">Official Broadcast Channels</h2>
-            <table class="broadcast-table">
-                <thead>
-                    <tr>
-                        <th>Country</th>
-                        <th>Channel / Platform</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{BROADCAST_ROWS}}
-                </tbody>
-            </table>
-        </section>
-
-        <!-- Watch Live CTA -->
-        <section class="glass-card mb-4" style="text-align: center;">
-            <h2 style="color: var(--accent); margin-bottom: 1rem;">Watch This Match Live</h2>
-            <p class="text-muted" style="margin-bottom: 1.5rem; font-size: 0.95rem;">
-                Multiple live stream links are available for this match. Click below to access them.
-            </p>
-            <a href="https://live.footholics.in/{{MATCH_SLUG}}"
-               class="btn btn-primary"
-               style="font-size: 1.1rem; padding: 0.9rem 2.5rem; display: inline-block;"
-               target="_blank" rel="noopener noreferrer">
-                Watch Live &rarr;
-            </a>
-        </section>
-
-        <!-- Social Share -->
-        <section class="glass-card mb-4">
-            <h3 style="color: var(--accent); margin-bottom: 1rem;">Share This Match</h3>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <a href="https://api.whatsapp.com/send?text=Watch%20{{MATCH_NAME_ENCODED}}%20Live%20-%20https://footholics.in/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <i class="fa-brands fa-whatsapp" style="font-size: 20px; margin-right: 8px;"></i> WhatsApp
-                </a>
-                <a href="https://www.facebook.com/sharer/sharer.php?u=https://footholics.in/{{FILE_NAME}}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <i class="fa-brands fa-facebook" style="font-size: 20px; margin-right: 8px;"></i> Facebook
-                </a>
-                <a href="https://twitter.com/intent/tweet?url=https://footholics.in/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <i class="fa-brands fa-x-twitter" style="font-size: 20px; margin-right: 8px;"></i> X
-                </a>
-                <a href="https://t.me/share/url?url=https://footholics.in/{{FILE_NAME}}&text=Watch%20{{MATCH_NAME_ENCODED}}%20Live" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;">
-                    <i class="fa-brands fa-telegram" style="font-size: 20px; margin-right: 8px;"></i> Telegram
-                </a>
-                <a href="https://discord.com/channels/@me" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.9rem;" onclick="navigator.clipboard.writeText('Watch {{MATCH_NAME}} Live - https://footholics.in/{{FILE_NAME}}'); alert('Link copied! Paste it in Discord.'); return false;">
-                    <i class="fa-brands fa-discord" style="font-size: 20px; margin-right: 8px;"></i> Discord
-                </a>
-            </div>
-        </section>
-
-        <!-- Disclaimer -->
-        <div class="disclaimer">
-            <h3 class="disclaimer-title">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="display: inline;">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                Important Legal Disclaimer
-            </h3>
-            <p>
-                <strong>Foot Holics does NOT host any streaming content.</strong> All streaming links shown are from
-                third-party public sources. We act solely as a link aggregator and have no control over the content,
-                quality, or availability of these streams. If you are a copyright holder and wish to have content removed,
-                please contact the host site directly. We do not control third-party content and are not responsible for it.
-                All team names, logos, and trademarks are property of their respective owners.
-            </p>
-            <p style="margin-top: 1rem;">
-                For takedown requests or concerns, contact: <a href="mailto:footholicsin@gmail.com" style="color: var(--accent);">footholicsin@gmail.com</a>
-            </p>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="site-footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4>About Foot Holics</h4>
-                    <p>Your premium football destination for news, standings, fixtures and in-depth match coverage from all the leagues you love.</p>
-                </div>
-
-                <div class="footer-section">
-                    <h4>Quick Links</h4>
-                    <ul class="footer-links">
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="news.html">Football News</a></li>
-                        <li><a href="articles/index.html">Articles</a></li>
-                        <li><a href="standings.html">Standings</a></li>
-                        <li><a href="fixtures.html">Fixtures</a></li>
-                        <li><a href="contact.html">Contact</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-section">
-                    <h4>Legal</h4>
-                    <ul class="footer-links">
-                        <li><a href="privacy.html">Privacy Policy</a></li>
-                        <li><a href="terms.html">Terms & Conditions</a></li>
-                        <li><a href="dmca.html">DMCA / Copyright</a></li>
-                        <li><a href="disclaimer.html">Disclaimer</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer-section">
-                    <h4>Connect With Us</h4>
-                    <ul class="footer-links">
-                        <li><a href="https://chat.whatsapp.com/KG7DBpC0BKv6bFtlzfOr2T" target="_blank" rel="noopener noreferrer">
-                            <i class="fa-brands fa-whatsapp" style="font-size: 18px; margin-right: 8px;"></i>WhatsApp Channel
-                        </a></li>
-                        <li><a href="https://t.me/+XyKdBR9chQpjM2I9" target="_blank" rel="noopener noreferrer">
-                            <i class="fa-brands fa-telegram" style="font-size: 18px; margin-right: 8px;"></i>Telegram
-                        </a></li>
-                        <li><a href="https://discord.gg/example" target="_blank" rel="noopener noreferrer">
-                            <i class="fa-brands fa-discord" style="font-size: 18px; margin-right: 8px;"></i>Discord
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="footer-bottom">
-                <p>&copy; 2025 Foot Holics. All rights reserved.</p>
-                <p style="margin-top: 1rem; font-size: 0.8rem;">
-                    This site does not host any media. All links are shared from open third-party sources.
-                    Copyright owners may contact host sites for issues. All trademarks belong to their respective owners.
-                </p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- JavaScript -->
-    <script src="assets/js/main.js" defer></script>
-    <script src="assets/js/livescore-widget.js" defer></script>
-
-    <!-- Live Score Widget Script (inline — handles all logic) -->
-    <script>
-    (function () {
-        'use strict';
-        // If the external livescore-widget.js already ran, skip.
-        if (window.__lsWidgetLoaded) return;
-        var widget = document.getElementById('liveScoreWidget');
-        if (!widget) return;
-
-        var homeTeam  = widget.dataset.home;
-        var awayTeam  = widget.dataset.away;
-        var leagueSlug = widget.dataset.league;
-        var matchDate = widget.dataset.date;   // ISO: "2026-04-04T19:00:00Z"
-        var homeLogo  = widget.dataset.homeLogo;
-        var awayLogo  = widget.dataset.awayLogo;
-
-        // Extract date part only (YYYY-MM-DD)
-        var dateOnly = matchDate ? matchDate.slice(0, 10) : '';
-
-        // Slug → ESPN code for the API
-        var SLUG_MAP = {
-            'premier-league':   'eng.1',
-            'laliga':           'esp.1',
-            'bundesliga':       'ger.1',
-            'serie-a':          'ita.1',
-            'ligue-1':          'fra.1',
-            'champions-league': 'UEFA.CHAMPIONS',
-        };
-        var espnLeague = SLUG_MAP[leagueSlug] || leagueSlug;
-
-        var apiUrl = '/api/livescore?home=' + encodeURIComponent(homeTeam)
-                   + '&away=' + encodeURIComponent(awayTeam)
-                   + (espnLeague ? '&league=' + encodeURIComponent(espnLeague) : '')
-                   + (dateOnly ? '&date=' + encodeURIComponent(dateOnly) : '');
-
-        var countdownInterval = null;
-        var pollInterval = null;
-        var kickoffTime = matchDate ? new Date(matchDate) : null;
-
-        function escHtml(s) {
-            if (!s) return '';
-            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        }
-
-        function logoImg(src, name) {
-            if (!src || src === '#' || src === '') return '';
-            return '<img src="' + escHtml(src) + '" alt="' + escHtml(name) + '" class="ls-team-logo" onerror="this.style.display=\'none\'">';
-        }
-
-        function formatCountdown(ms) {
-            if (ms <= 0) return '00:00:00';
-            var s = Math.floor(ms / 1000);
-            var h = Math.floor(s / 3600);
-            var m = Math.floor((s % 3600) / 60);
-            var sec = s % 60;
-            var pad = function(n){ return n < 10 ? '0' + n : String(n); };
-            return pad(h) + ':' + pad(m) + ':' + pad(sec);
-        }
-
-        function renderPrematch() {
-            if (countdownInterval) clearInterval(countdownInterval);
-            var now = Date.now();
-            var diff = kickoffTime ? kickoffTime.getTime() - now : 0;
-            var timeStr = kickoffTime ? kickoffTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC' : '';
-
-            widget.classList.remove('is-live', 'is-finished');
-
-            function tick() {
-                var remaining = kickoffTime ? kickoffTime.getTime() - Date.now() : 0;
-                var cdEl = widget.querySelector('#lsCountdown');
-                if (cdEl) cdEl.textContent = remaining > 0 ? formatCountdown(remaining) : '00:00:00';
-            }
-            tick();
-            countdownInterval = setInterval(tick, 1000);
-
-            widget.innerHTML = '<div class="ls-status-bar upcoming-status"><span>&#9200;</span> <span>UPCOMING</span></div>'
-                + '<div class="ls-scoreboard">'
-                    + '<div class="ls-team-col">' + logoImg(homeLogo, homeTeam) + '<span class="ls-team-name">' + escHtml(homeTeam) + '</span></div>'
-                    + '<div class="ls-score-col"><div class="ls-countdown" id="lsCountdown">--:--:--</div>'
-                        + (timeStr ? '<div class="ls-kickoff-time">Kick off ' + escHtml(timeStr) + '</div>' : '') + '</div>'
-                    + '<div class="ls-team-col">' + logoImg(awayLogo, awayTeam) + '<span class="ls-team-name">' + escHtml(awayTeam) + '</span></div>'
-                + '</div>'
-                + '<p class="ls-powered">Live data via ESPN</p>';
-
-            // Restart countdown in the new DOM
-            var cdEl = widget.querySelector('#lsCountdown');
-            if (cdEl && kickoffTime) {
-                countdownInterval = setInterval(function() {
-                    var remaining = kickoffTime.getTime() - Date.now();
-                    cdEl.textContent = remaining > 0 ? formatCountdown(remaining) : '00:00:00';
-                }, 1000);
-            }
-        }
-
-        function renderLive(data) {
-            if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-            widget.classList.add('is-live');
-            widget.classList.remove('is-finished');
-
-            var homeGoals = data.goalEvents.filter(function(e){ return e.side === 'home'; });
-            var awayGoals = data.goalEvents.filter(function(e){ return e.side === 'away'; });
-
-            var homeGoalHtml = homeGoals.map(function(e){
-                return '<span class="ls-goal-event"><span class="scorer">&#9917; ' + escHtml(e.scorer) + '</span> <span class="minute">' + escHtml(e.minute) + '</span></span>';
-            }).join('');
-            var awayGoalHtml = awayGoals.map(function(e){
-                return '<span class="ls-goal-event"><span class="scorer">&#9917; ' + escHtml(e.scorer) + '</span> <span class="minute">' + escHtml(e.minute) + '</span></span>';
-            }).join('');
-
-            widget.innerHTML = '<div class="ls-status-bar live-status"><span class="live-dot" style="width:8px;height:8px;background:#ef4444;border-radius:50%;display:inline-block;animation:blink 1.5s infinite;"></span> <span>LIVE &bull; ' + escHtml(data.minute || data.detail) + '</span></div>'
-                + '<div class="ls-scoreboard">'
-                    + '<div class="ls-team-col">' + logoImg(homeLogo, homeTeam) + '<span class="ls-team-name">' + escHtml(data.homeTeam || homeTeam) + '</span></div>'
-                    + '<div class="ls-score-col"><div class="ls-score-display">'
-                        + '<span class="ls-score">' + (data.homeScore !== null ? escHtml(String(data.homeScore)) : '-') + '</span>'
-                        + '<span class="ls-score-sep">:</span>'
-                        + '<span class="ls-score">' + (data.awayScore !== null ? escHtml(String(data.awayScore)) : '-') + '</span>'
-                    + '</div></div>'
-                    + '<div class="ls-team-col">' + logoImg(awayLogo, awayTeam) + '<span class="ls-team-name">' + escHtml(data.awayTeam || awayTeam) + '</span></div>'
-                + '</div>'
-                + (homeGoalHtml || awayGoalHtml ? '<div class="ls-events"><div class="ls-events-side home">' + homeGoalHtml + '</div><div class="ls-events-side away">' + awayGoalHtml + '</div></div>' : '')
-                + '<p class="ls-powered">Live data via ESPN &bull; updates every 30s</p>';
-        }
-
-        function renderFinished(data) {
-            if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-            widget.classList.remove('is-live');
-            widget.classList.add('is-finished');
-
-            var homeGoals = data.goalEvents.filter(function(e){ return e.side === 'home'; });
-            var awayGoals = data.goalEvents.filter(function(e){ return e.side === 'away'; });
-            var homeGoalHtml = homeGoals.map(function(e){
-                return '<span class="ls-goal-event"><span class="scorer">&#9917; ' + escHtml(e.scorer) + '</span> <span class="minute">' + escHtml(e.minute) + '</span></span>';
-            }).join('');
-            var awayGoalHtml = awayGoals.map(function(e){
-                return '<span class="ls-goal-event"><span class="scorer">&#9917; ' + escHtml(e.scorer) + '</span> <span class="minute">' + escHtml(e.minute) + '</span></span>';
-            }).join('');
-
-            widget.innerHTML = '<div class="ls-status-bar finished-status"><span>&#10003;</span> <span>FULL TIME</span></div>'
-                + '<div class="ls-scoreboard">'
-                    + '<div class="ls-team-col">' + logoImg(homeLogo, homeTeam) + '<span class="ls-team-name">' + escHtml(data.homeTeam || homeTeam) + '</span></div>'
-                    + '<div class="ls-score-col"><div class="ls-score-display">'
-                        + '<span class="ls-score">' + (data.homeScore !== null ? escHtml(String(data.homeScore)) : '-') + '</span>'
-                        + '<span class="ls-score-sep">:</span>'
-                        + '<span class="ls-score">' + (data.awayScore !== null ? escHtml(String(data.awayScore)) : '-') + '</span>'
-                    + '</div></div>'
-                    + '<div class="ls-team-col">' + logoImg(awayLogo, awayTeam) + '<span class="ls-team-name">' + escHtml(data.awayTeam || awayTeam) + '</span></div>'
-                + '</div>'
-                + (homeGoalHtml || awayGoalHtml ? '<div class="ls-events"><div class="ls-events-side home">' + homeGoalHtml + '</div><div class="ls-events-side away">' + awayGoalHtml + '</div></div>' : '')
-                + '<p class="ls-powered">Final score via ESPN</p>';
-        }
-
-        async function fetchScore() {
-            try {
-                var res = await fetch(apiUrl);
-                if (!res.ok) throw new Error();
-                var data = await res.json();
-                if (!data.found) {
-                    renderPrematch();
-                    return;
-                }
-                if (data.isCompleted || data.state === 'post') {
-                    renderFinished(data);
-                } else if (data.isLive || data.state === 'in') {
-                    renderLive(data);
-                } else {
-                    renderPrematch();
-                }
-            } catch (e) {
-                renderPrematch();
-            }
-        }
-
-        // Initial fetch
-        fetchScore();
-
-        // Poll every 30s during potential match window
-        // (2h window around kickoff)
-        if (kickoffTime) {
-            var windowStart = kickoffTime.getTime() - 5 * 60 * 1000;
-            var windowEnd   = kickoffTime.getTime() + 130 * 60 * 1000;
-            var now = Date.now();
-            if (now >= windowStart && now <= windowEnd) {
-                pollInterval = setInterval(fetchScore, 30000);
-            }
-        }
-    })();
-    </script>
-</body>
-</html>"""
-
-
-def get_inline_card_template() -> str:
-    """Return inline card template."""
-    return """                    <!-- Match Card -->
-                    <article class="glass-card match-card">
-                        <img src="assets/img/{{IMAGE_FILE}}" alt="{{MATCH_NAME}}" class="match-poster" loading="lazy">
-                        <div class="match-header">
-                            <h3 class="match-title">{{MATCH_NAME}}</h3>
-                            <span class="league-badge {{LEAGUE_SLUG}}">{{LEAGUE}}</span>
-                        </div>
-                        <div class="match-meta">
-                            <div class="match-meta-item">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                </svg>
-                                <span>{{DATE_SHORT}}</span>
-                            </div>
-                            <div class="match-meta-item">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                <span>{{TIME}} IST</span>
-                            </div>
-                            <div class="match-meta-item">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                <span>{{STADIUM}}</span>
-                            </div>
-                        </div>
-                        <p class="match-excerpt">{{EXCERPT}}</p>
-                        <a href="{{FILE_NAME}}" class="match-link">
-                            Read More & Watch Live
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
-                        </a>
-                    </article>"""
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -5320,18 +4393,19 @@ def main() -> None:
             ],
             UPDATE_STREAM_SELECT: [
                 CallbackQueryHandler(stream_link_select_handler, pattern="^stream_link_"),
+                CallbackQueryHandler(stream_link_select_handler, pattern="^stream_add$"),
+                CallbackQueryHandler(stream_link_select_handler, pattern="^stream_label_"),
                 CallbackQueryHandler(stream_link_action_handler, pattern="^stream_done"),
-                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_back"),
-                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_clear_"),
+                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_del_"),
                 CallbackQueryHandler(update_field_choice_handler, pattern="^update_save"),
                 CallbackQueryHandler(main_menu_handler, pattern="^menu_"),
             ],
             UPDATE_STREAM_INPUT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, stream_link_input_handler),
+                CallbackQueryHandler(stream_link_select_handler, pattern="^stream_label_"),
                 CallbackQueryHandler(stream_link_action_handler, pattern="^stream_back"),
-                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_clear_"),
+                CallbackQueryHandler(stream_link_action_handler, pattern="^stream_del_"),
             ],
-            GENERATE_CARD_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, generate_card_input)],
             ARTICLE_TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, article_title_handler)],
             ARTICLE_CATEGORY: [CallbackQueryHandler(article_category_handler, pattern="^art_cat_")],
             ARTICLE_EXCERPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, article_excerpt_handler)],
