@@ -17,15 +17,35 @@
     "status": "upcoming",
     "broadcast": [
       {
-        "name": "Telemundo HD",
+        "name": "Telemundo FHD",
         "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4UIgdcVz0ILUVCQB9GUxxmH1wNIUgpT1NdU19bHS9fVx8mSQtLXERXWFVXCDx4PA0pBBYfc2ZkDEw4XE9IfSohUlcfUV5AFiUUVVI5EC1FGx9fV1IMLgMXFyIC&type=shaka&ck=~BS0TU1IBBhNKLkYMSWFWfx0LB1QDGRktFAlKYwQpRwYKBQRFTnhAWExkA34XB1MEBhlKchAJHDdRfxQHBQMAQkk"
       },
       {
         "name": "Caze TV",
         "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZEgElA0keMwg5Fh1fR0IODnpeAUs0AnxHAAYHDhVIf0VdSDBXKRVRUwdUEkotEAAbNFZnR1deURhMCC8&type=shaka&ck=~VXwQBQVXUkAackgIGzZTLR0ABQYOQB0pFQ5LYlJ5FFMKBwYQGnlBABkxBSwXAANTVRFIKRcMGzFXfUYGAARVQ0w"
+      },
+      {
+        "name": "TSN 1",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZFhIqH0xPZwI_Rx1fR0IODnpeD0MzVCkTAgQDBRhNf0EPGGtReBELCFQAEE5zQVxNMQBnR1deURhMCC8&type=shaka&ck=~A30VU1EAB0dKKkFfHzRfKUVQUwMEERwtEw9PZwR9FlQKUwcTGXJJDhw3UXoRUwQCVBcaLkgMGTZefEYDBVQAGUE"
+      },
+      {
+        "name": "TSN 3",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZTQIjHEwAPww7SB1fR0IODnpeWktlVy1BUAIDAkJPf0hfSDBVfRVRBwtSR0t6RltIYwNnR1deURhMCC8&type=shaka&ck=~AH1HAFIBBkQZKEAIGDdXLRxRVFRVGE1zRF9PNAN-RVQKUw4QQXMVCE0wAHFGAlRTARZMfkFfGDBfeR1TAwpUExw"
+      },
+      {
+        "name": "TSN 4",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZSUE-A0kVYQU_Rh1fR0IODnpeXx43V3EUVAMEDxVAfxNaTDBQeRUFU1EHFxsvSQsbawBnR1deURhMCC8&type=shaka&ck=~BXwUCghUA0dKfURfQzYDfRRRVlRSGUgpFwFDYVZwRgUKAFUVHHlDCkM2X35ABwMAVBUdKEMJT2JQfRcEAQMGEUs"
+      },
+      {
+        "name": "SporTV 1",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4ZekQIGzsQJ1BGXFtYRBk5XFhUMw0pSVNZWlIPFi4FFjUGMgoLQVlcG08RPwNWVT4PPkEdVFNFSVcuH1pVP1EsUUReWQRDDWQeTA59EHkLVgFTUhdBekABGGdQfBMBAAtUEB0pRgtLYQcuQlZSAVIOGy4fWlQ_Fiw&type=shaka&ck=~UipGUVZUBRNAchUNT2UEfEBWBVZURRx5QAtIYwItHVMKUQIYSH0TABtrAHBAVlEBVRFPeURbHjYEcEcGCQUBEks"
+      },
+      {
+        "name": "FOX SPORTS  US",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZRws-Qk4WYBQ_Rh1fR0IODnpeWx9kV3oUBFMCAkROf0IKTmsCfRdUUgAEEkh6FwoYZ1ZnR1deURhMCC8&type=shaka&ck=~U3wSBFVQUhZIfEENGDYDKhIHB1QGQBotQlpPMQd8QVQKUFJFT3ITDkg2Xi0QClVWAhlLKhAPSGEFKxcKUQpXEE4"
       }
     ],
-    "streams": 2
+    "streams": 7
   },
   {
     "id": "event-1781296148697",
