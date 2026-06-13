@@ -9,7 +9,8 @@
  * Cache: finished → 24 h | live → 5 min | upcoming → 30 min
  */
 
-const API_KEY  = 'b9c4d6e0be048bb79d8cf819e12775af';
+// Set in Vercel → Settings → Environment Variables (never hardcode — public repo).
+const API_KEY  = process.env.API_FOOTBALL_KEY;
 const API_BASE = 'https://v3.football.api-sports.io';
 
 const FINISHED  = new Set(['FT', 'AET', 'PEN', 'AWD', 'WO']);

@@ -7,7 +7,8 @@
  * API cost: 2 calls/day per match (fixture search + H2H).
  */
 
-const API_KEY  = 'b9c4d6e0be048bb79d8cf819e12775af';
+// Set in Vercel → Settings → Environment Variables (never hardcode — public repo).
+const API_KEY  = process.env.API_FOOTBALL_KEY;
 const API_BASE = 'https://v3.football.api-sports.io';
 
 const LEAGUE_MAP = {

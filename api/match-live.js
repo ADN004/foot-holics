@@ -9,7 +9,8 @@
  * For a 2-hour match: ~48 calls total. Well within the free 100/day limit.
  */
 
-const API_KEY  = 'b9c4d6e0be048bb79d8cf819e12775af';
+// Set in Vercel → Settings → Environment Variables (never hardcode — public repo).
+const API_KEY  = process.env.API_FOOTBALL_KEY;
 const API_BASE = 'https://v3.football.api-sports.io';
 
 async function apiFetch(path) {

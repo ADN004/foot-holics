@@ -8,7 +8,8 @@
  * Cache:  yesterday → 24 h | tomorrow → 2 h | today → 30 min
  */
 
-const API_KEY  = 'b9c4d6e0be048bb79d8cf819e12775af';
+// Set in Vercel → Settings → Environment Variables (never hardcode — public repo).
+const API_KEY  = process.env.API_FOOTBALL_KEY;
 const API_BASE = 'https://v3.football.api-sports.io';
 
 // Lower index = higher priority.
