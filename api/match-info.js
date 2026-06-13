@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
     try {
         // Load events.json to find the match
-        const evRes = await fetch('https://www.footholics.in/data/events.json');
+        const evRes = await fetch('https://footholics.in/data/events.json');
         if (!evRes.ok) throw new Error('events.json unavailable');
         const events = await evRes.json();
         const event  = events.find(e => e.slug === slug);
