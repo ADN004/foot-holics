@@ -1,56 +1,27 @@
 /**
  * /api/match-schedule?tab=yesterday|today|tomorrow
  *
- * Returns all worldwide football fixtures for a given day,
- * grouped by league with major leagues sorted first.
+ * ESPN-based, KEYLESS, no daily quota. Returns worldwide fixtures for a day,
+ * grouped by competition with major leagues first — same response shape the
+ * homepage + match centre already render:
+ *   { tab, date, total, leagues: [ { league, matches:[normMatch] } ] }
  *
- * Source: api-football.com v3
- * Cache:  yesterday → 24 h | tomorrow → 2 h | today → 30 min
+ * Source: ESPN all/scoreboard (one call, all competitions).
  */
 
-// Set in Vercel → Settings → Environment Variables (never hardcode — public repo).
-const API_KEY  = process.env.API_FOOTBALL_KEY;
-const API_BASE = 'https://v3.football.api-sports.io';
+import { ESPN_BASE, getJson, espnDate } from '../lib/espn.js';
 
-// Lower index = higher priority.
-// IDs 1-30 in API-Football cover major international tournaments and qualifiers
-// (World Cup, UCL, Europa, Conference, EURO, Copa America, AFCON, Nations Leagues, WC Quals, etc.)
-const PRIORITY_IDS = [
-    // ── Major international tournaments & WC qualifiers ──
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    11, 12, 13, 14, 15, 16, 17, 18,
-    19, 20, 21, 22, 23, 24, 25,
-    26, 27, 28, 29, 30,
-    // ── Top 5 European club leagues ──
-    39, 140, 135, 78, 61,               // Premier League, La Liga, Serie A, Bundesliga, Ligue 1
-    // ── Domestic cups of top 5 ──
-    43, 45, 73, 137, 65, 81,            // FA Cup, EFL Cup, Copa del Rey, Coppa Italia, Coupe de France, DFB Pokal
-    // ── Other major European leagues ──
-    94, 88, 197, 203, 98,               // Primeira Liga, Eredivisie, Süper Lig, Belgian
-    106, 113, 119, 144, 169, 172, 207,  // Polish, Swedish, Danish, Belgian alt, Scottish, Swiss, Greek
-    218, 235,                           // Russian, Ukrainian
-    // ── Americas ──
-    71, 72, 332, 128, 253, 262,         // Brazilian Série A/B, Argentine Liga, Copa Argentina, MLS, Liga MX
-    // ── Asia / Middle East ──
-    271, 283, 307, 323,                 // J1 League, K League 1, Saudi Pro League, ISL
-    848,
+// Keyword priority for sorting competitions (lower index = shown first).
+const LEAGUE_PRIORITY = [
+    'world cup', 'champions league', 'europa league', 'conference league',
+    'nations league', 'euro', 'copa america', 'african cup', 'asian cup',
+    'premier league', 'laliga', 'la liga', 'serie a', 'bundesliga', 'ligue 1',
+    'champions', 'fa cup', 'efl cup', 'carabao', 'copa del rey', 'coppa italia',
+    'dfb pokal', 'eredivisie', 'primeira liga', 'super lig',
+    'mls', 'liga mx', 'brasileir', 'libertadores',
 ];
 
-// Country popularity score for leagues not in PRIORITY_IDS (lower = shown earlier)
-const COUNTRY_RANK = {
-    'World': 0, 'Europe': 1,
-    'England': 2, 'Spain': 3, 'Germany': 4, 'Italy': 5, 'France': 6,
-    'Netherlands': 7, 'Portugal': 8, 'Turkey': 9, 'Belgium': 10,
-    'Scotland': 11, 'Russia': 12, 'Ukraine': 13, 'Greece': 14,
-    'Switzerland': 15, 'Poland': 16, 'Sweden': 17, 'Denmark': 18,
-    'Brazil': 19, 'Argentina': 20, 'Mexico': 21, 'USA': 22,
-    'Japan': 23, 'South Korea': 24, 'Saudi Arabia': 25, 'China': 26,
-    'India': 27, 'Australia': 28,
-};
-
-function istNow() {
-    return new Date(Date.now() + 5.5 * 3600_000);
-}
+function istNow() { return new Date(Date.now() + 5.5 * 3600_000); }
 
 function tabToDate(tab) {
     const d = istNow();
@@ -59,42 +30,72 @@ function tabToDate(tab) {
     return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
-function normMatch(f) {
+// "2025-26-english-premier-league" / "2026-fifa-world-cup" → "English Premier League"
+function leagueNameFromSlug(slug) {
+    return String(slug || '')
+        .replace(/^\d{4}(-\d{2})?-/, '')          // drop leading season year(s)
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+        .replace(/\bFifa\b/, 'FIFA').replace(/\bUefa\b/, 'UEFA')
+        .replace(/\bMls\b/, 'MLS').replace(/\bEfl\b/, 'EFL')
+        .trim() || 'Football';
+}
+
+function leagueIdFromUid(uid) {
+    const m = /l:(\d+)/.exec(uid || '');
+    return m ? Number(m[1]) : 0;
+}
+
+function shortStatus(state) {
+    if (state === 'pre') return 'NS';
+    if (state === 'post') return 'FT';
+    return '1H'; // live
+}
+
+function priorityRank(name) {
+    const n = name.toLowerCase();
+    for (let i = 0; i < LEAGUE_PRIORITY.length; i++)
+        if (n.includes(LEAGUE_PRIORITY[i])) return i;
+    return 999;
+}
+
+function normMatch(ev) {
+    const comp = (ev.competitions && ev.competitions[0]) || {};
+    const cs = comp.competitors || [];
+    const h = cs.find(c => c.homeAway === 'home') || cs[0] || {};
+    const a = cs.find(c => c.homeAway === 'away') || cs[1] || {};
+    const st = ev.status || comp.status || {};
+    const toInt = v => (v == null || v === '' || isNaN(parseInt(v, 10))) ? null : parseInt(v, 10);
+    const side = c => ({
+        id: c.team ? c.team.id : null,
+        name: c.team ? c.team.displayName : '',
+        logo: c.team ? c.team.logo : '',
+        winner: c.winner === true,
+    });
+    const slug = (ev.season && ev.season.slug) || '';
     return {
-        id:        f.fixture.id,
-        date:      f.fixture.date,
-        timestamp: f.fixture.timestamp,
+        id: ev.id,
+        date: ev.date,
+        timestamp: ev.date ? Math.floor(Date.parse(ev.date) / 1000) : 0,
         status: {
-            long:    f.fixture.status.long,
-            short:   f.fixture.status.short,
-            elapsed: f.fixture.status.elapsed,
+            long: (st.type && st.type.description) || '',
+            short: shortStatus(st.type && st.type.state),
+            elapsed: parseInt(st.displayClock, 10) || null,
         },
-        venue: f.fixture.venue
-            ? { name: f.fixture.venue.name, city: f.fixture.venue.city }
-            : null,
+        venue: comp.venue ? { name: comp.venue.fullName, city: null } : null,
         league: {
-            id:      f.league.id,
-            name:    f.league.name,
-            country: f.league.country,
-            logo:    f.league.logo,
-            flag:    f.league.flag,
-            season:  f.league.season,
-            round:   f.league.round,
+            id: leagueIdFromUid(ev.uid),
+            name: leagueNameFromSlug(slug),
+            country: '',
+            logo: '',  // ESPN's multi-league scoreboard omits per-league logos
+            flag: '',
+            season: '',
+            round: '',
         },
-        home: {
-            id:     f.teams.home.id,
-            name:   f.teams.home.name,
-            logo:   f.teams.home.logo,
-            winner: f.teams.home.winner,
-        },
-        away: {
-            id:     f.teams.away.id,
-            name:   f.teams.away.name,
-            logo:   f.teams.away.logo,
-            winner: f.teams.away.winner,
-        },
-        goals: f.goals,
-        score: f.score,
+        home: side(h),
+        away: side(a),
+        goals: { home: toInt(h.score), away: toInt(a.score) },
+        score: { halftime: { home: null, away: null }, fulltime: { home: toInt(h.score), away: toInt(a.score) } },
     };
 }
 
@@ -111,44 +112,27 @@ export default async function handler(req, res) {
     const date = tabToDate(tab);
 
     try {
-        const r = await fetch(
-            `${API_BASE}/fixtures?date=${date}&timezone=Asia%2FKolkata`,
-            { headers: { 'x-apisports-key': API_KEY, Accept: 'application/json' } }
-        );
-        if (!r.ok) throw new Error(`api-sports ${r.status}`);
-        const data = await r.json();
+        const data = await getJson(`${ESPN_BASE}/all/scoreboard?dates=${espnDate(date)}`);
+        const matches = (data.events || []).map(normMatch);
 
-        const matches = (data.response || []).map(normMatch);
-
-        // Group by league
+        // Group by competition (ESPN league id from the uid).
         const leagueMap = {};
         for (const m of matches) {
-            const key = m.league.id;
+            const key = m.league.id || m.league.name;
             if (!leagueMap[key]) leagueMap[key] = { league: m.league, matches: [] };
             leagueMap[key].matches.push(m);
         }
 
-        // Sort leagues: priority list first, then country popularity, then name
         const leagues = Object.values(leagueMap).sort((a, b) => {
-            const pa = PRIORITY_IDS.indexOf(a.league.id);
-            const pb = PRIORITY_IDS.indexOf(b.league.id);
-            if (pa !== -1 && pb !== -1) return pa - pb;
-            if (pa !== -1) return -1;
-            if (pb !== -1) return 1;
-            // Neither in priority list: rank by country popularity
-            const ra = COUNTRY_RANK[a.league.country] ?? 999;
-            const rb = COUNTRY_RANK[b.league.country] ?? 999;
+            const ra = priorityRank(a.league.name), rb = priorityRank(b.league.name);
             if (ra !== rb) return ra - rb;
             return a.league.name.localeCompare(b.league.name);
         });
-
-        // Sort matches within each league by kick-off
         leagues.forEach(g => g.matches.sort((a, b) => a.timestamp - b.timestamp));
 
         const cacheSec = tab === 'yesterday' ? 86400 : tab === 'tomorrow' ? 7200 : 1800;
-        res.setHeader('Cache-Control', `s-maxage=${cacheSec}, stale-while-revalidate=${cacheSec / 2}`);
+        res.setHeader('Cache-Control', `s-maxage=${cacheSec}, stale-while-revalidate=${Math.floor(cacheSec / 2)}`);
         return res.status(200).json({ tab, date, total: matches.length, leagues });
-
     } catch (err) {
         console.error('[match-schedule]', err.message);
         res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
