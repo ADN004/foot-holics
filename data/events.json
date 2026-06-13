@@ -43,9 +43,17 @@
       {
         "name": "FOX SPORTS  US",
         "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZRws-Qk4WYBQ_Rh1fR0IODnpeWx9kV3oUBFMCAkROf0IKTmsCfRdUUgAEEkh6FwoYZ1ZnR1deURhMCC8&type=shaka&ck=~U3wSBFVQUhZIfEENGDYDKhIHB1QGQBotQlpPMQd8QVQKUFJFT3ITDkg2Xi0QClVWAhlLKhAPSGEFKxcKUQpXEE4"
+      },
+      {
+        "name": "Caze TV 2",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZEgElA0keMwg5Fh1fR0IODnpeAUs0AnxHAAYHDhVIf0VdSDBXKRVRUwdUEkotEAAbNFZnR1deURhMCC8&type=shaka&ck=~VXwQBQVXUkAackgIGzZTLR0ABQYOQB0pFQ5LYlJ5FFMKBwYQGnlBABkxBSwXAANTVRFIKRcMGzFXfUYGAARVQ0w"
+      },
+      {
+        "name": "DAZN HDR",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4eIxUPSjQWOwlQSR9ZUR0lAlYPIAMrQl5ZShhEACYQQVQlCTpPV0JBGEUdPV5QFDYDMApfA0cO&type=hls"
       }
     ],
-    "streams": 7
+    "streams": 9
   },
   {
     "id": "event-1781296148697",
