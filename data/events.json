@@ -1,5 +1,33 @@
 [
   {
+    "id": "event-1781374958372",
+    "date": "2026-06-14",
+    "time": "00:30",
+    "slug": "2026-06-14-qatar-vs-switzerland",
+    "title": "Qatar vs Switzerland",
+    "homeTeam": "Qatar",
+    "awayTeam": "Switzerland",
+    "homeLogo": "https://footholics.in/assets/img/logos/teams/wc/qatar.png",
+    "awayLogo": "https://footholics.in/assets/img/logos/teams/wc/switzerland.png",
+    "league": "World Cup 2026",
+    "leagueSlug": "wc",
+    "stadium": "Levi's stadium",
+    "poster": "assets/img/2026-06-14-qatar-vs-switzerland-poster.jpg",
+    "excerpt": "Underdogs meet ambition as Qatar takes on Switzerland in a crucial Group B battle—where every point could shape the road to the knockout stage. Expect...",
+    "status": "upcoming",
+    "broadcast": [
+      {
+        "name": "Telemundo HD",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4UIgdcVz0ILUVCQB9GUxxmH1wNIUgpT1NdU19bHS9fVx8mSQtLXERXWFVXCDx4PA0pBBYfc2ZkDEw4XE9IfSohUlcfUV5AFiUUVVI5EC1FGx9fV1IMLgMXFyIC&type=shaka&ck=~BS0TU1IBBhNKLkYMSWFWfx0LB1QDGRktFAlKYwQpRwYKBQRFTnhAWExkA34XB1MEBhlKchAJHDdRfxQHBQMAQkk"
+      },
+      {
+        "name": "Caze TV",
+        "url": "https://live.footholics.in/player.html?get=DjxQQkMIGQ4XPwVcVDEHK0xXHlNfV1UoFVdUPAM8C1BfXxtPET8DVlU-Dz5BHVNeX0QWPwIWHjMVIAtXXlEZEgElA0keMwg5Fh1fR0IODnpeAUs0AnxHAAYHDhVIf0VdSDBXKRVRUwdUEkotEAAbNFZnR1deURhMCC8&type=shaka&ck=~VXwQBQVXUkAackgIGzZTLR0ABQYOQB0pFQ5LYlJ5FFMKBwYQGnlBABkxBSwXAANTVRFIKRcMGzFXfUYGAARVQ0w"
+      }
+    ],
+    "streams": 2
+  },
+  {
     "id": "event-1781296148697",
     "date": "2026-06-13",
     "time": "06:30",
