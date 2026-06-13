@@ -1,49 +1,121 @@
 /**
  * /api/match-info?slug=SLUG
  *
- * Server-side proxy for api-sports (api-football).
- * Returns: fixture ID + head-to-head history for a given match slug.
- * Cached 24 hours on Vercel edge — only called ONCE per match per day.
- * API cost: 2 calls/day per match (fixture search + H2H).
+ * ESPN-based match info: resolves a match to its ESPN event id and returns
+ * head-to-head history. ESPN's hidden site API is KEYLESS and has no daily
+ * quota (same source as standings.js), so this removes the api-football limit.
+ *
+ * The response is reshaped into the api-football-style shape the live detail
+ * page already renders, so detail.html needs no H2H changes:
+ *   { fixtureId, espnLeague, h2h: [ { fixture:{date}, teams:{home,away}, goals:{home,away}, league:{name} } ] }
+ *
+ * `espnLeague` is the ESPN league slug of the resolved event — match-live needs
+ * it to build the per-league summary URL.
+ *
+ * Cached 24h on Vercel edge (H2H barely changes), shared across all visitors.
  */
 
-// Set in Vercel → Settings → Environment Variables (never hardcode — public repo).
-const API_KEY  = process.env.API_FOOTBALL_KEY;
-const API_BASE = 'https://v3.football.api-sports.io';
+const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 
-const LEAGUE_MAP = {
-    'champions-league':  { id: 2,   season: 2025 },
-    'europa-league':     { id: 3,   season: 2025 },
-    'conference-league': { id: 848, season: 2025 },
-    'premier-league':    { id: 39,  season: 2025 },
-    'la-liga':           { id: 140, season: 2025 },
-    'laliga':            { id: 140, season: 2025 }, // the bot writes "laliga"
-    'serie-a':           { id: 135, season: 2025 },
-    'bundesliga':        { id: 78,  season: 2025 },
-    'ligue-1':           { id: 61,  season: 2025 },
-    'eredivisie':        { id: 88,  season: 2025 },
-    'isl':               { id: 323, season: 2025 },
-    'fa-cup':            { id: 45,  season: 2025 },
-    'copa-del-rey':      { id: 143, season: 2025 },
-    'carabao-cup':       { id: 48,  season: 2025 },
-    'dfb-pokal':         { id: 81,  season: 2025 },
+// bot leagueSlug → ESPN league slug candidates (tried in order until the fixture
+// is found). World Cup / international matches span several ESPN competitions,
+// so we list the likely ones.
+const ESPN_LEAGUES = {
+    'premier-league':   ['eng.1'],
+    'laliga':           ['esp.1'],
+    'la-liga':          ['esp.1'],
+    'serie-a':          ['ita.1'],
+    'bundesliga':       ['ger.1'],
+    'ligue-1':          ['fra.1'],
+    'champions-league': ['uefa.champions'],
+    'europa-league':    ['uefa.europa'],
+    'conference-league':['uefa.europa.conf'],
+    'wc':               ['fifa.world', 'fifa.friendly', 'fifa.worldq.conmebol',
+                         'fifa.worldq.uefa', 'fifa.worldq.concacaf', 'fifa.worldq.afc',
+                         'fifa.worldq.caf'],
+    'nationals':        ['fifa.friendly', 'fifa.world', 'uefa.nations'],
 };
 
-async function apiFetch(path) {
-    const res = await fetch(`${API_BASE}${path}`, {
-        headers: { 'x-apisports-key': API_KEY, 'Accept': 'application/json' },
-    });
-    if (!res.ok) throw new Error(`api-sports ${res.status} on ${path}`);
-    return res.json();
-}
+// Best-effort sweep for unmapped leagues ("others" etc.).
+const FALLBACK_SLUGS = ['eng.1', 'esp.1', 'ita.1', 'ger.1', 'fra.1',
+    'uefa.champions', 'fifa.world', 'fifa.friendly', 'usa.1'];
 
 function teamMatch(a, b) {
-    const clean = s => s.toLowerCase()
+    const clean = s => String(s || '').toLowerCase()
         .replace(/^(fc|ac|as|afc|cf|rc|rcd|vf|sv|rb|sk|fk|cd|ud|sc|ss)\s/i, '')
         .trim();
     a = clean(a); b = clean(b);
+    if (!a || !b) return false;
     return a === b || a.includes(b) || b.includes(a) ||
            a.split(' ')[0] === b.split(' ')[0];
+}
+
+function espnDate(isoDate) {
+    return String(isoDate || '').replace(/-/g, ''); // "2026-06-13" → "20260613"
+}
+
+function prevEspnDate(isoDate) {
+    const d = new Date(isoDate + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+async function getJson(url) {
+    const r = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!r.ok) throw new Error(`espn ${r.status} on ${url}`);
+    return r.json();
+}
+
+// Scan candidate ESPN leagues on a date for the fixture; return { id, slug } or null.
+async function findEvent(slugs, date, home, away) {
+    for (const slug of slugs) {
+        let data;
+        try {
+            data = await getJson(`${ESPN_BASE}/${slug}/scoreboard?dates=${date}`);
+        } catch {
+            continue; // unknown slug / no events that day
+        }
+        for (const ev of (data.events || [])) {
+            const comp = ev.competitions && ev.competitions[0];
+            const competitors = (comp && comp.competitors) || [];
+            const h = competitors.find(c => c.homeAway === 'home');
+            const a = competitors.find(c => c.homeAway === 'away');
+            if (!h || !a) continue;
+            const hn = h.team && h.team.displayName;
+            const an = a.team && a.team.displayName;
+            // accept either orientation (operator may have entered teams reversed)
+            if ((teamMatch(hn, home) && teamMatch(an, away)) ||
+                (teamMatch(hn, away) && teamMatch(an, home))) {
+                return { id: ev.id, slug };
+            }
+        }
+    }
+    return null;
+}
+
+// Reshape ESPN headToHeadGames → the api-football-like array detail.html renders.
+function reshapeH2H(summary, fallbackPersp) {
+    const block = summary && Array.isArray(summary.headToHeadGames)
+        ? summary.headToHeadGames[0] : null;
+    if (!block || !Array.isArray(block.events)) return null;
+
+    const persp = (block.team && block.team.displayName) || fallbackPersp;
+    const toInt = v =>
+        (v === '' || v == null || isNaN(parseInt(v, 10))) ? null : parseInt(v, 10);
+
+    return block.events.map(e => {
+        const homeIsPersp = e.atVs === 'vs'; // "vs" = perspective team was home
+        const opp = (e.opponent && e.opponent.displayName) || '';
+        return {
+            fixture: { date: e.gameDate },
+            teams: {
+                home: { name: homeIsPersp ? persp : opp },
+                away: { name: homeIsPersp ? opp : persp },
+            },
+            goals: { home: toInt(e.homeTeamScore), away: toInt(e.awayTeamScore) },
+            league: { name: e.leagueName || e.competitionName || '' },
+        };
+    });
 }
 
 export default async function handler(req, res) {
@@ -54,69 +126,45 @@ export default async function handler(req, res) {
     const { slug } = req.query;
     if (!slug) return res.status(400).json({ error: 'slug required' });
 
+    const empty = (cacheSec) => {
+        res.setHeader('Cache-Control', `s-maxage=${cacheSec}, stale-while-revalidate=600`);
+        return res.status(200).json({ fixtureId: null, espnLeague: null, h2h: null });
+    };
+
     try {
-        // Load events.json to find the match
         const evRes = await fetch('https://footholics.in/data/events.json');
         if (!evRes.ok) throw new Error('events.json unavailable');
         const events = await evRes.json();
-        const event  = events.find(e => e.slug === slug);
-
+        const event = events.find(e => e.slug === slug);
         if (!event) return res.status(404).json({ error: 'Match not found' });
 
-        // events.json stores IST dates/times, so align api-football's date filter
-        // to IST — otherwise late-night/early-morning matches land on the wrong UTC day.
-        const TZ = 'Asia/Kolkata';
-        const matchTeams = f =>
-            teamMatch(f.teams.home.name, event.homeTeam) &&
-            teamMatch(f.teams.away.name, event.awayTeam);
+        const candidates = ESPN_LEAGUES[event.leagueSlug] || FALLBACK_SLUGS;
 
-        // ── Find the fixture ─────────────────────────────────────────
-        // 1) If the league is mapped, query it directly (cheapest, most precise).
-        // 2) Otherwise — or if that finds nothing — fall back to a date-wide search
-        //    across ALL competitions and match on team names. This covers World Cup,
-        //    Nationals, friendlies, "Others", and any league not in LEAGUE_MAP.
-        const league = LEAGUE_MAP[event.leagueSlug];
-        let fixture = null;
-
-        if (league) {
-            const fd = await apiFetch(
-                `/fixtures?date=${event.date}&league=${league.id}&season=${league.season}&timezone=${TZ}`
-            );
-            fixture = (fd.response || []).find(matchTeams) || null;
+        // Try the stored (IST) date, then the previous day — events.json holds IST
+        // dates, and ESPN buckets by its own day, so a late-night IST match can sit
+        // on the previous ESPN date.
+        let found = await findEvent(candidates, espnDate(event.date),
+            event.homeTeam, event.awayTeam);
+        if (!found) {
+            found = await findEvent(candidates, prevEspnDate(event.date),
+                event.homeTeam, event.awayTeam);
         }
+        if (!found) return empty(3600); // not on ESPN (date/teams/coverage) — retry in 1h
 
-        if (!fixture) {
-            const fd = await apiFetch(`/fixtures?date=${event.date}&timezone=${TZ}`);
-            fixture = (fd.response || []).find(matchTeams) || null;
-        }
-
-        if (!fixture) {
-            // No api-football fixture for this match (date/team mismatch or not covered)
-            res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=600');
-            return res.status(200).json({ fixtureId: null, homeTeamId: null, awayTeamId: null, h2h: null });
-        }
-
-        const fixtureId  = fixture.fixture.id;
-        const homeTeamId = fixture.teams.home.id;
-        const awayTeamId = fixture.teams.away.id;
-
-        // ── Fetch H2H ────────────────────────────────────────────────
-        const hd = await apiFetch(
-            `/fixtures/headtohead?h2h=${homeTeamId}-${awayTeamId}&last=10`
+        const summary = await getJson(
+            `${ESPN_BASE}/${found.slug}/summary?event=${found.id}`
         );
+        const h2h = reshapeH2H(summary, event.homeTeam);
 
-        // Cache 24 hours — fixture ID and H2H never change for a match
+        // Event id + H2H are stable for a match → cache 24h.
         res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=3600');
         return res.status(200).json({
-            fixtureId,
-            homeTeamId,
-            awayTeamId,
-            h2h: hd.response || null,
+            fixtureId: found.id,
+            espnLeague: found.slug,
+            h2h,
         });
-
     } catch (err) {
         console.error('[match-info]', err.message);
-        // Short cache on error so it retries soon
         res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
         return res.status(500).json({ error: 'Failed to fetch match info' });
     }
